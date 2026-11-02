@@ -170,8 +170,8 @@
 | 文档/资产 | 内容 | 状态 |
 |---|---|---|
 | [R03.36架构设计](docs/architecture/R03.36-package-signature-provenance-and-license-governance.md) | 签名信任、密钥生命周期、Provenance、SPDX许可治理与发布门禁 | v0.1设计草案；DEC-27/28/29保持OPEN |
-| [Attestation Schema](contracts/package-attestation.schema.v1alpha1.json) | Package主体与签名信封 | Draft；等待CI；不含真实验签 |
-| [Provenance Schema](contracts/package-provenance.schema.v1alpha1.json) | Builder、Source、Materials和Build时间 | Draft；等待CI |
-| [License Record Schema](contracts/package-license-record.schema.v1alpha1.json) | Asset来源、权利声明、证据及审核 | Draft；等待CI |
-| [Governance Validator](scripts/validate_package_governance.py) | 信任注册表、Package主体绑定和许可策略静态检查 | Draft；等待CI；不执行密码学验签 |
+| [Attestation Schema](contracts/package-attestation.schema.v1alpha1.json) | Package主体与签名信封 | Draft；Run #106结构/信任策略通过（局部）；不含真实验签 |
+| [Provenance Schema](contracts/package-provenance.schema.v1alpha1.json) | Builder、Source、Materials和Build时间 | Draft；Run #106 Schema/Fixture验证通过（局部） |
+| [License Record Schema](contracts/package-license-record.schema.v1alpha1.json) | Asset来源、权利声明、证据及审核 | Draft；Run #106 Schema/Fixture验证通过（局部） |
+| [Governance Validator](scripts/validate_package_governance.py) | 信任注册表、Package主体绑定和许可策略静态检查 | Draft；Run #106静态策略验证通过（局部）；不执行密码学验签 |
 
