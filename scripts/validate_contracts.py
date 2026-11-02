@@ -34,10 +34,25 @@ def validate_schema_and_fixtures() -> None:
     event_schema = load_json("contracts/runtime-event-envelope.schema.v1.json")
     model_schema = load_json("contracts/scientific-model.schema.v1alpha1.json")
     observation_schema = load_json("contracts/observation.schema.v1alpha1.json")
+    unit_schema = load_json("contracts/units/unit-registry.schema.v1.json")
+    unit_registry = load_json("contracts/units/si-unit-registry.v1.json")
     jsonschema.Draft202012Validator.check_schema(package_schema)
     jsonschema.Draft202012Validator.check_schema(event_schema)
     jsonschema.Draft202012Validator.check_schema(model_schema)
     jsonschema.Draft202012Validator.check_schema(observation_schema)
+    jsonschema.Draft202012Validator.check_schema(unit_schema)
+    unit_validator = jsonschema.Draft202012Validator(
+        unit_schema, format_checker=jsonschema.FormatChecker()
+    )
+    require(not list(unit_validator.iter_errors(unit_registry)),
+            "Unit registry fixture must validate")
+    require(not unit_registry_semantic_errors(unit_registry),
+            "Unit registry IDs, dimensions, scales, and dimensional identities must validate")
+    units_by_id = {item["unit_id"]: item for item in unit_registry["units"]}
+    invalid_registry = copy.deepcopy(unit_registry)
+    invalid_registry["units"].append(copy.deepcopy(invalid_registry["units"][0]))
+    require(bool(unit_registry_semantic_errors(invalid_registry)),
+            "Unit registry with duplicate unit_id must be rejected")
 
     package_validator = jsonschema.Draft202012Validator(
         package_schema, format_checker=jsonschema.FormatChecker()
@@ -114,6 +129,12 @@ def validate_schema_and_fixtures() -> None:
             "Scientific Model positive fixture must validate")
     require(not scientific_model_semantic_errors(model_fixture),
             "Scientific Model semantic references and parameter ranges must validate")
+    require(not model_unit_semantic_errors(model_fixture, units_by_id),
+            "Scientific Model parameter/variable units must match registered quantity kinds")
+    invalid_model_unit = copy.deepcopy(model_fixture)
+    invalid_model_unit["spec"]["parameters"][1]["unit"] = "V"
+    require(bool(model_unit_semantic_errors(invalid_model_unit, units_by_id)),
+            "Scientific Model with dimensionally incompatible unit must be rejected")
     invalid_model = copy.deepcopy(model_fixture)
     invalid_model["spec"]["equations"][0]["inputs"][0] = "unknown-variable"
     require(bool(scientific_model_semantic_errors(invalid_model)),
@@ -129,19 +150,19 @@ def validate_schema_and_fixtures() -> None:
     observation = load_json("contracts/examples/observation.valid.json")
     require(not list(observation_validator.iter_errors(observation)),
             "Observation positive fixture must validate")
-    require(not observation_semantic_errors(observation, model_fixture, valid_package),
+    require(not observation_semantic_errors(observation, model_fixture, valid_package, units_by_id),
             "Observation references and unit must match the pinned Package and Model")
     invalid_quantity = copy.deepcopy(observation)
     invalid_quantity["metadata"]["quantityId"] = "unknown-quantity"
-    require(bool(observation_semantic_errors(invalid_quantity, model_fixture, valid_package)),
+    require(bool(observation_semantic_errors(invalid_quantity, model_fixture, valid_package, units_by_id)),
             "Observation with unknown quantity must be rejected")
     invalid_unit = copy.deepcopy(observation)
     invalid_unit["metadata"]["unit"] = "V"
-    require(bool(observation_semantic_errors(invalid_unit, model_fixture, valid_package)),
+    require(bool(observation_semantic_errors(invalid_unit, model_fixture, valid_package, units_by_id)),
             "Observation unit inconsistent with Model quantity must be rejected")
     invalid_model_version = copy.deepcopy(observation)
     invalid_model_version["metadata"]["modelVersion"] = "9.9.9"
-    require(bool(observation_semantic_errors(invalid_model_version, model_fixture, valid_package)),
+    require(bool(observation_semantic_errors(invalid_model_version, model_fixture, valid_package, units_by_id)),
             "Observation with unpinned Model version must be rejected")
     invalid_observation = copy.deepcopy(observation)
     invalid_observation["data"]["valueRef"] = {
@@ -151,7 +172,80 @@ def validate_schema_and_fixtures() -> None:
     }
     require(bool(list(observation_validator.iter_errors(invalid_observation))),
             "Observation with both scalar value and valueRef must be rejected")
-    print("PASS: Draft 2020-12 meta-schema checks, typed Event payloads, Package/Model/Observation semantics, and negative fixtures")
+    print("PASS: Draft 2020-12 Schema, Unit Registry/dimensions, typed Event payloads, Package/Model/Observation semantics, and negative fixtures")
+
+
+def unit_registry_semantic_errors(registry: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    units = registry["units"]
+    unit_ids = [item["unit_id"] for item in units]
+    if len(unit_ids) != len(set(unit_ids)):
+        errors.append("unit_id values must be unique")
+    by_id = {item["unit_id"]: item for item in units}
+    expected_dimensions = {
+        "V": [1, 2, -3, -1],
+        "A": [0, 0, 0, 1],
+        "ohm": [1, 2, -3, -2],
+        "W": [1, 2, -3, 0],
+        "F": [-1, -2, 4, 2],
+        "s": [0, 0, 1, 0],
+        "1": [0, 0, 0, 0],
+    }
+    for unit in units:
+        if len(unit["dimension"]) != 4:
+            errors.append(f"{unit['unit_id']}: dimension vector must have four exponents")
+        if not math.isfinite(unit["scale_to_si"]) or unit["scale_to_si"] <= 0:
+            errors.append(f"{unit['unit_id']}: scale_to_si must be finite and positive")
+        if not math.isfinite(unit["offset_to_si"]):
+            errors.append(f"{unit['unit_id']}: offset_to_si must be finite")
+        expected = expected_dimensions.get(unit["unit_id"])
+        if expected is not None and unit["dimension"] != expected:
+            errors.append(f"{unit['unit_id']}: canonical SI dimension vector mismatch")
+    if all(key in by_id for key in ("V", "A", "ohm", "W", "F", "s")):
+        subtract = lambda left, right: [
+            a - b for a, b in zip(left, right)
+        ]
+        add = lambda left, right: [
+            a + b for a, b in zip(left, right)
+        ]
+        if subtract(by_id["V"]["dimension"], by_id["A"]["dimension"]) != by_id["ohm"]["dimension"]:
+            errors.append("ohm dimension must equal V/A")
+        if add(by_id["V"]["dimension"], by_id["A"]["dimension"]) != by_id["W"]["dimension"]:
+            errors.append("watt dimension must equal V*A")
+        if add(by_id["ohm"]["dimension"], by_id["F"]["dimension"]) != by_id["s"]["dimension"]:
+            errors.append("second dimension must equal ohm*farad")
+    return errors
+
+
+def model_unit_semantic_errors(
+    model: dict[str, Any], units_by_id: dict[str, dict[str, Any]]
+) -> list[str]:
+    errors: list[str] = []
+    spec = model["spec"]
+    for item in spec["parameters"] + spec["variables"]:
+        unit = units_by_id.get(item["unit"])
+        if unit is None:
+            errors.append(f"{item['id']}: unknown unit_id {item['unit']}")
+        elif item["quantityKind"] not in unit["quantity_kinds"]:
+            errors.append(
+                f"{item['id']}: quantityKind {item['quantityKind']} is incompatible with {item['unit']}"
+            )
+    for initial in spec["initialConditions"]:
+        if initial["unit"] not in units_by_id:
+            errors.append(f"initial condition references unknown unit_id {initial['unit']}")
+    return errors
+
+
+def require_quantity_unit(
+    unit_id: str,
+    quantity_kind: str,
+    label: str,
+    units_by_id: dict[str, dict[str, Any]],
+) -> None:
+    unit = units_by_id.get(unit_id)
+    require(unit is not None, f"{label}: unknown unit_id {unit_id}")
+    require(quantity_kind in unit["quantity_kinds"],
+            f"{label}: unit {unit_id} is incompatible with {quantity_kind}")
 
 
 def package_semantic_errors(
@@ -176,6 +270,7 @@ def observation_semantic_errors(
     observation: dict[str, Any],
     model: dict[str, Any],
     package: dict[str, Any],
+    units_by_id: dict[str, dict[str, Any]],
 ) -> list[str]:
     metadata = observation["metadata"]
     errors: list[str] = []
@@ -193,6 +288,11 @@ def observation_semantic_errors(
         errors.append("Observation quantityId does not exist in Model variables")
     elif quantity["unit"] != metadata["unit"]:
         errors.append("Observation unit does not match Model variable unit")
+    unit = units_by_id.get(metadata["unit"])
+    if unit is None:
+        errors.append("Observation references unknown unit_id")
+    elif quantity is not None and quantity["quantityKind"] not in unit["quantity_kinds"]:
+        errors.append("Observation unit is incompatible with Model quantityKind")
     return errors
 
 
@@ -341,6 +441,8 @@ def close(actual: float, expected: float, label: str) -> None:
 
 
 def validate_dc_reference_cases() -> None:
+    unit_registry = load_json("contracts/units/si-unit-registry.v1.json")
+    units_by_id = {item["unit_id"]: item for item in unit_registry["units"]}
     document = load_json("contracts/examples/dc-circuit.reference-cases.json")
     require(document.get("schema_version") == "0.1-draft",
             "Unexpected DC reference case version")
@@ -355,7 +457,7 @@ def validate_dc_reference_cases() -> None:
     for case in cases:
         case_id = case["case_id"]
         source = case["source_voltage"]
-        require(source["unit"] == "V", f"{case_id}: source voltage unit must be V")
+        require_quantity_unit(source["unit"], "electric-potential", f"{case_id} source voltage", units_by_id)
         voltage = float(source["value"])
         require(math.isfinite(voltage) and voltage >= 0,
                 f"{case_id}: source voltage must be finite and non-negative")
@@ -367,8 +469,8 @@ def validate_dc_reference_cases() -> None:
         require(len(ids) == len(set(ids)), f"{case_id}: resistor IDs must be unique")
         resistance_values = []
         for resistor in resistors:
-            require(resistor["unit"] == "ohm",
-                    f"{case_id}: resistance unit must be ohm")
+            require_quantity_unit(resistor["unit"], "electric-resistance",
+                                  f"{case_id} resistor", units_by_id)
             resistance = float(resistor["value"])
             require(math.isfinite(resistance) and resistance > 0,
                     f"{case_id}: resistance must be finite and positive")
@@ -380,10 +482,10 @@ def validate_dc_reference_cases() -> None:
         close(float(expected["equivalent_resistance"]["value"]), equivalent,
               f"{case_id} equivalent resistance")
         close(float(expected["current"]["value"]), current, f"{case_id} current")
-        require(expected["equivalent_resistance"]["unit"] == "ohm",
-                f"{case_id}: equivalent resistance unit must be ohm")
-        require(expected["current"]["unit"] == "A",
-                f"{case_id}: current unit must be A")
+        require_quantity_unit(expected["equivalent_resistance"]["unit"],
+                              "electric-resistance", f"{case_id} equivalent resistance", units_by_id)
+        require_quantity_unit(expected["current"]["unit"],
+                              "electric-current", f"{case_id} current", units_by_id)
 
         drops = expected["voltage_drops"]
         require(len(drops) == len(resistors),
@@ -392,7 +494,8 @@ def validate_dc_reference_cases() -> None:
         for resistor, drop in zip(resistors, drops):
             require(drop["resistor_id"] == resistor["id"],
                     f"{case_id}: voltage drop resistor ordering/reference mismatch")
-            require(drop["unit"] == "V", f"{case_id}: voltage drop unit must be V")
+            require_quantity_unit(drop["unit"], "electric-potential",
+                                  f"{case_id} voltage drop", units_by_id)
             calculated_drop = current * float(resistor["value"])
             close(float(drop["value"]), calculated_drop,
                   f"{case_id} {resistor['id']} voltage drop")
@@ -404,14 +507,16 @@ def validate_dc_reference_cases() -> None:
                              for resistance in resistance_values)
         close(float(expected["source_power"]["value"]), source_power,
               f"{case_id} source power")
-        require(expected["source_power"]["unit"] == "W",
-                f"{case_id}: source power unit must be W")
+        require_quantity_unit(expected["source_power"]["unit"], "power",
+                              f"{case_id} source power", units_by_id)
         close(source_power, resistor_power, f"{case_id} power balance")
 
     print(f"PASS: DC reference arithmetic, Ohm's law, KVL and power balance ({len(cases)} cases)")
 
 
 def validate_rc_reference_cases() -> None:
+    unit_registry = load_json("contracts/units/si-unit-registry.v1.json")
+    units_by_id = {item["unit_id"]: item for item in unit_registry["units"]}
     document = load_json("contracts/examples/rc-circuit.reference-cases.json")
     require(document.get("schema_version") == "0.1-draft",
             "Unexpected RC reference case version")
@@ -422,9 +527,14 @@ def validate_rc_reference_cases() -> None:
     tau = resistance * capacitance
     close(float(parameters["time_constant"]["value"]), tau,
           "RC time constant")
-    require(parameters["source_voltage"]["unit"] == "V", "RC source unit must be V")
-    require(parameters["resistance"]["unit"] == "ohm", "RC resistance unit must be ohm")
-    require(parameters["capacitance"]["unit"] == "F", "RC capacitance unit must be F")
+    require_quantity_unit(parameters["source_voltage"]["unit"], "electric-potential",
+                          "RC source voltage", units_by_id)
+    require_quantity_unit(parameters["resistance"]["unit"], "electric-resistance",
+                          "RC resistance", units_by_id)
+    require_quantity_unit(parameters["capacitance"]["unit"], "capacitance",
+                          "RC capacitance", units_by_id)
+    require_quantity_unit(parameters["time_constant"]["unit"], "time",
+                          "RC time constant", units_by_id)
     require(all(math.isfinite(value) for value in (source, resistance, capacitance, tau)),
             "RC parameters and time constant must be finite")
     require(source > 0 and resistance > 0 and capacitance > 0,
@@ -439,8 +549,8 @@ def validate_rc_reference_cases() -> None:
     for case in cases:
         case_id = case["case_id"]
         time_value = float(case["time"]["value"])
-        require(case["time"]["unit"] == "s" and math.isfinite(time_value)
-                and time_value >= 0,
+        require_quantity_unit(case["time"]["unit"], "time", f"{case_id} time", units_by_id)
+        require(math.isfinite(time_value) and time_value >= 0,
                 f"{case_id}: time must be finite non-negative seconds")
         require(time_value > previous_time,
                 f"{case_id}: RC sample times must be strictly increasing")
@@ -455,7 +565,11 @@ def validate_rc_reference_cases() -> None:
             actual = case["expected"][quantity]
             unit = {"capacitor_voltage": "V", "resistor_voltage": "V",
                     "current": "A"}[quantity]
-            require(actual["unit"] == unit, f"{case_id}: {quantity} unit mismatch")
+            quantity_kind = {"capacitor_voltage": "electric-potential",
+                             "resistor_voltage": "electric-potential",
+                             "current": "electric-current"}[quantity]
+            require_quantity_unit(actual["unit"], quantity_kind,
+                                  f"{case_id} {quantity}", units_by_id)
             close(float(actual["value"]), calculated, f"{case_id} {quantity}")
         vc = float(case["expected"]["capacitor_voltage"]["value"])
         vr = float(case["expected"]["resistor_voltage"]["value"])
