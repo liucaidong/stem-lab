@@ -53,3 +53,12 @@
 - 外部资源使用HTTPS主机allowlist，受限资源需要显式访问策略ID；
 - 资源图与现有Package Manifest映射仍待集成；静态检查不等于生产发布服务；
 - 设计细节见[R03.34](../docs/architecture/R03.34-package-resource-graph-and-dependency-closure.md)。
+
+
+## Canonical Manifest Projection
+
+- package-canonical-manifest.schema.v1alpha1.json定义摘要输入Projection；
+- 资源列表和依赖闭包有独立确定性排序规则；
+- 顶层Digest、签名和Attestation不参与自身摘要输入；
+- RFC 8785 JCS与RFC 8949 Deterministic CBOR均为候选，DEC-27保持OPEN；
+- 详细规则见[R03.35](../docs/architecture/R03.35-canonical-manifest-and-deterministic-package-digest.md)。
