@@ -16,6 +16,7 @@ import statistics
 import subprocess
 import sys
 import time
+from urllib.parse import urlsplit
 from pathlib import Path
 
 import asyncpg
@@ -148,10 +149,10 @@ async def psycopg_async_case(dsn: str, schema: str, role: str, token: str,
         await pool.close()
 
 
-async def asyncpg_case(dsn: str, schema: str, role: str, token: str,
+async def asyncpg_case(connection_config: dict[str, object], schema: str, role: str, token: str,
                        concurrency: int) -> dict[str, object]:
     pool = await asyncpg.create_pool(
-        dsn=dsn, min_size=POOL_MIN, max_size=POOL_MAX,
+        **connection_config, min_size=POOL_MIN, max_size=POOL_MAX,
         command_timeout=10,
     )
 
@@ -188,11 +189,11 @@ async def asyncpg_case(dsn: str, schema: str, role: str, token: str,
         await pool.close()
 
 
-async def run_async_cases(dsn: str, schema: str, role: str, token: str) -> list[dict[str, object]]:
+async def run_async_cases(dsn: str, asyncpg_config: dict[str, object], schema: str, role: str, token: str) -> list[dict[str, object]]:
     results: list[dict[str, object]] = []
     for concurrency in CONCURRENCY_LEVELS:
         results.append(await psycopg_async_case(dsn, schema, role, token, concurrency))
-        results.append(await asyncpg_case(dsn, schema, role, token, concurrency))
+        results.append(await asyncpg_case(asyncpg_config, schema, role, token, concurrency))
     return results
 
 
@@ -205,6 +206,14 @@ def main() -> None:
         user=fixture.LOGIN_ROLE,
         password=fixture.LOGIN_PASSWORD,
     )
+    parsed = urlsplit(database_url)
+    asyncpg_config = {
+        "host": parsed.hostname,
+        "port": parsed.port or 5432,
+        "database": parsed.path.lstrip("/") or "stemlab_test",
+        "user": fixture.LOGIN_ROLE,
+        "password": fixture.LOGIN_PASSWORD,
+    }
     token = test_class.issue_assertion(expires_at=int(time.time()) + 120)
     results: list[dict[str, object]] = []
     try:
@@ -217,14 +226,16 @@ def main() -> None:
             )
         results.extend(asyncio.run(
             run_async_cases(
-                runtime_dsn, fixture.SCHEMA, fixture.RUNTIME_ROLE, token
+                runtime_dsn, asyncpg_config, fixture.SCHEMA, fixture.RUNTIME_ROLE, token
             )
         ))
 
         env_path = os.environ["STORE_BENCH_ENV_FILE"]
         node_output = os.environ["STORE_BENCH_NODE_OUTPUT"]
         Path(env_path).write_text(json.dumps({
-            "dsn": runtime_dsn,
+            "node_config": {
+                **asyncpg_config,
+            },
             "schema": fixture.SCHEMA,
             "runtime_role": fixture.RUNTIME_ROLE,
             "token": token,
