@@ -43,7 +43,12 @@ def identity_key(identity):
 def graph_id(identity):
     return identity["resource_type"] + ":" + identity["resource_id"]
 
-def path_check(uri, storage):
+def path_check(uri, storage, canonical_path):
+    if (not canonical_path or canonical_path.startswith("/") or "\\\\" in canonical_path or
+        re.match(r"^[A-Za-z]:", canonical_path) or
+        any(part in ("", ".", "..") for part in canonical_path.split("/")) or
+        unicodedata.normalize("NFC", canonical_path) != canonical_path):
+        raise ProjectionError("RESOURCE_POLICY_REJECTED", "unsafe canonical resource path")
     if storage == "embedded":
         if (not uri or uri.startswith("/") or "\\" in uri or
             re.match(r"^[A-Za-z]:", uri) or
@@ -78,7 +83,7 @@ def build_projection(manifest, catalog, source_manifest_digest, model_documents)
             if old["identity"]["digest"] != ident["digest"]:
                 raise ProjectionError("CONFLICTING_CATALOG_DIGEST", str(key))
             raise ProjectionError("DUPLICATE_CATALOG_IDENTITY", str(key))
-        path_check(entry["uri"], entry["storage"])
+        path_check(entry["uri"], entry["storage"], entry["path"])
         if entry["storage"] == "external":
             host = urlparse(entry["uri"]).hostname.lower()
             if host not in {h.lower() for h in policy["external_host_allowlist"]}:
@@ -234,7 +239,7 @@ def build_projection(manifest, catalog, source_manifest_digest, model_documents)
             continue
         entry = entries[(node["resource_type"], node["resource_id"].split(":", 1)[-1], node["version"])]
         resource_rows.append({
-            "path": entry["uri"], "resource_type": node["resource_type"],
+            "path": entry["path"], "resource_type": node["resource_type"],
             "resource_id": node["resource_id"].split(":", 1)[-1],
             "version": node["version"], "media_type": entry["media_type"],
             "size_bytes": entry["size_bytes"], "digest": node["digest"],
