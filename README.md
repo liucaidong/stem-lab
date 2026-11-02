@@ -247,3 +247,13 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [Visualization/Instrument Schema](contracts/visualization-instrument-contract.schema.v1alpha1.json) | Scene/Timeline/Instrument结构 | Draft；等待CI |
 | [Visualization Validator](scripts/validate_visualization_instrument_contract.py) | Scene Graph、Timeline和Observation Binding静态检查 | Draft；Run #148通过静态Visualization/Instrument验证（局部）；未运行Renderer |
 
+
+
+### R03.44 — Engineering Integration Audit
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.44系统集成审计](docs/architecture/R03.44-engineering-integration-audit.md) | 跨Model/AST/Units/Package/Event/API/Runtime/Solver/Renderer审计 | CONDITIONAL_NOT_READY |
+| [机器可读审计报告](contracts/engineering-integration-audit.v1alpha1.json) | 14项检查、12项风险与工程就绪度 | Draft；等待CI |
+| [Integration Audit Validator](scripts/validate_integration_audit.py) | 关键Schema/版本/资源类型/状态机/CI覆盖一致性检查 | Draft；等待CI |
+
