@@ -61,7 +61,7 @@ class TenantRlsTrustBoundaryPostgresTests(unittest.TestCase):
         conn = psycopg.connect(DSN, autocommit=True)
         conn.execute(f"SET ROLE {ROLE}")
         conn.execute(f"SET search_path TO {SCHEMA}, public")
-        return connonn
+        return conn
 
     def test_missing_context_fails_closed(self):
         with self.connect() as conn:
