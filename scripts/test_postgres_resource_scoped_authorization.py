@@ -276,7 +276,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           c:={SCHEMA}.verify_v2(token);
           IF c IS NULL OR c->>'action'<>'worker.job.retry'
              OR delay_seconds IS NULL OR delay_seconds NOT BETWEEN 1 AND 86400
-             OR error_code IS NULL OR error_code !~ '^[A-Z][A-Z0-9_]{0,63}$' THEN
+             OR error_code IS NULL OR error_code !~ '^[A-Z][A-Z0-9_]{{0,63}}$' THEN
             RETURN false;
           END IF;
           IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN false; END IF;
