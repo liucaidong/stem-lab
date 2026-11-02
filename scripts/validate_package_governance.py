@@ -67,7 +67,7 @@ def main():
   elif m=="unknown-license": x["license_record"]["license_expression"]="LicenseRef-Unknown"
   elif m=="rights": x["license_record"]["rights_assertions"]["commercial_use"]=False
   elif m=="expired-exception":
-   x["license_record"]["license_expression"]="LicenseRef-Custom"; x["license_record"]["review"]["exception_id"]="EXC-001"
+   x["license_record"]["asset_id"]="asset:licensed-font"; x["license_record"]["license_expression"]="LicenseRef-Custom"; x["license_record"]["review"]["exception_id"]="EXC-001"
    x["policy"]["exceptions"][0]["expires_at"]="2026-01-01T00:00:00Z"
   elif m=="asset-digest":
    x["license_record"]["asset_id"]="asset:bound-material"; x["license_record"]["asset_digest"]="sha256:"+"c"*64
