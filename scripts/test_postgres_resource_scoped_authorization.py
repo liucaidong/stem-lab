@@ -50,8 +50,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.sessions (tenant_id text NOT NULL,session_id text NOT NULL,revision bigint NOT NULL,PRIMARY KEY(tenant_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.jobs (tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL CHECK(epoch>0),status text NOT NULL CHECK(status IN ('running','succeeded','failed')),lease_expires_at timestamptz NOT NULL,PRIMARY KEY(tenant_id,job_id),UNIQUE(tenant_id,job_id,session_id),FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.receipts (tenant_id text NOT NULL,operation_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,request_digest text NOT NULL,outcome text NOT NULL,PRIMARY KEY(tenant_id,operation_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
-        cls.admin.execute(f"CREATE TABLE {SCHEMA}.transitions (tenant_id text NOT NULL,transition_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,from_state text NOT NULL,to_state text NOT NULL,PRIMARY KEY(tenant_id,transition_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
-        cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox (tenant_id text NOT NULL,event_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,event_type text NOT NULL,PRIMARY KEY(tenant_id,event_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.transitions (tenant_id text NOT NULL,transition_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,from_state text NOT NULL,to_state text NOT NULL,PRIMARY KEY(tenant_id,transition_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox (tenant_id text NOT NULL,event_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,event_type text NOT NULL,PRIMARY KEY(tenant_id,event_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL,action text NOT NULL,resource_type text NOT NULL,resource_id text NOT NULL,operation_id text NOT NULL,PRIMARY KEY(issuer,kid,nonce))")
         for table in ("sessions","jobs","receipts","transitions","outbox","nonce_ledger"):
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} ENABLE ROW LEVEL SECURITY")
@@ -151,7 +151,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         allows_sql = f"""
         CREATE FUNCTION {SCHEMA}.assertion_allows(
           token text,row_tenant text,row_job text,row_session text,
-          expected_action text,expected_resource_type text,expected_resource_id text
+          expected_action text,expected_resource_type text,expected_resource_id text,expected_operation_id text
         ) RETURNS boolean LANGUAGE sql SECURITY DEFINER VOLATILE
         SET search_path=pg_catalog,{SCHEMA}
         AS $allows$
@@ -159,36 +159,48 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             WHERE n.token=token AND n.transaction_id=pg_current_xact_id()
               AND n.tenant_id=row_tenant AND n.job_id=row_job AND n.session_id=row_session
               AND n.action=expected_action AND n.resource_type=expected_resource_type
-              AND n.resource_id=expected_resource_id)
+              AND n.resource_id=expected_resource_id AND n.operation_id=expected_operation_id)
         $allows$
         """
         cls.admin.execute(allows_sql)
-        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text) OWNER TO {VERIFIER}")
+        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) OWNER TO {VERIFIER}")
         cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text) FROM PUBLIC")
 
         # Policies on job-scoped tables rely on nonce ledger consumption in this
         # transaction. The caller-controlled GUC alone grants no access.
-        for table in ("jobs","receipts","transitions","outbox"):
+        for table in ("receipts","transitions","outbox"):
             cls.admin.execute(
                 f"CREATE POLICY {table}_runtime_scope ON {SCHEMA}.{table} FOR ALL TO {RUNTIME} "
                 f"USING({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "current_setting('app.resource_job_id',true))) "
+                "current_setting('app.resource_job_id',true),current_setting('app.resource_operation_id',true))) "
                 f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "current_setting('app.resource_job_id',true)))"
+                "current_setting('app.resource_job_id',true),current_setting('app.resource_operation_id',true)))"
             )
+        cls.admin.execute(
+            f"CREATE POLICY jobs_runtime_scope ON {SCHEMA}.jobs FOR UPDATE TO {RUNTIME} "
+            f"USING(status='running' AND {SCHEMA}.assertion_allows("
+            "current_setting('app.resource_assertion',true),tenant_id,job_id,session_id,"
+            "'worker.job.complete','job',current_setting('app.resource_job_id',true),"
+            "current_setting('app.resource_operation_id',true))) "
+            f"WITH CHECK(status='succeeded' AND {SCHEMA}.assertion_allows("
+            "current_setting('app.resource_assertion',true),tenant_id,job_id,session_id,"
+            "'worker.job.complete','job',current_setting('app.resource_job_id',true),"
+            "current_setting('app.resource_operation_id',true)))"
+        )
         cls.admin.execute(
             f"CREATE POLICY sessions_runtime_scope ON {SCHEMA}.sessions FOR SELECT TO {RUNTIME} "
             f"USING(EXISTS(SELECT 1 FROM {SCHEMA}.jobs j WHERE j.tenant_id=sessions.tenant_id "
             f"AND j.session_id=sessions.session_id AND {SCHEMA}.assertion_allows("
             "current_setting('app.resource_assertion',true),j.tenant_id,j.job_id,j.session_id,"
-            "'worker.job.complete','job',current_setting('app.resource_job_id',true))))"
+            "'worker.job.complete','job',current_setting('app.resource_job_id',true),current_setting('app.resource_operation_id',true))))"
         )
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.authorize_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text) TO {RUNTIME}")
-        cls.admin.execute(f"GRANT SELECT,UPDATE ON {SCHEMA}.jobs TO {RUNTIME}")
+        cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.jobs TO {RUNTIME}")
+        cls.admin.execute(f"GRANT UPDATE(status) ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.receipts,{SCHEMA}.transitions,{SCHEMA}.outbox TO {RUNTIME}")
 
@@ -248,6 +260,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 return conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0]
 
     def test_valid_complete_unit_of_work(self):
@@ -265,8 +278,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 ).fetchall()
                 self.assertEqual(changed,[("job-a",)])
                 conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-1','APPLIED')")
-                conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','running','succeeded')")
-                conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','ev-a','job-a','session-a','job.completed')")
+                conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','op-a','running','succeeded')")
+                conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"succeeded")
 
     def test_same_token_reused_only_inside_same_transaction(self):
