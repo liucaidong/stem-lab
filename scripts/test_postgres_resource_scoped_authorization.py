@@ -187,7 +187,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              AND epoch=(c->>'epoch')::bigint AND status='running'
              AND lease_expires_at>clock_timestamp()
            RETURNING lease_expires_at INTO renewed_until;
-          IF NOT FOUND THEN RETURN NULL; END IF;
+          IF NOT FOUND THEN RAISE EXCEPTION 'lease fence changed during renewal'; END IF;
           RETURN renewed_until;
         EXCEPTION WHEN OTHERS THEN RETURN NULL;
         END $renew$
