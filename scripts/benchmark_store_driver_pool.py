@@ -138,8 +138,14 @@ async def psycopg_async_case(dsn: str, schema: str, role: str, token: str,
     try:
         await asyncio.gather(*(operation() for _ in range(10)))
         count = concurrency * ITERATIONS_PER_WORKER
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def bounded_operation():
+            async with semaphore:
+                return await operation()
+
         started = time.perf_counter()
-        results = await asyncio.gather(*(operation() for _ in range(count)))
+        results = await asyncio.gather(*(bounded_operation() for _ in range(count)))
         elapsed = time.perf_counter() - started
         return summarize(
             "psycopg3-async+AsyncConnectionPool", concurrency,
@@ -178,8 +184,14 @@ async def asyncpg_case(connection_config: dict[str, object], schema: str, role: 
     try:
         await asyncio.gather(*(operation() for _ in range(10)))
         count = concurrency * ITERATIONS_PER_WORKER
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def bounded_operation():
+            async with semaphore:
+                return await operation()
+
         started = time.perf_counter()
-        results = await asyncio.gather(*(operation() for _ in range(count)))
+        results = await asyncio.gather(*(bounded_operation() for _ in range(count)))
         elapsed = time.perf_counter() - started
         return summarize(
             "asyncpg", concurrency,
