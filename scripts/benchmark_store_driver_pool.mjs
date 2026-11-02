@@ -5,7 +5,7 @@ import pg from "pg";
 const { Pool } = pg;
 const env = JSON.parse(fs.readFileSync(process.env.STORE_BENCH_ENV_FILE, "utf8"));
 const concurrencyLevels = [1, 8, 32];
-const iterationsPerWorker = 80;
+const iterationsPerWorker = 20;
 
 function percentile(values, p) {
   const sorted = [...values].sort((a, b) => a - b);
