@@ -200,4 +200,4 @@ R03.50 [Run #212](https://github.com/liucaidong/stem-lab/actions/runs/4143021061
 - `sql/package-ingestion-worker/R03.51-ingestion-worker.sql` is reference DDL only; it assumes R03.50 Session tables and is not a production migration.
 - PostgreSQL lease/fencing tests are in `scripts/test_package_ingestion_worker_postgres.py`.
 
-R03.51 PostgreSQL reference evidence: [GitHub Actions Run #41439144434](https://github.com/liucaidong/stem-lab/actions/runs/41439144434) SUCCESS; 20/20 Worker lease/fencing/retry tests passed. This is not production Worker readiness.
+R03.51 PostgreSQL reference evidence: [GitHub Actions Run #41439689730](https://github.com/liucaidong/stem-lab/actions/runs/41439689730) SUCCESS; 20/20 Worker lease/fencing/retry tests passed. This is not production Worker readiness.
