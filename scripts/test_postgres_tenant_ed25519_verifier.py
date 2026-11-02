@@ -282,6 +282,11 @@ class PostgreSQLTenantEd25519VerifierTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         cls.admin.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
+        cls.admin.execute(f"REVOKE USAGE ON SCHEMA pgsodium FROM {VERIFIER_ROLE}")
+        cls.admin.execute(
+            "REVOKE EXECUTE ON FUNCTION pgsodium.crypto_sign_verify_detached(bytea,bytea,bytea) "
+            f"FROM {VERIFIER_ROLE}"
+        )
         cls.admin.execute(f"DROP ROLE IF EXISTS {LOGIN_ROLE}")
         cls.admin.execute(f"DROP ROLE IF EXISTS {RUNTIME_ROLE}")
         cls.admin.execute(f"DROP ROLE IF EXISTS {VERIFIER_ROLE}")
