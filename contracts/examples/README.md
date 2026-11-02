@@ -23,3 +23,9 @@ Additional test suites must cover semantic references, digest verification, Pack
 
 - `scientific-expression.fixtures.v1alpha1.json`包含欧姆定律、串联电阻、功率和RC电压导数的正向类型样例，以及维度、符号、函数、运算符、除零、非有限数、幂和资源限制负向案例。
 - 这些Fixtures由`scripts/validate_expression_ast.py`静态验证；不进行表达式求值。
+
+
+## Package Resource Graph Fixtures
+
+- `package-resource-graph.fixtures.v1alpha1.json`覆盖Package根、资源节点、依赖边、根可达闭包及外部/受限资源策略。
+- 由`scripts/validate_package_resource_graph.py`执行静态图检查；不访问网络或读取外部资源。
