@@ -182,8 +182,8 @@
 | 文档/资产 | 内容 | 状态 |
 |---|---|---|
 | [R03.37架构设计](docs/architecture/R03.37-runtime-event-registry-and-compatibility-governance.md) | Event Versioning、Producer/Consumer、Lifecycle、Replay、Retention和Poison Event | v0.1设计草案 |
-| [Event Registry Schema](contracts/events/registry.schema.v1alpha1.json) | 版本化事件治理元数据 | Draft；等待CI |
-| [Event Registry](contracts/events/registry.v1.json) | 三种代表事件登记及治理字段 | Draft；等待CI |
+| [Event Registry Schema](contracts/events/registry.schema.v1alpha1.json) | 版本化事件治理元数据 | Draft；Run #132通过API错误目录和8种命令Payload映射（局部） |
+| [Event Registry](contracts/events/registry.v1.json) | 三种代表事件登记及治理字段 | Draft；Run #132通过JWT Claims/授权/幂等/Cursor静态语义测试（局部） |
 | [Registry Validator](scripts/validate_event_registry.py) | 唯一性、兼容性、生命周期及Payload Schema/Fixture验证 | Draft；等待CI |
 
 
