@@ -45,7 +45,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.public_key, cls.private_key = cls.admin.execute(
             "SELECT public,secret FROM pgsodium.crypto_sign_new_keypair()"
         ).fetchone()
-        cls.admin.execute(f"CREATE TABLE {SCHEMA}.worker_assignments (assignment_id text PRIMARY KEY,worker_id text NOT NULL,enabled boolean NOT NULL,allowed_job_types text[] NOT NULL CHECK(cardinality(allowed_job_types)>0))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.worker_assignments (assignment_id text PRIMARY KEY,worker_id text NOT NULL,enabled boolean NOT NULL,allowed_job_types text[] NOT NULL CHECK(cardinality(allowed_job_types)>0),allowed_tenant_ids text[] NOT NULL CHECK(cardinality(allowed_tenant_ids)>0))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox_dispatchers (dispatcher_id text PRIMARY KEY,enabled boolean NOT NULL)")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.claim_nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,assignment_id text NOT NULL,worker_id text NOT NULL,tenant_id text,job_id text,session_id text,epoch bigint,lease_expires_at timestamptz,PRIMARY KEY(issuer,kid,nonce))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.issuer_keys (kid text PRIMARY KEY, issuer text NOT NULL, public_key bytea NOT NULL, not_before timestamptz NOT NULL, not_after timestamptz, revoked_at timestamptz)")
@@ -362,7 +362,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         AS $claim$
         DECLARE p text; s text; pb bytea; sb bytea; pk bytea; c jsonb;
                 i bigint; e bigint; now_s bigint; requested_types text[]; allowed_types text[];
-                tx xid8; ledger_tx xid8; ledger_tenant text; ledger_job text;
+                tx xid8; ledger_tx xid8; ledger_tenant text; ledger_job text; allowed_tenants text[];
                 ledger_session text; ledger_epoch bigint; ledger_token text; ledger_assignment text; ledger_worker text; candidate_tenant text;
                 candidate_job text; candidate_session text; candidate_epoch bigint;
                 expiry timestamptz;
@@ -403,7 +403,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
            WHERE kid=c->>'kid' AND issuer=c->>'iss' AND revoked_at IS NULL
              AND not_before<=clock_timestamp() AND (not_after IS NULL OR not_after>clock_timestamp());
           IF NOT FOUND OR pk IS NULL OR NOT pgsodium.crypto_sign_verify_detached(sb,convert_to(p,'UTF8'),pk) THEN RETURN; END IF;
-          SELECT allowed_job_types INTO allowed_types FROM {SCHEMA}.worker_assignments
+          SELECT allowed_job_types,allowed_tenant_ids INTO allowed_types,allowed_tenants FROM {SCHEMA}.worker_assignments
            WHERE assignment_id=c->>'assignment_id' AND worker_id=c->>'sub' AND enabled;
           IF NOT FOUND THEN RETURN; END IF;
           requested_types:=ARRAY(SELECT jsonb_array_elements_text(c->'job_types'));
@@ -435,7 +435,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           SELECT j.tenant_id,j.job_id,j.session_id,j.epoch
             INTO candidate_tenant,candidate_job,candidate_session,candidate_epoch
             FROM {SCHEMA}.jobs j
-           WHERE j.status IN ('queued','retry') AND j.available_at<=clock_timestamp()
+           WHERE j.tenant_id=ANY(allowed_tenants) AND j.status IN ('queued','retry') AND j.available_at<=clock_timestamp()
              AND j.job_type=ANY(requested_types) AND j.attempt_count<j.maximum_attempts
            ORDER BY j.available_at,j.tenant_id,j.job_id
            LIMIT 1 FOR UPDATE SKIP LOCKED;
@@ -782,9 +782,10 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(
             f"INSERT INTO {SCHEMA}.jobs (tenant_id,job_id,session_id,job_type,owner,epoch,status,lease_expires_at,attempt_count,maximum_attempts) VALUES "
             "('tenant-b','job-claim-b','session-x','generic',NULL,1,'queued',NULL,0,5),"
-            "('tenant-a','job-claim-restricted','session-a','restricted',NULL,1,'queued',NULL,0,5)"
+            "('tenant-a','job-claim-restricted','session-a','restricted',NULL,1,'queued',NULL,0,5),"
+            "('tenant-a','job-claim-cross-tenant','session-a','generic',NULL,1,'queued',NULL,0,5)"
         )
-        cls.admin.execute(f"INSERT INTO {SCHEMA}.worker_assignments VALUES ('assignment-a','worker-a',true,ARRAY['generic'])")
+        cls.admin.execute(f"INSERT INTO {SCHEMA}.worker_assignments VALUES ('assignment-a','worker-a',true,ARRAY['generic'],ARRAY['tenant-b'])")
         cls.admin.execute(f"INSERT INTO {SCHEMA}.outbox_dispatchers VALUES ('dispatcher-a',true)")
         cls.admin.execute(
             f"INSERT INTO {SCHEMA}.jobs (tenant_id,job_id,session_id,owner,epoch,status,lease_expires_at) VALUES "
@@ -809,6 +810,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET owner='worker-a',epoch=7,status='running',lease_expires_at=clock_timestamp()+interval '5 minutes',job_type='generic',available_at=clock_timestamp(),attempt_count=1,maximum_attempts=5,last_error_code=NULL WHERE tenant_id='tenant-a' AND job_id='job-a'")
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-b'")
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-restricted'")
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-cross-tenant'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.jobs WHERE job_id='job-claim-c'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.receipts WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a'")
@@ -926,6 +928,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 self.assertEqual(first[0][4],2)
         job=self.admin.execute(f"SELECT status,owner,epoch FROM {SCHEMA}.jobs WHERE job_id='job-claim-b'").fetchone()
         self.assertEqual(job,("running","worker-a",2))
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE job_id='job-claim-cross-tenant'").fetchone()[0],"queued")
 
     def test_claim_nonce_cannot_switch_signed_claims_inside_same_transaction(self):
         nonce="fedcba9876543210fedcba9876543210"
@@ -953,7 +956,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
     def test_concurrent_claim_uses_skip_locked_to_assign_distinct_jobs(self):
         self.admin.execute(
             f"INSERT INTO {SCHEMA}.jobs(tenant_id,job_id,session_id,job_type,owner,epoch,status,lease_expires_at,available_at,attempt_count,maximum_attempts) "
-            "VALUES ('tenant-a','job-claim-c','session-a','generic',NULL,1,'queued',NULL,clock_timestamp(),0,5)"
+            "VALUES ('tenant-b','job-claim-c','session-x','generic',NULL,1,'queued',NULL,clock_timestamp(),0,5)"
         )
         tokens=[self.issue_claim(),self.issue_claim()]
         barrier=threading.Barrier(2)
