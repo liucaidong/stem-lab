@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/runtime-command-registry/v1alpha1",
+  "title": "Runtime Command Payload Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "registry_version",
+    "commands"
+  ],
+  "properties": {
+    "registry_version": {
+      "const": "1alpha1"
+    },
+    "commands": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "command_type",
+          "schema_version",
+          "payload_schema_ref",
+          "allowed_actor_types",
+          "idempotency_required",
+          "expected_state_version_required",
+          "timeout_seconds",
+          "cancellation_policy",
+          "side_effect_class"
+        ],
+        "properties": {
+          "command_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "schema_version": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+$"
+          },
+          "payload_schema_ref": {
+            "type": "string",
+            "pattern": "^#/\\$defs/[A-Za-z][A-Za-z0-9]*$"
+          },
+          "allowed_actor_types": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "idempotency_required": {
+            "const": true
+          },
+          "expected_state_version_required": {
+            "const": true
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600
+          },
+          "cancellation_policy": {
+            "enum": [
+              "not-applicable",
+              "cooperative",
+              "immediate"
+            ]
+          },
+          "side_effect_class": {
+            "enum": [
+              "read-only",
+              "session-state",
+              "execution-control",
+              "external"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
