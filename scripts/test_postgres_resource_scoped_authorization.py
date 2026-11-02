@@ -405,6 +405,16 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             with self.subTest(change=change):
                 self.assertFalse(self.authorize_once(self.issue(**change)))
 
+    def test_old_worker_is_fenced_after_owner_epoch_reassignment(self):
+        old_capability=self.issue()
+        self.admin.execute(
+            f"UPDATE {SCHEMA}.jobs SET owner='worker-new',epoch=8 "
+            "WHERE tenant_id='tenant-a' AND job_id='job-a'"
+        )
+        self.assertFalse(self.authorize_once(old_capability))
+        new_capability=self.issue(owner="worker-new",sub="worker-new",epoch=8)
+        self.assertTrue(self.authorize_once(new_capability))
+
     def test_expired_persisted_lease_denied(self):
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE job_id='job-a'")
         self.assertFalse(self.authorize_once(self.issue()))
