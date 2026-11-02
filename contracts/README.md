@@ -17,7 +17,14 @@
 5. Event消费者必须支持重复投递和序列号检查。
 6. 正式冻结前必须在CI执行Schema/OpenAPI验证，并由产品、架构、安全和数据负责人审阅。
 
-## 自动化验证\n\n- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Runtime Event样例、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。\n- `requirements-contract-validation.txt`：固定验证依赖版本。\n- `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。\n- OpenAPI YAML基础解析不等于OpenAPI 3.1规范验证；该正式验证器尚未纳入。CI执行结果需以GitHub Actions运行记录为准。\n\n## 下一步
+## 自动化验证
+
+- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Runtime Event样例、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
+- `requirements-contract-validation.txt`：固定验证依赖版本。
+- `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。
+- OpenAPI YAML基础解析不等于OpenAPI 3.1规范验证；该正式验证器尚未纳入。CI执行结果需以GitHub Actions运行记录为准。
+
+## 下一步
 
 生成Package正/负样例、事件类型Schema、完整OpenAPI路径和Contract Test；执行R03.18所列Spike；所有验证报告关联Git commit。
 
