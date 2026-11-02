@@ -27,3 +27,6 @@
 Registry现在对每个代表事件记录Producer/Consumer、Lifecycle、Compatibility、Ordering Scope、Replay Policy、Retention、Data Classification和Poison Policy。当前只登记三种代表事件，新增事件需同时提交Schema、Fixture和治理元数据。
 
 自动化由scripts/validate_event_registry.py执行；真实Broker与Consumer验证归属R03.38。
+
+
+Registry Schema、治理字段及7个负向案例由Run #113验证通过（局部）；完整事件目录和真实Consumer集成仍未完成。
