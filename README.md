@@ -52,7 +52,21 @@
 | [R03.16 API与事件契约样例](docs/architecture/R03.16-api-event-contract-examples.md) | Session/Command/Observation API、事件信封、错误和消费规则 | v0.1；样例非正式规范 |
 | [R03.17 Package Manifest样例](docs/architecture/R03.17-package-manifest-example-and-schema-gate.md) | YAML样例、Schema规则、发布校验与正式Schema门禁 | v0.1；样例非正式Schema |
 | [R03.18 技术验证与Spike矩阵](docs/architecture/R03.18-technical-validation-and-spike-matrix.md) | 技术Spike、自动化测试、故障注入、数值验证和证据模板 | v0.1；尚未执行 |
+| [R03.14 领域数据模型与ERD](docs/architecture/R03.14-domain-data-model-and-erd.md) | 核心实体、关系、事务边界、约束、索引和RLS要求 | v0.1；逻辑模型草案 |
+| [R03.15 Runtime状态迁移矩阵](docs/architecture/R03.15-runtime-transition-and-command-matrix.md) | 状态迁移、Command权限、并发竞态、不变量和测试向量 | v0.1；契约草案 |
+| [R03.16 API与事件契约样例](docs/architecture/R03.16-api-event-contract-examples.md) | Session/Command/Observation API、事件信封、错误和消费规则 | v0.1；样例非正式规范 |
+| [R03.17 Package Manifest样例](docs/architecture/R03.17-package-manifest-example-and-schema-gate.md) | YAML样例、Schema规则、发布校验与正式Schema门禁 | v0.1；样例非正式Schema |
+| [R03.18 技术验证与Spike矩阵](docs/architecture/R03.18-technical-validation-and-spike-matrix.md) | 技术Spike、自动化测试、故障注入、数值验证和证据模板 | v0.1；尚未执行 |
 | [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、机器可验证工件、工程准入Gate和冻结声明 | v0.1；未达Implementation-Ready |
+| [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、机器可验证工件、工程准入Gate和冻结声明 | v0.1；未达Implementation-Ready |
+
+### Contracts — 机器可读契约草案
+| 文件 | 内容 | 状态 |
+|---|---|---|
+| [Contracts目录说明](contracts/README.md) | 契约使用约束与验证要求 | Draft |
+| [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；JSON语法已解析 |
+| [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | 事件信封结构约束 | Draft；JSON语法已解析 |
+| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API骨架 | Draft；尚未执行YAML/OpenAPI校验 |
 
 ## 核心产品与架构决策
 
