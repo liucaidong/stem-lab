@@ -46,6 +46,7 @@
 | [R03.10 API与事件契约](docs/architecture/R03.10-api-event-contracts.md) | REST/OpenAPI、幂等、错误模型、事件信封、顺序和版本策略 | v0.1；契约草案 |
 | [R03.11 多租户安全与威胁模型](docs/architecture/R03.11-multitenant-security-and-threat-model.md) | IAM/RLS、Worker隔离、Package/AI安全、隐私与威胁登记 | v0.1；待安全/法律审查 |
 | [R03.12 部署与质量工程](docs/architecture/R03.12-deployment-quality-and-release-validation.md) | 部署拓扑、CI门禁、测试分层、可观测、备份恢复和发布 | v0.1；待Spike验证 |
+| [R03.13 文档体系完整性审计与工程准入](docs/architecture/R03.13-document-system-audit-and-engineering-gate.md) | R01–R03覆盖审计、Implementation-Ready阻断项、下一阶段执行门禁 | v0.1；未达Implementation-Ready |
 
 ## 核心产品与架构决策
 
