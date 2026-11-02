@@ -39,7 +39,7 @@
           "uniqueItems": true,
           "items": {"type": "string", "minLength": 1, "maxLength": 128}
         },
-        "lease_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 300},
+        "lease_seconds": {"type": "number", "minimum": 1, "maximum": 300},
         "max_items": {"const": 1}
       }
     },
