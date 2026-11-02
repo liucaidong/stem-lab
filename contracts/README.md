@@ -253,3 +253,6 @@ R03.52.4 CI evidence: [GitHub Actions Run #41443666002](https://github.com/liuca
 - runtime/dlq_replay.py enforces dead_lettered source state, replay ceiling, new ID, and exact authorization scope.
 - scripts/validate_dlq_replay.py validates the plan schema; scripts/test_dlq_replay.py tests fail-closed authorization and replay invariants.
 - This is preflight only. Trusted identity, transactional Job creation, replay counter update, idempotency and immutable DB audit are not implemented; DEC-19 remains OPEN.
+
+
+R03.52.5 CI evidence: [GitHub Actions Run #41444145950](https://github.com/liucaidong/stem-lab/actions/runs/41444145950) SUCCESS; DLQ Replay Plan schema validation passed and 8/8 authorization preflight tests passed. This does not establish a trusted identity issuer or production transactional replay.

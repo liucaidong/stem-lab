@@ -302,7 +302,7 @@ The bridge does not enforce a hard termination deadline, cancel non-cooperative 
 | [Retry Policy Schema](contracts/worker-retry-policy.schema.v1alpha1.json) | Versioned error policy contract | Draft; Run #41443666002 PASS |
 | [Retry Policy Registry](contracts/worker-retry-policy.v1alpha1.json) | Illustrative transient/permanent/default policies | Candidate; not production policy |
 | [Retry evaluator](runtime/retry_policy.py) | Stable code mapping, fail-closed default, capped full jitter | Executable reference |
-| [Policy validator](scripts/validate_worker_retry_policy.py) | Schema, uniqueness and policy invariant checks | CI pending |
+| [Policy validator](scripts/validate_worker_retry_policy.py) | Schema, uniqueness and policy invariant checks | Run #41444145950 PASS |
 | [Policy tests](scripts/test_worker_retry_policy.py) | Jitter, cap, attempts, unknown code and safe message tests | CI pending |
 
 No production exception classifier, dynamic policy rollout, Job policy-version pin, or DLQ operator workflow is included.
@@ -312,7 +312,7 @@ No production exception classifier, dynamic policy rollout, Job policy-version p
 
 | Asset | Purpose | Status |
 |---|---|---|
-| [DLQ Replay Plan Schema](contracts/dlq-replay-plan.schema.v1alpha1.json) | New Job identity, tenant, actor, reason and authorization policy version | Draft; CI pending |
+| [DLQ Replay Plan Schema](contracts/dlq-replay-plan.schema.v1alpha1.json) | New Job identity, tenant, actor, reason and authorization policy version | Draft; Run #41444145950 PASS |
 | [Valid Replay Plan](contracts/examples/dlq-replay-plan.valid.json) | Representative immutable replay intent | Fixture |
 | [Replay preflight](runtime/dlq_replay.py) | Fail-closed authorization scope and replay-limit checks | Executable reference |
 | [Replay validator](scripts/validate_dlq_replay.py) | Schema and distinct Job identity checks | CI pending |
