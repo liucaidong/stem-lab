@@ -84,7 +84,8 @@
             "asset",
             "dataset",
             "solver-profile",
-            "other"
+            "other",
+            "expression"
           ]
         },
         "version": {
