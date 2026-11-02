@@ -13,56 +13,64 @@
         "resource_type": "package",
         "version": "1.0.0",
         "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/pkg-dc-series.json"
       },
       {
         "resource_id": "model:dc-series",
         "resource_type": "model",
         "version": "1.0.0",
         "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/model-dc-series.json"
       },
       {
         "resource_id": "scene:dc-series",
         "resource_type": "scene",
         "version": "1.0.0",
         "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/scene-dc-series.json"
       },
       {
         "resource_id": "instrument:voltmeter",
         "resource_type": "instrument",
         "version": "1.0.0",
         "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/instrument-voltmeter.json"
       },
       {
         "resource_id": "instrument:ammeter",
         "resource_type": "instrument",
         "version": "1.0.0",
         "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/instrument-ammeter.json"
       },
       {
         "resource_id": "workflow:dc-series",
         "resource_type": "workflow",
         "version": "1.0.0",
         "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/workflow-dc-series.json"
       },
       {
         "resource_id": "rubric:science",
         "resource_type": "rubric",
         "version": "1.0.0",
         "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/rubric-science.json"
       },
       {
         "resource_id": "asset:diagram",
         "resource_type": "asset",
         "version": "1.0.0",
         "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-        "storage": "embedded"
+        "storage": "embedded",
+        "uri": "resources/asset-diagram.json"
       }
     ],
     "edges": [
@@ -120,56 +128,64 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
             "resource_type": "asset",
             "version": "1.0.0",
             "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/asset-diagram.json"
           }
         ],
         "edges": [
@@ -232,63 +248,72 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
             "resource_type": "asset",
             "version": "1.0.0",
             "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/asset-diagram.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           }
         ],
         "edges": [
@@ -346,56 +371,64 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
             "resource_type": "asset",
             "version": "1.0.0",
             "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/asset-diagram.json"
           }
         ],
         "edges": [
@@ -453,56 +486,64 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
             "resource_type": "asset",
             "version": "1.0.0",
             "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/asset-diagram.json"
           }
         ],
         "edges": [
@@ -565,63 +606,72 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
             "resource_type": "asset",
             "version": "1.0.0",
             "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/asset-diagram.json"
           },
           {
             "resource_id": "orphan:resource",
             "resource_type": "asset",
             "version": "1.0.0",
             "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/orphan-resource.json"
           }
         ],
         "edges": [
@@ -679,49 +729,56 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
@@ -787,49 +844,56 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
@@ -895,49 +959,56 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
@@ -1003,49 +1074,56 @@
             "resource_type": "package",
             "version": "1.0.0",
             "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/pkg-dc-series.json"
           },
           {
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
             "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           },
           {
             "resource_id": "scene:dc-series",
             "resource_type": "scene",
             "version": "1.0.0",
             "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/scene-dc-series.json"
           },
           {
             "resource_id": "instrument:voltmeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-voltmeter.json"
           },
           {
             "resource_id": "instrument:ammeter",
             "resource_type": "instrument",
             "version": "1.0.0",
             "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/instrument-ammeter.json"
           },
           {
             "resource_id": "workflow:dc-series",
             "resource_type": "workflow",
             "version": "1.0.0",
             "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/workflow-dc-series.json"
           },
           {
             "resource_id": "rubric:science",
             "resource_type": "rubric",
             "version": "1.0.0",
             "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            "storage": "embedded"
+            "storage": "embedded",
+            "uri": "resources/rubric-science.json"
           },
           {
             "resource_id": "asset:diagram",
