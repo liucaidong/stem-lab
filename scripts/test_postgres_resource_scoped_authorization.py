@@ -62,9 +62,12 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE POLICY jobs_verifier_update ON {SCHEMA}.jobs FOR UPDATE TO {VERIFIER} USING(true) WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY receipts_verifier_read ON {SCHEMA}.receipts FOR SELECT TO {VERIFIER} USING(true)")
         cls.admin.execute(f"CREATE POLICY nonce_verifier_access ON {SCHEMA}.nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY transitions_verifier_insert ON {SCHEMA}.transitions FOR INSERT TO {VERIFIER} WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY outbox_verifier_insert ON {SCHEMA}.outbox FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs,{SCHEMA}.receipts TO {VERIFIER}")
         cls.admin.execute(f"GRANT UPDATE(status,lease_expires_at) ON {SCHEMA}.jobs TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.nonce_ledger TO {VERIFIER}")
+        cls.admin.execute(f"GRANT INSERT ON {SCHEMA}.transitions,{SCHEMA}.outbox TO {VERIFIER}")
 
         verify_sql = f"""
         CREATE FUNCTION {SCHEMA}.verify_v2(token text) RETURNS jsonb
@@ -213,6 +216,14 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              AND epoch=(c->>'epoch')::bigint AND status='running'
              AND lease_expires_at>clock_timestamp();
           IF NOT FOUND THEN RAISE EXCEPTION 'lease fence changed during failure transition'; END IF;
+          INSERT INTO {SCHEMA}.transitions
+            (tenant_id,transition_id,job_id,session_id,operation_id,from_state,to_state)
+          VALUES(c->>'tenant_id',(c->>'operation_id')||':failed',c->>'job_id',
+                 c->>'session_id',c->>'operation_id','running','failed');
+          INSERT INTO {SCHEMA}.outbox
+            (tenant_id,event_id,job_id,session_id,operation_id,event_type)
+          VALUES(c->>'tenant_id',(c->>'operation_id')||':job.failed',c->>'job_id',
+                 c->>'session_id',c->>'operation_id','job.failed');
           RETURN true;
         EXCEPTION WHEN OTHERS THEN RETURN false;
         END $fail$
