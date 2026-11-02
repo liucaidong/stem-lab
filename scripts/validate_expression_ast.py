@@ -25,16 +25,18 @@ def dim_sub(a, b): return tuple(x-y for x,y in zip(a,b))
 def dim_scale(a, n): return tuple(x*n for x in a)
 def check_limits(node: Any, depth=1, count=None, max_depth=MAX_DEPTH, max_nodes=MAX_NODES):
     if count is None: count=[0]
-    count[0]+=1
-    if depth>max_depth: raise ExpressionError("DEPTH_LIMIT","AST depth limit exceeded")
-    if count[0]>max_nodes: raise ExpressionError("NODE_LIMIT","AST node limit exceeded")
+    if isinstance(node,list):
+        for value in node: check_limits(value,depth,count,max_depth,max_nodes)
+        return
     if isinstance(node,dict):
+        count[0]+=1
+        if depth>max_depth: raise ExpressionError("DEPTH_LIMIT","AST depth limit exceeded")
+        if count[0]>max_nodes: raise ExpressionError("NODE_LIMIT","AST node limit exceeded")
         args=node.get("arguments",[])
         if len(args)>MAX_ARGS: raise ExpressionError("ARGUMENT_LIMIT","function argument limit exceeded")
         for value in node.values():
-            if isinstance(value,(dict,list)): check_limits(value,depth+1,count,max_depth,max_nodes)
-    elif isinstance(node,list):
-        for value in node: check_limits(value,depth+1,count,max_depth,max_nodes)
+            if isinstance(value,dict): check_limits(value,depth+1,count,max_depth,max_nodes)
+            elif isinstance(value,list): check_limits(value,depth,count,max_depth,max_nodes)
 def type_check(expr: dict, symbols: dict, units: dict):
     nodes=[0]
     def infer(node: dict):
