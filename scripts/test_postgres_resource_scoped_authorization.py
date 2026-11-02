@@ -184,7 +184,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             )
         cls.admin.execute(
             f"CREATE POLICY jobs_runtime_select ON {SCHEMA}.jobs FOR SELECT TO {RUNTIME} "
-            f"USING(status='running' AND {SCHEMA}.assertion_allows("
+            f"USING(status IN ('running','succeeded') AND {SCHEMA}.assertion_allows("
             "current_setting('app.resource_assertion',true),tenant_id,job_id,session_id,"
             "'worker.job.complete','job',current_setting('app.resource_job_id',true),"
             "current_setting('app.resource_operation_id',true)))"
