@@ -571,6 +571,81 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
 
+    def test_retry_schedules_from_database_clock_and_releases_lease(self):
+        token=self.issue(action="worker.job.retry")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.retry_v2(%s,30,'TRANSIENT_IO')",(token,)).fetchone()[0])
+        row=self.admin.execute(
+            f"SELECT status,attempt_count,owner,lease_expires_at,available_at,last_error_code FROM {SCHEMA}.jobs WHERE job_id='job-a'"
+        ).fetchone()
+        self.assertEqual(row[0],"retry")
+        self.assertEqual(row[1],2)
+        self.assertIsNone(row[2])
+        self.assertIsNone(row[3])
+        self.assertGreater(row[4],self.admin.execute("SELECT clock_timestamp()").fetchone()[0])
+        self.assertEqual(row[5],"TRANSIENT_IO")
+        self.assertEqual(self.admin.execute(f"SELECT to_state FROM {SCHEMA}.transitions WHERE operation_id='op-a'").fetchone()[0],"retry")
+        self.assertEqual(self.admin.execute(f"SELECT event_type FROM {SCHEMA}.outbox WHERE operation_id='op-a'").fetchone()[0],"job.retry_scheduled")
+
+    def test_retry_attempt_ceiling_rolls_back_nonce_for_policy_redecision(self):
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET attempt_count=maximum_attempts WHERE job_id='job-a'")
+        token=self.issue(action="worker.job.retry")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.retry_v2(%s,30,'TRANSIENT_IO')",(token,)).fetchone()[0])
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE job_id='job-a'").fetchone()[0],"running")
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET attempt_count=1 WHERE job_id='job-a'")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.retry_v2(%s,30,'TRANSIENT_IO')",(token,)).fetchone()[0])
+
+    def test_dead_letter_creates_exact_dlq_item_and_terminal_events(self):
+        token=self.issue(action="worker.job.dead_letter")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.dead_letter_v2(%s,'POISON_PAYLOAD','non_retryable')",(token,)).fetchone()[0])
+        job=self.admin.execute(f"SELECT status,owner,lease_expires_at,last_error_code FROM {SCHEMA}.jobs WHERE job_id='job-a'").fetchone()
+        self.assertEqual(job,("dead_lettered",None,None,"POISON_PAYLOAD"))
+        dlq=self.admin.execute(f"SELECT dlq_item_id,job_id,session_id,terminal_reason,error_code,attempt_count,lease_epoch FROM {SCHEMA}.dlq_items WHERE tenant_id='tenant-a'").fetchone()
+        self.assertEqual(dlq,("op-a:dlq","job-a","session-a","non_retryable","POISON_PAYLOAD",1,7))
+        self.assertEqual(self.admin.execute(f"SELECT to_state FROM {SCHEMA}.transitions WHERE operation_id='op-a'").fetchone()[0],"dead_lettered")
+        self.assertEqual(self.admin.execute(f"SELECT event_type FROM {SCHEMA}.outbox WHERE operation_id='op-a'").fetchone()[0],"job.dead_lettered")
+
+    def test_dead_letter_conflict_rolls_back_job_dlq_events_and_nonce(self):
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.dlq_items(tenant_id,dlq_item_id,job_id,session_id,terminal_reason,error_code,attempt_count,lease_epoch) "
+            "VALUES ('tenant-a','op-a:dlq','job-a','session-a','non_retryable','EXISTING',1,7)"
+        )
+        token=self.issue(action="worker.job.dead_letter")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.dead_letter_v2(%s,'POISON_PAYLOAD','non_retryable')",(token,)).fetchone()[0])
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE job_id='job-a'").fetchone()[0],"running")
+        self.assertIsNone(self.admin.execute(f"SELECT 1 FROM {SCHEMA}.transitions WHERE operation_id='op-a'").fetchone())
+        self.admin.execute(f"DELETE FROM {SCHEMA}.dlq_items WHERE dlq_item_id='op-a:dlq'")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.dead_letter_v2(%s,'POISON_PAYLOAD','non_retryable')",(token,)).fetchone()[0])
+
     def test_renew_uses_database_clock_and_consumes_nonce(self):
         token=self.issue(action="worker.job.renew")
         before=self.admin.execute(f"SELECT lease_expires_at FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0]
