@@ -359,6 +359,30 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.assertFalse(self.authorize_once(wrong))
         self.assertFalse(self.authorize_once(missing))
 
+    def test_child_rows_cannot_splice_another_session_or_tenant(self):
+        token=self.issue()
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                    conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','bad-session','job-a','session-b','op-a','job.completed')")
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                    conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-b','bad-tenant','job-a','session-a','op-a','job.completed')")
+
+    def test_complete_capability_cannot_write_failed_terminal_state(self):
+        token=self.issue()
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                    conn.execute(f"UPDATE {SCHEMA}.jobs SET status='failed' WHERE tenant_id='tenant-a' AND job_id='job-a'")
+
     def test_same_claims_and_key_produce_identical_token(self):
         fixed = {
             "nonce": "0123456789abcdef0123456789abcdef",
