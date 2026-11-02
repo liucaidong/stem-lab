@@ -141,6 +141,11 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_tenant_rls_trust_boundary_postgres.py
 
+      - name: Test PostgreSQL-side tenant assertion verifier and privilege boundary
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_tenant_assertion_verifier.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 
