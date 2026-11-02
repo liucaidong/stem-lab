@@ -1,0 +1,117 @@
+{
+  "registry_version": "1alpha1",
+  "commands": [
+    {
+      "command_type": "Initialize",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/initialize",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "not-applicable",
+      "side_effect_class": "session-state"
+    },
+    {
+      "command_type": "Start",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/start",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "cooperative",
+      "side_effect_class": "execution-control"
+    },
+    {
+      "command_type": "Pause",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/pause",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "not-applicable",
+      "side_effect_class": "session-state"
+    },
+    {
+      "command_type": "Resume",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/resume",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "not-applicable",
+      "side_effect_class": "session-state"
+    },
+    {
+      "command_type": "Step",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/step",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "cooperative",
+      "side_effect_class": "execution-control"
+    },
+    {
+      "command_type": "Reset",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/reset",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "not-applicable",
+      "side_effect_class": "session-state"
+    },
+    {
+      "command_type": "Cancel",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/cancel",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "not-applicable",
+      "side_effect_class": "session-state"
+    },
+    {
+      "command_type": "SetParameter",
+      "schema_version": "1.0",
+      "payload_schema_ref": "#/$defs/setParameter",
+      "allowed_actor_types": [
+        "teacher",
+        "learner"
+      ],
+      "idempotency_required": true,
+      "expected_state_version_required": true,
+      "timeout_seconds": 30,
+      "cancellation_policy": "not-applicable",
+      "side_effect_class": "session-state"
+    }
+  ]
+}
