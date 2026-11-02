@@ -47,3 +47,6 @@ jobs:
 
       - name: Validate Package signature, provenance, and license governance
         run: python scripts/validate_package_governance.py
+
+      - name: Validate Runtime Event Registry and compatibility policy
+        run: python scripts/validate_event_registry.py
