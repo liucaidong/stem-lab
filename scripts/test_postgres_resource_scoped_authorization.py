@@ -198,8 +198,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           VALUES(c->>'iss',c->>'kid',c->>'nonce',token,tx,c->>'tenant_id',c->>'job_id',c->>'session_id',
                  c->>'owner',(c->>'epoch')::bigint,c->>'action',c->>'resource_type',c->>'resource_id',c->>'operation_id')
           ON CONFLICT(issuer,kid,nonce) DO NOTHING;
-          SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
-           WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+          SELECT nl.transaction_id,nl.token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger nl
+           WHERE nl.issuer=c->>'iss' AND nl.kid=c->>'kid' AND nl.nonce=c->>'nonce';
           IF FOUND AND ledger_tx=tx AND ledger_token=token THEN RETURN true; END IF;
           RAISE LOG 'authorize_v2 reject: nonce transaction/token mismatch';
           RETURN false;
@@ -426,10 +426,10 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             (issuer,kid,nonce,token,transaction_id,assignment_id,worker_id)
           VALUES(c->>'iss',c->>'kid',c->>'nonce',token,tx,c->>'assignment_id',c->>'sub')
           ON CONFLICT(issuer,kid,nonce) DO NOTHING;
-          SELECT transaction_id,tenant_id,job_id,session_id,epoch,token,assignment_id,worker_id
+          SELECT cl.transaction_id,cl.tenant_id,cl.job_id,cl.session_id,cl.epoch,cl.token,cl.assignment_id,cl.worker_id
             INTO ledger_tx,ledger_tenant,ledger_job,ledger_session,ledger_epoch,ledger_token,ledger_assignment,ledger_worker
-            FROM {SCHEMA}.claim_nonce_ledger
-           WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+            FROM {SCHEMA}.claim_nonce_ledger cl
+           WHERE cl.issuer=c->>'iss' AND cl.kid=c->>'kid' AND cl.nonce=c->>'nonce';
           IF NOT FOUND OR ledger_tx<>tx OR ledger_token<>token
              OR ledger_assignment<>c->>'assignment_id' OR ledger_worker<>c->>'sub' THEN RAISE LOG 'claim_next_v1 reject: nonce ledger binding'; RETURN; END IF;
           IF ledger_job IS NOT NULL THEN
