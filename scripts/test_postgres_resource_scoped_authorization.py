@@ -279,7 +279,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN false; END IF;
           UPDATE {SCHEMA}.jobs
              SET status='retry',available_at=clock_timestamp()+make_interval(secs=>delay_seconds),
-                 attempt_count=attempt_count+1,last_error_code=error_code,
+                 last_error_code=error_code,
                  owner=NULL,lease_expires_at=NULL
            WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id'
              AND session_id=c->>'session_id' AND owner=c->>'owner'
@@ -441,7 +441,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
            LIMIT 1 FOR UPDATE SKIP LOCKED;
           IF NOT FOUND THEN RAISE EXCEPTION 'no eligible assigned job'; END IF;
           UPDATE {SCHEMA}.jobs j
-             SET status='running',owner=c->>'sub',epoch=j.epoch+1,
+             SET status='running',owner=c->>'sub',epoch=j.epoch+1,attempt_count=j.attempt_count+1,
                  lease_expires_at=clock_timestamp()+make_interval(secs=>lease_seconds)
            WHERE j.tenant_id=candidate_tenant AND j.job_id=candidate_job
              AND j.session_id=candidate_session AND j.epoch=candidate_epoch
@@ -928,6 +928,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 self.assertEqual(first[0][4],2)
         job=self.admin.execute(f"SELECT status,owner,epoch FROM {SCHEMA}.jobs WHERE job_id='job-claim-b'").fetchone()
         self.assertEqual(job,("running","worker-a",2))
+        self.assertEqual(self.admin.execute(f"SELECT attempt_count FROM {SCHEMA}.jobs WHERE job_id='job-claim-b'").fetchone()[0],1)
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE job_id='job-claim-cross-tenant'").fetchone()[0],"queued")
 
     def test_claim_nonce_cannot_switch_signed_claims_inside_same_transaction(self):
@@ -1301,7 +1302,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             f"SELECT status,attempt_count,owner,lease_expires_at,available_at,last_error_code FROM {SCHEMA}.jobs WHERE job_id='job-a'"
         ).fetchone()
         self.assertEqual(row[0],"retry")
-        self.assertEqual(row[1],2)
+        self.assertEqual(row[1],1)
         self.assertIsNone(row[2])
         self.assertIsNone(row[3])
         self.assertGreater(row[4],self.admin.execute("SELECT clock_timestamp()").fetchone()[0])
