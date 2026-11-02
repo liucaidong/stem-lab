@@ -541,9 +541,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
                 with self.assertRaises(psycopg.errors.InsufficientPrivilege):
-                    conn.execute(f"UPDATE {SCHEMA}.jobs SET epoch=epoch+1 WHERE job_id='job-a'")
+                    with conn.transaction():
+                        conn.execute(f"UPDATE {SCHEMA}.jobs SET epoch=epoch+1 WHERE job_id='job-a'")
                 with self.assertRaises(psycopg.errors.InsufficientPrivilege):
-                    conn.execute(f"UPDATE {SCHEMA}.jobs SET lease_expires_at=clock_timestamp()+interval '1 hour' WHERE job_id='job-a'")
+                    with conn.transaction():
+                        conn.execute(f"UPDATE {SCHEMA}.jobs SET lease_expires_at=clock_timestamp()+interval '1 hour' WHERE job_id='job-a'")
 
     def test_signed_operation_id_must_match_transaction_scope(self):
         self.assertFalse(self.authorize_once(self.issue(operation_id="other-operation")))
