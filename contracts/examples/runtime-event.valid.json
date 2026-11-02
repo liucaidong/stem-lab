@@ -1,0 +1,18 @@
+{
+  "event_id": "evt_fixture_session_started_001",
+  "event_type": "SessionStarted",
+  "schema_version": "1.0",
+  "tenant_id": "tenant_fixture",
+  "aggregate_type": "RuntimeSession",
+  "aggregate_id": "session_fixture",
+  "aggregate_sequence": 4,
+  "state_version": 3,
+  "epoch": 2,
+  "occurred_at": "2026-11-02T08:00:00Z",
+  "correlation_id": "corr_fixture",
+  "causation_id": "cmd_fixture_start",
+  "payload": {
+    "execution_id": "execution_fixture",
+    "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
