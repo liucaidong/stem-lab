@@ -67,7 +67,7 @@ BEGIN
     RETURN result;
   END IF;
   RAISE EXCEPTION 'unsupported JSON value type for request digest';
-END
+END;
 $fn$;
 
 CREATE OR REPLACE FUNCTION __SCHEMA__.request_digest_v2alpha2(p_envelope jsonb)
@@ -188,7 +188,7 @@ BEGIN
   encoded_args := __SCHEMA__.encode_typed_value_v2alpha2(args,0);
   canonical := canonical || decode('4a','hex') || pg_catalog.int4send(pg_catalog.octet_length(encoded_args)) || encoded_args;
   RETURN 'sha256:' || pg_catalog.encode(pg_catalog.sha256(canonical),'hex');
-END
+END;
 $fn$;
 
 CREATE OR REPLACE FUNCTION __SCHEMA__.assert_request_digest_v2alpha2(p_claim jsonb, p_operation_arguments jsonb)
@@ -222,5 +222,5 @@ BEGIN
   );
   calculated := __SCHEMA__.request_digest_v2alpha2(envelope);
   RETURN calculated = p_claim->>'request_digest';
-END
+END;
 $fn$;
