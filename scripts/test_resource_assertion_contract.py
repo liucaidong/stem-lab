@@ -37,7 +37,8 @@ def valid_claims() -> dict:
     return {
         "v": 2, "iss": "stemlab-test-issuer", "kid": "test-key-1",
         "tenant_id": "tenant-a", "sub": "worker-1", "aud": "stemlab-store",
-        "action": "worker.job.complete", "job_id": "job-1",\n        "resource_type": "job", "resource_id": "job-1",
+        "action": "worker.job.complete", "job_id": "job-1",
+        "resource_type": "job", "resource_id": "job-1",
         "session_id": "session-1", "owner": "worker-1", "epoch": 7,
         "operation_id": "op-01JTEST000000000000000000",
         "iat": 1_800_000_000, "exp": 1_800_000_060,
@@ -92,7 +93,8 @@ def main() -> None:
 
     invalid_cases = []
     for field, value in [
-        ("tenant_id", "tenant-b"), ("job_id", "job-2"),\n        ("resource_id", "job-2"),
+        ("tenant_id", "tenant-b"), ("job_id", "job-2"),
+        ("resource_id", "job-2"),
         ("session_id", "session-2"), ("owner", "worker-2"),
         ("epoch", 8), ("operation_id", "op-other"),
         ("aud", "other-store"), ("action", "worker.job.delete"),
