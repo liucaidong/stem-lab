@@ -20,3 +20,7 @@
 ## 下一步
 
 生成Package正/负样例、事件类型Schema、完整OpenAPI路径和Contract Test；执行R03.18所列Spike；所有验证报告关联Git commit。
+
+## 测试样例
+
+参见 [examples/README.md](examples/README.md)，包含Package正向/负向JSON样例和Runtime Event样例。样例预期不等于验证器已执行；CI必须实际运行Draft 2020-12验证器并断言PASS/FAIL。
