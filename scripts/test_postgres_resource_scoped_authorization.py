@@ -779,7 +779,6 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"GRANT UPDATE(status) ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.receipts,{SCHEMA}.transitions TO {RUNTIME}")
-        cls.admin.execute(f"GRANT SELECT(tenant_id,event_id,job_id,session_id,operation_id,event_type,payload) ON {SCHEMA}.outbox TO {RUNTIME}")
         cls.admin.execute(f"GRANT INSERT(tenant_id,event_id,job_id,session_id,operation_id,event_type,payload) ON {SCHEMA}.outbox TO {RUNTIME}")
 
         cls.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-a','session-a',4),('tenant-a','session-b',9),('tenant-b','session-x',1)")
@@ -1470,6 +1469,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"SELECT * FROM {SCHEMA}.worker_assignments")
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 conn.execute(f"SELECT * FROM {SCHEMA}.claim_nonce_ledger")
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SELECT * FROM {SCHEMA}.outbox")
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 conn.execute(f"SET ROLE {VERIFIER}")
             self.assertEqual(conn.execute("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone(),(False,False))
