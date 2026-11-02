@@ -1,4 +1,4 @@
-FROM postgres:17
+FROM postgres:17.11
 
 ARG PGSODIUM_VERSION=3.1.11
 
