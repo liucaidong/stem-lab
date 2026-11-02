@@ -22,7 +22,7 @@
 
 ## 自动化验证
 
-- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Registry驱动Runtime Event Envelope/Payload、Model/Observation样例、Model基础引用/范围语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
+- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Unit Registry/量纲检查、Registry驱动Runtime Event Envelope/Payload、Model/Observation样例及单位绑定语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
 - `requirements-contract-validation.txt`：声明直接依赖。
 - `requirements-contract-validation.lock.txt`：固定Run #42验证过的直接/传递依赖版本；目前未使用hash校验。
 - `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。
