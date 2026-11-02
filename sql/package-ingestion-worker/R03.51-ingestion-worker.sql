@@ -41,15 +41,6 @@ CREATE TABLE stemlab_ingest.ingestion_job_dlq(
 );
 CREATE INDEX ingestion_job_dlq_recent
  ON stemlab_ingest.ingestion_job_dlq(tenant_id,dead_lettered_at DESC);
--- Separate from the R03.50 session-sequenced outbox: job events do not advance Session revision.
-CREATE TABLE stemlab_ingest.ingestion_job_outbox(
- tenant_id text NOT NULL, event_id text NOT NULL, job_id text NOT NULL,
- lease_epoch bigint NOT NULL, event_type text NOT NULL, payload jsonb NOT NULL,
- created_at timestamptz NOT NULL DEFAULT clock_timestamp(), published_at timestamptz,
- PRIMARY KEY(tenant_id,event_id),
- UNIQUE(tenant_id,job_id,lease_epoch,event_type),
- FOREIGN KEY(tenant_id,job_id) REFERENCES stemlab_ingest.ingestion_jobs(tenant_id,job_id)
-);
 ALTER TABLE stemlab_ingest.ingestion_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stemlab_ingest.ingestion_jobs FORCE ROW LEVEL SECURITY;
 CREATE POLICY ingestion_jobs_tenant_isolation ON stemlab_ingest.ingestion_jobs
@@ -58,10 +49,5 @@ CREATE POLICY ingestion_jobs_tenant_isolation ON stemlab_ingest.ingestion_jobs
 ALTER TABLE stemlab_ingest.ingestion_job_dlq ENABLE ROW LEVEL SECURITY;
 ALTER TABLE stemlab_ingest.ingestion_job_dlq FORCE ROW LEVEL SECURITY;
 CREATE POLICY ingestion_job_dlq_tenant_isolation ON stemlab_ingest.ingestion_job_dlq
- USING(tenant_id=current_setting('app.tenant_id',true))
- WITH CHECK(tenant_id=current_setting('app.tenant_id',true));
-ALTER TABLE stemlab_ingest.ingestion_job_outbox ENABLE ROW LEVEL SECURITY;
-ALTER TABLE stemlab_ingest.ingestion_job_outbox FORCE ROW LEVEL SECURITY;
-CREATE POLICY ingestion_job_outbox_tenant_isolation ON stemlab_ingest.ingestion_job_outbox
  USING(tenant_id=current_setting('app.tenant_id',true))
  WITH CHECK(tenant_id=current_setting('app.tenant_id',true));
