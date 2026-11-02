@@ -235,5 +235,5 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 |---|---|---|
 | [R03.42架构设计](docs/architecture/R03.42-scientific-solver-verification-architecture.md) | ODE Contract、精度/稳定性/收敛性、误差估计、步长控制与确定性 | v0.1；DEC-10保持OPEN |
 | [Solver Verification Schema](contracts/solver-verification-contract.schema.v1alpha1.json) | Solver能力与数值策略契约 | Draft；等待CI |
-| [DC/RC Numerical Harness](scripts/test_solver_numerical_reference.py) | DC平衡与RC Euler/RK4解析参考、收敛阶及稳定性测试 | 等待CI；参考算法仅测试用途 |
+| [DC/RC Numerical Harness](scripts/test_solver_numerical_reference.py) | DC平衡与RC Euler/RK4解析参考、收敛阶及稳定性测试 | Run #143通过数值参考Harness（局部）；参考算法仅测试用途 |
 
