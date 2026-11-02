@@ -53,6 +53,18 @@ def validate_schema_and_fixtures() -> None:
     invalid_registry["units"].append(copy.deepcopy(invalid_registry["units"][0]))
     require(bool(unit_registry_semantic_errors(invalid_registry)),
             "Unit registry with duplicate unit_id must be rejected")
+    invalid_dimension = copy.deepcopy(unit_registry)
+    invalid_dimension["units"][0]["dimension"] = [1, 2, -3]
+    require(bool(list(unit_validator.iter_errors(invalid_dimension))),
+            "Unit registry with malformed dimension vector must be rejected")
+    invalid_scale = copy.deepcopy(unit_registry)
+    invalid_scale["units"][0]["scale_to_si"] = 0
+    require(bool(list(unit_validator.iter_errors(invalid_scale))),
+            "Unit registry with non-positive SI scale must be rejected")
+    invalid_identity = copy.deepcopy(unit_registry)
+    invalid_identity["units"][2]["dimension"] = [0, 0, 0, 0]
+    require(bool(unit_registry_semantic_errors(invalid_identity)),
+            "Unit registry with invalid canonical dimensional identity must be rejected")
 
     package_validator = jsonschema.Draft202012Validator(
         package_schema, format_checker=jsonschema.FormatChecker()
