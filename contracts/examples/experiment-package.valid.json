@@ -7,7 +7,10 @@
     "title": "DC Series Circuit and Ohm's Law",
     "description": "A restricted series circuit investigation.",
     "subject": "physics",
-    "gradeBand": { "min": null, "max": null }
+    "gradeBand": {
+      "min": null,
+      "max": null
+    }
   },
   "spec": {
     "learningObjectives": [
@@ -51,11 +54,25 @@
       }
     },
     "runtime": {
-      "allowedModes": ["algebraic"],
+      "allowedModes": [
+        "algebraic"
+      ],
       "resetPolicy": "restore-initial-state",
-      "requiredCapabilities": ["command-idempotency", "observation-provenance"]
+      "requiredCapabilities": [
+        "command-idempotency",
+        "observation-provenance"
+      ]
     },
-    "assets": [],
+    "assets": [
+      {
+        "id": "fixture-asset-sha256",
+        "mediaType": "application/json",
+        "sizeBytes": 78,
+        "digest": "sha256:2a9fbac1ce7d34b4a43fc9bb9b8b4b6e16293c8bc648da1c4a1095fe35731f07",
+        "licenseId": "internal-test-fixture",
+        "source": "contracts/examples/resources/fixture-asset.json"
+      }
+    ],
     "validation": {
       "validationSuite": "org.example.dc-series-reference-cases",
       "expertReviewRequired": true
