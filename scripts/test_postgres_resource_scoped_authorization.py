@@ -514,12 +514,45 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"failed")
+        self.assertEqual(self.admin.execute(f"SELECT to_state FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a' AND operation_id='op-a'").fetchone()[0],"failed")
+        self.assertEqual(self.admin.execute(f"SELECT event_type FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a' AND operation_id='op-a'").fetchone()[0],"job.failed")
         with self.runtime_connection() as conn:
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
                 conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+
+    def test_fail_rolls_back_nonce_job_transition_and_outbox_together(self):
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','op-a:job.failed','job-a','session-a','op-a','preexisting')"
+        )
+        token=self.issue(action="worker.job.fail")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE job_id='job-a'").fetchone()[0],"running")
+        self.assertIsNone(self.admin.execute(f"SELECT 1 FROM {SCHEMA}.transitions WHERE operation_id='op-a'").fetchone())
+        self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE event_id='op-a:job.failed'")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+
+    def test_wrong_action_is_rejected_before_nonce_consumption(self):
+        token=self.issue(action="worker.job.complete")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
 
     def test_renew_uses_database_clock_and_consumes_nonce(self):
         token=self.issue(action="worker.job.renew")
