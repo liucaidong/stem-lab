@@ -364,3 +364,10 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [Contract conformance tests](scripts/test_store_protocol_contract.py)
 - CI: [Run #316](https://github.com/liucaidong/stem-lab/actions/runs/41451938308) SUCCESS; Store protocol tests PASS, Ed25519 PostgreSQL verifier 15/15 PASS, and Contract validation SUCCESS.
 - This closes the contract-definition increment only. No production Store adapter, driver, pool or migration tool is selected.
+
+
+### R03.52.7.3.1 — Driver / Pool / Runtime Candidate Assessment
+
+- [PostgreSQL driver, pool and runtime candidate assessment](docs/architecture/R03.52.7.3.1-driver-pool-runtime-candidate-assessment.md)
+- Preliminary priority: Psycopg 3 + psycopg_pool for a Python Worker; node-postgres pg-pool for a TypeScript API; asyncpg as the Python asyncio challenger; SQLAlchemy is an optional abstraction, not a driver.
+- No production stack selected. DEC-03 runtime and DEC-14 deployment/provider remain OPEN.
