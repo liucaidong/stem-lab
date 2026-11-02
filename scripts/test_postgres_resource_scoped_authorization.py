@@ -381,7 +381,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              OR c->>'v'<>'1' OR jsonb_typeof(c->'v')<>'number'
              OR jsonb_typeof(c->'job_types')<>'array'
              OR jsonb_array_length(c->'job_types') NOT BETWEEN 1 AND 32 THEN RETURN; END IF;
-          IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'job_types') x WHERE jsonb_typeof(x)<>'string')
+          IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'job_types') AS jt(value) WHERE jsonb_typeof(value)<>'string')
              OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(c->'job_types') jt(value) WHERE length(value) NOT BETWEEN 1 AND 128)
              OR (SELECT count(*) FROM jsonb_array_elements_text(c->'job_types')) <>
                 (SELECT count(DISTINCT value) FROM jsonb_array_elements_text(c->'job_types') t(value)) THEN RETURN; END IF;
