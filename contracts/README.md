@@ -103,3 +103,11 @@
 - Simulation Time与Wall-clock Timeline严格区分；
 - 仪表读数必须绑定Observation与Quantity/Unit；
 - 静态验证不运行Renderer或真实采样；详见[R03.43](../docs/architecture/R03.43-rendering-visualization-and-instrument-contract.md)。
+
+
+## Engineering Integration Audit
+
+- engineering-integration-audit.v1alpha1.json记录横向一致性检查、风险和就绪度；
+- 审计发现Package Projection、信任链、Tenant隔离、真实Broker、生产Runtime/Solver/Renderer等仍未闭环；
+- 结果为CONDITIONAL_NOT_READY，不代表产品或生产环境Ready；
+- 详见[R03.44](../docs/architecture/R03.44-engineering-integration-audit.md)。
