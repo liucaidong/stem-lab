@@ -166,10 +166,61 @@ def validate_dc_reference_cases() -> None:
     print(f"PASS: DC reference arithmetic, Ohm's law, KVL and power balance ({len(cases)} cases)")
 
 
+def validate_rc_reference_cases() -> None:
+    document = load_json("contracts/examples/rc-circuit.reference-cases.json")
+    require(document.get("schema_version") == "0.1-draft",
+            "Unexpected RC reference case version")
+    parameters = document["parameters"]
+    source = float(parameters["source_voltage"]["value"])
+    resistance = float(parameters["resistance"]["value"])
+    capacitance = float(parameters["capacitance"]["value"])
+    tau = resistance * capacitance
+    close(float(parameters["time_constant"]["value"]), tau,
+          "RC time constant")
+    require(parameters["source_voltage"]["unit"] == "V", "RC source unit must be V")
+    require(parameters["resistance"]["unit"] == "ohm", "RC resistance unit must be ohm")
+    require(parameters["capacitance"]["unit"] == "F", "RC capacitance unit must be F")
+    require(source > 0 and resistance > 0 and capacitance > 0,
+            "RC parameters must be positive")
+
+    cases = document.get("cases")
+    require(isinstance(cases, list) and len(cases) >= 2,
+            "RC reference cases must contain multiple time samples")
+    previous_vc = -math.inf
+    previous_current = math.inf
+    for case in cases:
+        case_id = case["case_id"]
+        time_value = float(case["time"]["value"])
+        require(case["time"]["unit"] == "s" and time_value >= 0,
+                f"{case_id}: time must be non-negative seconds")
+        decay = math.exp(-time_value / tau)
+        expected_values = {
+            "capacitor_voltage": source * (1.0 - decay),
+            "resistor_voltage": source * decay,
+            "current": (source / resistance) * decay,
+        }
+        for quantity, calculated in expected_values.items():
+            actual = case["expected"][quantity]
+            unit = {"capacitor_voltage": "V", "resistor_voltage": "V",
+                    "current": "A"}[quantity]
+            require(actual["unit"] == unit, f"{case_id}: {quantity} unit mismatch")
+            close(float(actual["value"]), calculated, f"{case_id} {quantity}")
+        vc = float(case["expected"]["capacitor_voltage"]["value"])
+        vr = float(case["expected"]["resistor_voltage"]["value"])
+        current = float(case["expected"]["current"]["value"])
+        close(vc + vr, source, f"{case_id} KVL")
+        require(vc >= previous_vc, f"{case_id}: capacitor voltage must not decrease")
+        require(current <= previous_current, f"{case_id}: charging current must not increase")
+        previous_vc, previous_current = vc, current
+
+    print(f"PASS: RC analytic charging reference, KVL and monotonicity ({len(cases)} samples)")
+
+
 def main() -> None:
     validate_schema_and_fixtures()
     validate_openapi_yaml()
     validate_dc_reference_cases()
+    validate_rc_reference_cases()
     print("RESULT: all configured draft checks passed; contract freeze is NOT implied")
 
 
