@@ -557,6 +557,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET owner='worker-a',epoch=7,status='running',lease_expires_at=clock_timestamp()+interval '5 minutes',job_type='generic',available_at=clock_timestamp(),attempt_count=1,maximum_attempts=5,last_error_code=NULL WHERE tenant_id='tenant-a' AND job_id='job-a'")
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-b'")
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-restricted'")
+        self.admin.execute(f"DELETE FROM {SCHEMA}.jobs WHERE job_id='job-claim-c'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.receipts WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a'")
@@ -564,6 +565,29 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.admin.execute(f"DELETE FROM {SCHEMA}.nonce_ledger")
         self.admin.execute(f"DELETE FROM {SCHEMA}.claim_nonce_ledger")
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-b'")
+
+    @classmethod
+    def issue_claim(cls, **overrides):
+        now=int(time.time())
+        claims={"v":1,"iss":ISSUER,"kid":"test-key","sub":"worker-a",
+                "aud":"stemlab-worker-claim","action":"worker.job.claim",
+                "assignment_id":"assignment-a","job_types":["generic"],
+                "iat":now,"exp":now+60,"nonce":uuid.uuid4().hex}
+        claims.update(overrides)
+        payload=b64url(canonical_payload(claims))
+        signature=cls.admin.execute(
+            "SELECT pgsodium.crypto_sign_detached(%s,%s)",
+            (payload.encode("ascii"),cls.private_key),
+        ).fetchone()[0]
+        return payload+"."+b64url(signature)
+
+    @classmethod
+    def claim_once(cls, token):
+        with cls.runtime_connection() as conn:
+            with conn.transaction():
+                return conn.execute(
+                    f"SELECT * FROM {SCHEMA}.claim_next_v1(%s,60)",(token,)
+                ).fetchall()
 
     @classmethod
     def claims(cls, **overrides):
@@ -598,6 +622,49 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
                 conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 return conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0]
+
+    def test_claim_uses_persisted_assignment_without_tenant_input(self):
+        token=self.issue_claim()
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                first=conn.execute(f"SELECT * FROM {SCHEMA}.claim_next_v1(%s,60)",(token,)).fetchall()
+                second=conn.execute(f"SELECT * FROM {SCHEMA}.claim_next_v1(%s,60)",(token,)).fetchall()
+                self.assertEqual(first,second)
+                self.assertEqual(len(first),1)
+                self.assertEqual(first[0][0:4],("tenant-b","job-claim-b","session-x","worker-a"))
+                self.assertEqual(first[0][4],2)
+        job=self.admin.execute(f"SELECT status,owner,epoch FROM {SCHEMA}.jobs WHERE job_id='job-claim-b'").fetchone()
+        self.assertEqual(job,("running","worker-a",2))
+
+    def test_claim_nonce_cannot_be_replayed_in_another_transaction(self):
+        token=self.issue_claim()
+        self.assertEqual(len(self.claim_once(token)),1)
+        self.assertEqual(self.claim_once(token),[])
+
+    def test_claim_assignment_and_job_type_scope_fail_closed(self):
+        wrong_worker=self.issue_claim(sub="unassigned-worker")
+        expanded_types=self.issue_claim(job_types=["restricted"])
+        self.assertEqual(self.claim_once(wrong_worker),[])
+        self.assertEqual(self.claim_once(expanded_types),[])
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE job_id='job-claim-b'").fetchone()[0],"queued")
+
+    def test_concurrent_claim_uses_skip_locked_to_assign_distinct_jobs(self):
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.jobs(tenant_id,job_id,session_id,job_type,owner,epoch,status,lease_expires_at,available_at,attempt_count,maximum_attempts) "
+            "VALUES ('tenant-a','job-claim-c','session-a','generic',NULL,1,'queued',NULL,clock_timestamp(),0,5)"
+        )
+        tokens=[self.issue_claim(),self.issue_claim()]
+        barrier=threading.Barrier(2)
+        def claim(token):
+            with self.runtime_connection() as conn:
+                with conn.transaction():
+                    barrier.wait(timeout=5)
+                    return conn.execute(f"SELECT * FROM {SCHEMA}.claim_next_v1(%s,60)",(token,)).fetchall()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results=list(pool.map(claim,tokens))
+        ids=[r[0][1] for r in results if r]
+        self.assertEqual(len(ids),2)
+        self.assertEqual(len(set(ids)),2)
 
     def test_valid_complete_unit_of_work(self):
         token=self.issue()
