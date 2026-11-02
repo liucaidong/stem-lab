@@ -322,7 +322,10 @@ def main():
     graph_alt, projection_alt = build_projection(
         manifest, catalog, alternate_source_digest, model_docs
     )
-    if graph_alt["nodes"][0]["digest"] == graph["nodes"][0]["digest"]:
+    root_id = graph["root_resource_id"]
+    root_original = next(node for node in graph["nodes"] if node["resource_id"] == root_id)
+    root_alternate = next(node for node in graph_alt["nodes"] if node["resource_id"] == root_id)
+    if root_alternate["digest"] == root_original["digest"]:
         raise SystemExit("ROOT_SOURCE_DIGEST_NOT_BOUND")
     if projection_alt != projection:
         raise SystemExit("SOURCE_MANIFEST_DIGEST_LEAKED_INTO_PROJECTION")
