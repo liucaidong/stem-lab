@@ -74,6 +74,7 @@
 | [R03.27 PostgreSQL物理模型与RLS草案](docs/architecture/R03.27-postgresql-physical-data-model-and-rls-draft.md) | 物理表分组、复合租户约束、RLS上下文、事务与测试矩阵 | v0.1；候选设计，数据库Spike未执行 |
 | [R03.28 OpenAPI安全/幂等/分页审阅](docs/architecture/R03.28-openapi-security-idempotency-pagination-review.md) | JWT与资源授权、幂等、ETag、Cursor、错误模型与限流缺口 | v0.1；OpenAPI 0.3；规范验证及API语义断言Run #49通过 |
 | [R03.29 单位与量纲契约草案](docs/architecture/R03.29-unit-dimension-contract-draft.md) | SI核心单位Registry、量纲向量、Model/Observation语义和DC/RC映射 | v0.1；Unit Registry/量纲基础断言Run #53通过，DEC-08仍OPEN |
+| [R03.30 Package内容完整性与发布门禁审阅](docs/architecture/R03.30-package-content-integrity-and-release-gate-review.md) | 资源SHA-256/size、路径安全、依赖闭包、许可、确定性Package Digest和签名门禁 | v0.1；单Asset真实Digest/size测试Run #60通过，完整发布门禁未完成 |
 
 ### Contracts — 机器可读契约草案
 
