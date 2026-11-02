@@ -136,3 +136,6 @@ R03.45验证型参考实现已纳入 `scripts/validate_contracts.py` 的CI入口
 - `scripts/verify_package_canonicalization_golden_vectors.mjs`使用Node.js独立实现验证同一组Golden Vectors。
 - JCS覆盖UTF-16属性排序/Unicode、数值格式/负零和嵌套数据；CBOR只覆盖Core Deterministic整数/文本/Map/Array/bool/null子集。
 - 不代表完整RFC一致性或生产Profile选型；DEC-27仍OPEN，DEC-17/28/29不变。详见 [R03.46](../docs/architecture/R03.46-projection-builder-hardening-and-golden-vectors.md)。
+
+
+R03.46 Golden Vector CI证据：[Run #183](https://github.com/liucaidong/stem-lab/actions/runs/41427643723)通过Python JCS 3组、CBOR 1组以及独立Node.js 4组验证；所有固定Canonical Bytes和Digest匹配。完整RFC覆盖、CBOR浮点/Tag/byte string/bignum和生产Digest Profile仍未完成。
