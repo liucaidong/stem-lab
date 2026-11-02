@@ -710,6 +710,70 @@ def validate_dc_reference_cases() -> None:
     print(f"PASS: DC positive/negative input semantics, numeric bounds, Ohm's law, KVL and power balance ({len(cases)} cases)")
 
 
+def rc_parameter_semantic_errors(parameters, units_by_id):
+    errors = []
+    definitions = (
+        ("source_voltage", "electric-potential", False),
+        ("resistance", "electric-resistance", True),
+        ("capacitance", "capacitance", True),
+        ("time_constant", "time", True),
+    )
+    values = {}
+    for key, quantity_kind, must_be_positive in definitions:
+        item = parameters.get(key, {})
+        unit = units_by_id.get(item.get("unit"))
+        if unit is None or quantity_kind not in unit["quantity_kinds"]:
+            errors.append(f"{key}: incompatible or unknown unit")
+        try:
+            value = float(item["value"])
+        except (KeyError, TypeError, ValueError):
+            errors.append(f"{key}: value must be numeric")
+            value = math.nan
+        if not math.isfinite(value):
+            errors.append(f"{key}: value must be finite")
+        elif (must_be_positive and value <= 0) or (not must_be_positive and value <= 0):
+            errors.append(f"{key}: value must be positive for this charging case")
+        values[key] = value
+    source = values.get("source_voltage", math.nan)
+    resistance = values.get("resistance", math.nan)
+    capacitance = values.get("capacitance", math.nan)
+    declared_tau = values.get("time_constant", math.nan)
+    if all(math.isfinite(x) and x > 0 for x in (resistance, capacitance)):
+        tau = resistance * capacitance
+        if not math.isfinite(tau) or tau <= 0:
+            errors.append("RC time constant overflow/underflow")
+        elif math.isfinite(declared_tau) and not math.isclose(
+            tau, declared_tau, rel_tol=1e-12, abs_tol=0.0
+        ):
+            errors.append("declared time constant does not equal R*C")
+        if math.isfinite(source) and source > 0:
+            initial_current = source / resistance
+            if not math.isfinite(initial_current):
+                errors.append("initial RC current overflow")
+    return errors
+
+
+def rc_sample_time_errors(cases):
+    errors = []
+    previous_time = -math.inf
+    if not isinstance(cases, list) or len(cases) < 2:
+        return ["RC reference cases must contain multiple time samples"]
+    for case in cases:
+        try:
+            time_value = float(case["time"]["value"])
+        except (KeyError, TypeError, ValueError):
+            errors.append("RC sample time must be numeric")
+            continue
+        if not math.isfinite(time_value) or time_value < 0:
+            errors.append("RC sample time must be finite and non-negative")
+        if time_value <= previous_time:
+            errors.append("RC sample times must be strictly increasing")
+        previous_time = time_value
+    if cases and float(cases[0]["time"]["value"]) != 0:
+        errors.append("RC charging reference must include initial time t=0")
+    return errors
+
+
 def validate_rc_reference_cases() -> None:
     unit_registry = load_json("contracts/units/si-unit-registry.v1.json")
     units_by_id = {item["unit_id"]: item for item in unit_registry["units"]}
@@ -717,6 +781,44 @@ def validate_rc_reference_cases() -> None:
     require(document.get("schema_version") == "0.1-draft",
             "Unexpected RC reference case version")
     parameters = document["parameters"]
+    require(not rc_parameter_semantic_errors(parameters, units_by_id),
+            "RC positive parameters must pass semantic validation")
+    invalid_parameter_sets = []
+    zero_resistance = copy.deepcopy(parameters)
+    zero_resistance["resistance"]["value"] = 0
+    invalid_parameter_sets.append((zero_resistance, "zero resistance"))
+    negative_resistance = copy.deepcopy(parameters)
+    negative_resistance["resistance"]["value"] = -1
+    invalid_parameter_sets.append((negative_resistance, "negative resistance"))
+    zero_capacitance = copy.deepcopy(parameters)
+    zero_capacitance["capacitance"]["value"] = 0
+    invalid_parameter_sets.append((zero_capacitance, "zero capacitance"))
+    negative_source = copy.deepcopy(parameters)
+    negative_source["source_voltage"]["value"] = -1
+    invalid_parameter_sets.append((negative_source, "negative source voltage"))
+    non_finite_source = copy.deepcopy(parameters)
+    non_finite_source["source_voltage"]["value"] = float("nan")
+    invalid_parameter_sets.append((non_finite_source, "non-finite source voltage"))
+    non_finite_capacitance = copy.deepcopy(parameters)
+    non_finite_capacitance["capacitance"]["value"] = float("inf")
+    invalid_parameter_sets.append((non_finite_capacitance, "non-finite capacitance"))
+    mismatched_tau = copy.deepcopy(parameters)
+    mismatched_tau["time_constant"]["value"] = 2
+    invalid_parameter_sets.append((mismatched_tau, "inconsistent time constant"))
+    overflow_tau = copy.deepcopy(parameters)
+    overflow_tau["resistance"]["value"] = 1e308
+    overflow_tau["capacitance"]["value"] = 1e308
+    overflow_tau["time_constant"]["value"] = 1
+    invalid_parameter_sets.append((overflow_tau, "time constant overflow"))
+    overflow_current = copy.deepcopy(parameters)
+    overflow_current["source_voltage"]["value"] = 1e308
+    overflow_current["resistance"]["value"] = 1e-308
+    overflow_current["capacitance"]["value"] = 1
+    overflow_current["time_constant"]["value"] = 1e-308
+    invalid_parameter_sets.append((overflow_current, "initial current overflow"))
+    for invalid_parameters, label in invalid_parameter_sets:
+        require(bool(rc_parameter_semantic_errors(invalid_parameters, units_by_id)),
+                f"RC {label} must be rejected")
     source = float(parameters["source_voltage"]["value"])
     resistance = float(parameters["resistance"]["value"])
     capacitance = float(parameters["capacitance"]["value"])
@@ -737,6 +839,16 @@ def validate_rc_reference_cases() -> None:
             "RC parameters must be positive")
 
     cases = document.get("cases")
+    require(not rc_sample_time_errors(cases),
+            "RC sample times must be finite, non-negative, strictly increasing and include t=0")
+    invalid_negative_time = copy.deepcopy(cases)
+    invalid_negative_time[0]["time"]["value"] = -1
+    require(bool(rc_sample_time_errors(invalid_negative_time)),
+            "RC negative sample time must be rejected")
+    duplicate_time = copy.deepcopy(cases)
+    duplicate_time[1]["time"]["value"] = duplicate_time[0]["time"]["value"]
+    require(bool(rc_sample_time_errors(duplicate_time)),
+            "RC duplicate sample time must be rejected")
     require(isinstance(cases, list) and len(cases) >= 2,
             "RC reference cases must contain multiple time samples")
     previous_vc = -math.inf
@@ -775,7 +887,7 @@ def validate_rc_reference_cases() -> None:
         require(current <= previous_current, f"{case_id}: charging current must not increase")
         previous_vc, previous_current = vc, current
 
-    print(f"PASS: RC analytic charging reference, KVL and monotonicity ({len(cases)} samples)")
+    print(f"PASS: RC positive/negative parameter semantics, time ordering, analytic charging reference, KVL and monotonicity ({len(cases)} samples)")
 
 
 def main() -> None:
