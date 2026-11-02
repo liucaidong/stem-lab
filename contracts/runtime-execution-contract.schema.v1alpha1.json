@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/runtime-execution-contract/v1alpha1",
+  "title": "Simulation Runtime Execution Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "execution_id",
+    "session_id",
+    "command_id",
+    "input_state_version",
+    "execution_state",
+    "worker_lease",
+    "policy",
+    "clock",
+    "checkpoint_policy",
+    "replay_policy"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "1alpha1"
+    },
+    "execution_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "command_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_state_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "execution_state": {
+      "enum": [
+        "queued",
+        "leased",
+        "starting",
+        "running",
+        "checkpointing",
+        "cancelling",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "timed_out"
+      ]
+    },
+    "worker_lease": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "worker_id",
+        "lease_id",
+        "epoch",
+        "fencing_token",
+        "issued_at",
+        "expires_at"
+      ],
+      "properties": {
+        "worker_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lease_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "epoch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fencing_token": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "wall_clock_timeout_ms",
+        "cpu_time_limit_ms",
+        "memory_limit_mb",
+        "output_limit_bytes",
+        "max_steps",
+        "cancellation_mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "algebraic",
+            "ode",
+            "discrete-event"
+          ]
+        },
+        "wall_clock_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600000
+        },
+        "cpu_time_limit_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600000
+        },
+        "memory_limit_mb": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 65536
+        },
+        "output_limit_bytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 1073741824
+        },
+        "max_steps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "cancellation_mode": {
+          "enum": [
+            "cooperative",
+            "immediate"
+          ]
+        }
+      }
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "simulation_time_start",
+        "simulation_time_unit",
+        "wall_clock_started_at",
+        "wall_clock_deadline_at"
+      ],
+      "properties": {
+        "simulation_time_start": {
+          "type": "number",
+          "minimum": 0
+        },
+        "simulation_time_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "wall_clock_started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "wall_clock_deadline_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "checkpoint_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "resume_policy"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "interval_steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_checkpoints": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "resume_policy": {
+          "enum": [
+            "disabled",
+            "latest-valid",
+            "explicit-checkpoint"
+          ]
+        }
+      }
+    },
+    "replay_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministic",
+        "input_digest",
+        "solver_id",
+        "solver_version"
+      ],
+      "properties": {
+        "deterministic": {
+          "type": "boolean"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "solver_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "solver_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
