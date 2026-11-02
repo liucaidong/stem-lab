@@ -231,3 +231,6 @@ R03.52.2 CI evidence: [GitHub Actions Run #41442438174](https://github.com/liuca
 - A monitor thread forwards shutdown to WorkerPool, and prior handlers are restored on exit.
 - scripts/test_process_lifecycle.py uses a patched signal API and fake Pool; no real process kill or deployment supervisor is exercised.
 - The bridge does not enforce a hard shutdown deadline. External orchestration owns termination grace and forced termination; leases are recovered by R03.51 expiry/fencing.
+
+
+R03.52.3 CI evidence: [GitHub Actions Run #41443126489](https://github.com/liucaidong/stem-lab/actions/runs/41443126489) SUCCESS; Signal Bridge tests 4/4 passed. Earlier failed attempts #41442821982 and #41442974507 are retained and their causes/fixes documented in the R03.21 WBS and R03.20 decision register. This is a patched-signal-API reference test, not container/deployment supervision.
