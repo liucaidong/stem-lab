@@ -62,7 +62,8 @@
         "worker.job.dead_letter",
         "worker.dlq.replay",
         "worker.outbox.dispatch",
-        "worker.receipt.reconcile"
+        "worker.receipt.reconcile",
+        "worker.outbox.ack"
       ]
     },
     "job_id": {
