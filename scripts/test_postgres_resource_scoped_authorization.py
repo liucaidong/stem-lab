@@ -357,7 +357,12 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         wrong=self.issue(action="worker.receipt.reconcile",resource_type="receipt",resource_id="other-operation")
         missing=self.issue(action="worker.receipt.reconcile",resource_type="receipt",resource_id="op-missing",operation_id="op-missing")
         self.assertFalse(self.authorize_once(wrong))
-        self.assertFalse(self.authorize_once(missing))
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(missing,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-missing',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(missing,)).fetchone()[0])
 
     def test_child_rows_cannot_splice_another_session_or_tenant(self):
         token=self.issue()
