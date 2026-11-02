@@ -138,6 +138,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             IF c->>'resource_type'<>'receipt' OR c->>'resource_id'<>c->>'operation_id' THEN RETURN NULL; END IF;
           ELSIF c->>'action' IN ('worker.outbox.dispatch','worker.outbox.ack') THEN
             IF c->>'resource_type'<>'outbox_event' THEN RETURN NULL; END IF;
+          ELSIF c->>'action'='worker.dlq.replay' THEN
+            IF c->>'resource_type'<>'dlq_item' THEN RETURN NULL; END IF;
           ELSE
             RETURN NULL;
           END IF;
@@ -602,6 +604,92 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.ack_outbox_v2(text) OWNER TO {VERIFIER}")
         cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.ack_outbox_v2(text) FROM PUBLIC")
 
+
+        replay_sql = f"""
+        CREATE FUNCTION {SCHEMA}.replay_dlq_v2(token text)
+        RETURNS TABLE(new_job_id text,new_tenant_id text,new_session_id text,new_epoch bigint)
+        LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,{SCHEMA}
+        AS $replay$
+        DECLARE c jsonb; tx xid8; ledger_tx xid8; ledger_token text; inserted boolean;
+                source_job text; source_session text; source_epoch bigint; current_replays integer;
+                max_replays integer; source_job_type text; source_max_attempts integer;
+                target_job text; new_count integer;
+        BEGIN
+          c:={SCHEMA}.verify_v2(token);
+          IF c IS NULL OR c->>'aud'<>'stemlab-dlq-replay'
+             OR c->>'action'<>'worker.dlq.replay'
+             OR c->>'resource_type'<>'dlq_item'
+             OR c->>'owner' IS DISTINCT FROM c->>'sub' THEN RETURN; END IF;
+          IF NOT EXISTS(SELECT 1 FROM {SCHEMA}.dlq_replay_principals
+                        WHERE tenant_id=c->>'tenant_id' AND dlq_item_id=c->>'resource_id'
+                          AND principal_id=c->>'sub' AND enabled) THEN RETURN; END IF;
+          SELECT d.job_id,d.session_id,d.lease_epoch,d.replay_count,p.max_replays,
+                 j.job_type,j.maximum_attempts
+            INTO source_job,source_session,source_epoch,current_replays,max_replays,
+                 source_job_type,source_max_attempts
+            FROM {SCHEMA}.dlq_items d
+            JOIN {SCHEMA}.dlq_replay_principals p
+              ON p.tenant_id=d.tenant_id AND p.dlq_item_id=d.dlq_item_id
+            JOIN {SCHEMA}.jobs j
+              ON j.tenant_id=d.tenant_id AND j.job_id=d.job_id AND j.session_id=d.session_id
+           WHERE d.tenant_id=c->>'tenant_id' AND d.dlq_item_id=c->>'resource_id'
+             AND d.job_id=c->>'job_id' AND d.session_id=c->>'session_id'
+             AND d.lease_epoch=(c->>'epoch')::bigint
+             AND p.principal_id=c->>'sub' AND p.enabled
+           FOR UPDATE OF d;
+          IF NOT FOUND THEN RETURN; END IF;
+          tx:=pg_current_xact_id();
+          inserted:=false;
+          INSERT INTO {SCHEMA}.nonce_ledger
+            (issuer,kid,nonce,token,transaction_id,tenant_id,job_id,session_id,owner,epoch,
+             action,resource_type,resource_id,operation_id)
+          VALUES(c->>'iss',c->>'kid',c->>'nonce',token,tx,c->>'tenant_id',c->>'job_id',
+                 c->>'session_id',c->>'owner',(c->>'epoch')::bigint,c->>'action',
+                 c->>'resource_type',c->>'resource_id',c->>'operation_id')
+          ON CONFLICT(issuer,kid,nonce) DO NOTHING
+          RETURNING true INTO inserted;
+          target_job:='replay:'||c->>'operation_id';
+          IF NOT coalesce(inserted,false) THEN
+            SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
+             WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+            IF ledger_tx=tx AND ledger_token=token THEN
+              RETURN QUERY SELECT j.job_id,j.tenant_id,j.session_id,j.epoch
+                FROM {SCHEMA}.jobs j
+               WHERE j.tenant_id=c->>'tenant_id' AND j.job_id=target_job
+                 AND j.session_id=c->>'session_id';
+            END IF;
+            RETURN;
+          END IF;
+          IF current_replays>=max_replays THEN RAISE EXCEPTION 'DLQ replay limit reached'; END IF;
+          UPDATE {SCHEMA}.dlq_items
+             SET replay_count=replay_count+1
+           WHERE tenant_id=c->>'tenant_id' AND dlq_item_id=c->>'resource_id'
+             AND replay_count=current_replays AND replay_count<max_replays
+          RETURNING replay_count INTO new_count;
+          IF NOT FOUND THEN RAISE EXCEPTION 'DLQ replay counter fence changed'; END IF;
+          INSERT INTO {SCHEMA}.jobs
+            (tenant_id,job_id,session_id,job_type,owner,epoch,status,lease_expires_at,
+             available_at,attempt_count,maximum_attempts,last_error_code)
+          VALUES(c->>'tenant_id',target_job,source_session,source_job_type,NULL,1,'queued',NULL,
+                 clock_timestamp(),0,source_max_attempts,NULL);
+          INSERT INTO {SCHEMA}.transitions
+            (tenant_id,transition_id,job_id,session_id,operation_id,from_state,to_state)
+          VALUES(c->>'tenant_id',(c->>'operation_id')||':replay',target_job,
+                 source_session,c->>'operation_id','created','queued');
+          INSERT INTO {SCHEMA}.outbox
+            (tenant_id,event_id,job_id,session_id,operation_id,event_type)
+          VALUES(c->>'tenant_id',(c->>'operation_id')||':job.replayed',target_job,
+                 source_session,c->>'operation_id','job.replayed');
+          new_job_id:=target_job; new_tenant_id:=c->>'tenant_id';
+          new_session_id:=source_session; new_epoch:=1;
+          RETURN NEXT;
+        EXCEPTION WHEN OTHERS THEN RETURN;
+        END $replay$
+        """
+        cls.admin.execute(replay_sql)
+        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.replay_dlq_v2(text) OWNER TO {VERIFIER}")
+        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.replay_dlq_v2(text) FROM PUBLIC")
+
         allows_sql = f"""
         CREATE FUNCTION {SCHEMA}.assertion_allows(
           token text,row_tenant text,row_job text,row_session text,
@@ -678,6 +766,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {DISPATCHER}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.dispatch_outbox_v2(text,integer) TO {DISPATCHER}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.ack_outbox_v2(text) TO {DISPATCHER}")
+        cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {REPLAY}")
+        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.replay_dlq_v2(text) TO {REPLAY}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.renew_v2(text,integer) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.fail_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.retry_v2(text,integer,text) TO {RUNTIME}")
