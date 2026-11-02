@@ -45,13 +45,19 @@ class TenantContextTests(unittest.TestCase):
 
     def test_signature_tampering_is_rejected(self):
         value = token()
+        payload, signature = value.split(".")
+        changed = ("A" if signature[0] != "A" else "B") + signature[1:]
         with self.assertRaises(TenantContextError):
-            self.verify(value[:-1] + ("A" if value[-1] != "A" else "B"))
+            self.verify(payload + "." + changed)
 
-    def test_tenant_claim_tampering_is_rejected(self):
-        value = token(tenant_id="tenant-b")
+    def test_tenant_claim_tampering_without_resigning_is_rejected(self):
+        value = token()
+        payload, signature = value.split(".")
+        raw = base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4))
+        changed_raw = raw.replace(b"tenant-a", b"tenant-b")
+        changed_payload = b64(changed_raw)
         with self.assertRaises(TenantContextError):
-            self.verify(value[:-2] + "xx")
+            self.verify(changed_payload + "." + signature)
 
     def test_expired_and_future_assertions_are_rejected(self):
         with self.assertRaises(TenantContextError):
