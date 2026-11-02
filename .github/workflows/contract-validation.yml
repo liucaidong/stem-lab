@@ -160,3 +160,39 @@ jobs:
 
       - name: Run cross-module Engineering Integration Audit
         run: python scripts/validate_integration_audit.py
+
+  tenant-ed25519-verifier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install pinned PostgreSQL client driver
+        run: python -m pip install "psycopg[binary]==3.3.6"
+      - name: Build PostgreSQL 17.11 with pinned pgsodium
+        run: docker build --pull -f scripts/docker/pgsodium-postgres17.Dockerfile -t stemlab-postgres17-pgsodium:3.1.11 .
+      - name: Start PostgreSQL with pgsodium
+        run: docker run -d --name stemlab-pgsodium -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=stemlab_test -p 5432:5432 stemlab-postgres17-pgsodium:3.1.11
+      - name: Wait for PostgreSQL health
+        run: |
+          for attempt in $(seq 1 60); do
+            if docker exec stemlab-pgsodium pg_isready -U postgres -d stemlab_test; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs stemlab-pgsodium
+          exit 1
+      - name: Test Ed25519 database-side tenant assertion verifier
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_tenant_ed25519_verifier.py
+      - name: Print PostgreSQL verifier container logs
+        if: always()
+        run: docker logs stemlab-pgsodium || true
+      - name: Remove PostgreSQL verifier container
+        if: always()
+        run: docker rm -f stemlab-pgsodium || true
