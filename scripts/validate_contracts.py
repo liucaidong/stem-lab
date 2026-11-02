@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import tempfile
+import runpy
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
@@ -892,6 +893,7 @@ def validate_rc_reference_cases() -> None:
 
 def main() -> None:
     validate_schema_and_fixtures()
+    runpy.run_path(str(ROOT / "scripts/validate_package_projection_builder.py"), run_name="__main__")
     validate_openapi_yaml()
     validate_dc_reference_cases()
     validate_rc_reference_cases()
