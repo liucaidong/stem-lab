@@ -1039,6 +1039,10 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"SELECT * FROM {SCHEMA}.dlq_items")
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 conn.execute(f"SET ROLE {VERIFIER}")
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SET ROLE {DISPATCHER}")
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SET ROLE {REPLAY}")
             self.assertEqual(conn.execute("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone(),(False,False))
 
     def test_outbox_dispatch_and_ack_are_exact_event_scoped(self):
@@ -1444,6 +1448,27 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.assertFalse(self.authorize_once(encoded+"."+b64url(sig)))
         self.assertFalse(self.authorize_once(self.issue(exp=int(time.time())-1)))
         self.assertFalse(self.authorize_once(self.issue(exp=int(time.time())+500)))
+
+    def test_verifier_is_nonlogin_nonowner_and_has_no_ddl_privileges(self):
+        role=self.admin.execute(
+            "SELECT rolcanlogin,rolsuper,rolbypassrls,rolinherit FROM pg_roles WHERE rolname=%s",
+            (VERIFIER,),
+        ).fetchone()
+        self.assertEqual(role,(False,False,False,False))
+        schema_owner=self.admin.execute(
+            "SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname=%s",(SCHEMA,)
+        ).fetchone()[0]
+        self.assertNotEqual(schema_owner,VERIFIER)
+        self.assertFalse(self.admin.execute("SELECT has_schema_privilege(%s,%s,'CREATE')",(VERIFIER,SCHEMA)).fetchone()[0])
+        self.assertFalse(self.admin.execute("SELECT has_table_privilege(%s,%s,'TRUNCATE')",(VERIFIER,f"{SCHEMA}.jobs")).fetchone()[0])
+        self.assertTrue(self.admin.execute(
+            "SELECT bool_and(pg_get_userbyid(c.relowner)<>%s) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=%s AND c.relkind='r'",
+            (VERIFIER,SCHEMA),
+        ).fetchone()[0])
+        self.assertGreater(self.admin.execute(
+            "SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname=%s AND p.prosecdef AND pg_get_userbyid(p.proowner)=%s",
+            (SCHEMA,VERIFIER),
+        ).fetchone()[0],0)
 
     def test_runtime_cannot_mutate_owner_epoch_or_lease(self):
         token=self.issue()
