@@ -308,6 +308,9 @@ components:
     Observation:
       type: object
       additionalProperties: false
+      oneOf:
+        - required: [value]
+        - required: [value_ref]
       required: [observation_id, session_id, quantity_id, unit, simulation_time, simulation_time_unit, observed_at, source_type, schema_version]
       properties:
         observation_id:
