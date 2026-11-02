@@ -432,6 +432,9 @@ class WorkerLeasePostgresTests(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             f1=pool.submit(do_reclaim); f2=pool.submit(do_old_complete)
             new=f1.result(); outcome=f2.result()
+        # SKIP LOCKED may legitimately return no row while the competing completion holds it.
+        if new is None:
+            with app_conn() as c: new=claim_one(c,"worker-new-after-lock")
         self.assertIsNotNone(new)
         self.assertIn(outcome,("STALE","EXPIRED"))
         self.assertEqual(new[2],old[2]+1)
