@@ -117,6 +117,7 @@
       "required": [
         "identity",
         "storage",
+        "path",
         "uri",
         "media_type",
         "size_bytes",
@@ -159,6 +160,10 @@
           "items": {
             "$ref": "#/$defs/dependency"
           }
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
