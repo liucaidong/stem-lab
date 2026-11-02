@@ -41,8 +41,10 @@ class StoreProtocolSchemaTests(unittest.TestCase):
     def setUpClass(cls):
         Draft202012Validator.check_schema(SCHEMA)
         cls.request_validator = Draft202012Validator(SCHEMA)
-        cls.response_validator = Draft202012Validator(SCHEMA["$defs"]["StoreResponse"])
-        cls.error_validator = Draft202012Validator(SCHEMA["$defs"]["StoreError"])
+        response_schema = {**SCHEMA, "$ref": "#/$defs/StoreResponse"}
+        error_schema = {**SCHEMA, "$ref": "#/$defs/StoreError"}
+        cls.response_validator = Draft202012Validator(response_schema)
+        cls.error_validator = Draft202012Validator(error_schema)
 
     def access(self):
         return {"assertion": "opaque.signed.assertion", "audience": "stemlab-store"}
