@@ -13,6 +13,11 @@
   "causation_id": "cmd_fixture_start",
   "payload": {
     "execution_id": "execution_fixture",
+    "input_state_version": 3,
+    "epoch": 2,
+    "fencing_token": 17,
+    "solver_id": "org.example.algebraic-solver",
+    "solver_version": "1.0.0",
     "package_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   }
 }
