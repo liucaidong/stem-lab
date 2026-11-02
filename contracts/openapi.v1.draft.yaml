@@ -1,0 +1,121 @@
+openapi: 3.1.0
+info:
+  title: STEM Lab API
+  version: 0.1.0-draft
+  description: Draft contract only; not a production API declaration.
+servers:
+  - url: https://api.example.invalid/v1
+security:
+  - bearerAuth: []
+paths:
+  /sessions:
+    post:
+      operationId: createSession
+      summary: Create an experiment runtime session
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 200 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [assignment_id]
+              properties:
+                assignment_id: { type: string }
+                experiment_instance_id: { type: [string, "null"] }
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [session_id, status, state_version, correlation_id]
+                properties:
+                  session_id: { type: string }
+                  status: { type: string }
+                  state_version: { type: integer }
+                  package_digest: { type: string }
+                  model_version_id: { type: string }
+                  correlation_id: { type: string }
+        "401": { description: Unauthenticated }
+        "403": { description: Forbidden }
+        "409": { description: Idempotency or assignment conflict }
+  /sessions/{session_id}:
+    get:
+      operationId: getSession
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Authoritative session read model }
+        "401": { description: Unauthenticated }
+        "404": { description: Not found or not visible }
+  /sessions/{session_id}/commands:
+    post:
+      operationId: submitRuntimeCommand
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+        - in: header
+          name: If-Match
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [command_type, schema_version, payload]
+              properties:
+                command_type:
+                  enum: [Start, Pause, Resume, Step, Reset, Cancel, SetParameter]
+                schema_version: { type: string }
+                payload: { type: object }
+      responses:
+        "200": { description: Command receipt or idempotent replay }
+        "400": { description: Invalid command schema }
+        "403": { description: Forbidden }
+        "409": { description: State version or idempotency conflict }
+        "422": { description: Domain constraint violation }
+  /sessions/{session_id}/observations:
+    get:
+      operationId: listSessionObservations
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 500, default: 100 }
+      responses:
+        "200": { description: Observation page with next_cursor }
+        "401": { description: Unauthenticated }
+        "404": { description: Not found or not visible }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
