@@ -26,6 +26,7 @@
 | 文档 | 内容 | 状态 |
 |---|---|---|
 | [R02 产品需求基线](docs/product/R02-product-requirements-baseline.md) | 愿景、角色、旅程、信息架构、功能清单、MVP和验收 | v1.0草案 |
+| [R02.1 产品愿景与定位](docs/product/R02.1-product-vision-positioning.md) | 愿景、定位、价值主张、战略边界、成功指标与待决策事项 | v0.1；草案 |
 | [R02.1–R02.12 平台架构设计系列](docs/architecture/R02.1-R02.12-platform-architecture-series.md) | 总体架构、科学模型、Runtime、Package、Renderer、Authoring、Data、Learning、AI、Plugin、Infrastructure、MVP蓝图 | v1.0设计基线 |
 
 ### R03 — 技术方案与架构
