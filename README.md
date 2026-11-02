@@ -393,3 +393,11 @@ This creates an authorization preflight plan only. It does not authenticate the 
 
 
 - Second smoke run #333 SUCCESS; environment manifest captured. Results vary materially from Run #330, so no production driver ranking is claimed. See the expanded benchmark report.
+
+
+### R03.52.7.3.4 — Full Store Workload Benchmark Design
+
+- [Full Store workload benchmark design](docs/architecture/R03.52.7.3.4-full-store-workload-benchmark-design.md)
+- Defines disposable schema, Claim/Renew/Complete/Fail operation semantics, workload profiles, correctness gates, metrics and fault matrix.
+- Identifies the unresolved resource-scoped RLS mapping for Job/Session/Receipt/Transition/Outbox and assertion replay semantics. This is a security gate before benchmark fixture implementation.
+- Current CI benchmark remains a protected row-read smoke test; no full Store workload or production adapter is implemented.
