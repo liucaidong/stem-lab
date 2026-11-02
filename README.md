@@ -19,7 +19,7 @@
 | [R01.4 产品机会假设](docs/research/R01.4-product-opportunity-hypotheses.md) | 差距、机会与定位假设 | v0.1 |
 | [R01.5 集成/部署/授权补证](docs/research/R01.5-competitor-integration-deployment-licensing.md) | LTI、Roster、API、SDK、许可和部署 | v0.1 |
 | [R01.6 工作流与技术边界验证](docs/research/R01.6-competitor-workflow-validation.md) | 学生/教师流程、数据、API和实测脚本 | v0.1；文档验证 |
-| [R01.7 竞品研究结论](docs/research/R01.7-competitive-landscape-conclusions.md) | 竞品分层、定位、差异化假设和MVP | v0.1；阶段性 |
+| [R01.7 竞品研究结论](docs/research/R01.7-competitive-landscape-conclusions.md) | 竞品分层、定位、差异化假设和MVP | v0.1；阶段性 |\n| [R01.8 竞品研究完整性审计与阶段门禁](docs/research/R01.8-competitor-research-audit-and-gate.md) | R01.2–R01.7完整性审计、证据缺口、进入R02准入条件 | v0.1；有条件通过 |
 
 ### R02 — 产品定义与PRD
 | 文档 | 内容 | 状态 |
