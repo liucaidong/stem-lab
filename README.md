@@ -184,7 +184,7 @@
 | [R03.37架构设计](docs/architecture/R03.37-runtime-event-registry-and-compatibility-governance.md) | Event Versioning、Producer/Consumer、Lifecycle、Replay、Retention和Poison Event | v0.1设计草案 |
 | [Event Registry Schema](contracts/events/registry.schema.v1alpha1.json) | 版本化事件治理元数据 | Draft；Run #132通过API错误目录和8种命令Payload映射（局部） |
 | [Event Registry](contracts/events/registry.v1.json) | 三种代表事件登记及治理字段 | Draft；Run #132通过JWT Claims/授权/幂等/Cursor静态语义测试（局部） |
-| [Registry Validator](scripts/validate_event_registry.py) | 唯一性、兼容性、生命周期及Payload Schema/Fixture验证 | Draft；等待CI |
+| [Registry Validator](scripts/validate_event_registry.py) | 唯一性、兼容性、生命周期及Payload Schema/Fixture验证 | Run #162通过14项一致性清单与12项风险报告Schema验证（局部） |
 
 
 R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema、3种代表Payload映射及7个负向策略案例。完整Event Catalog和真实Consumer兼容性仍未完成。
@@ -213,7 +213,7 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | 文档/资产 | 内容 | 状态 |
 |---|---|---|
 | [R03.40架构设计](docs/architecture/R03.40-api-security-and-operational-semantics.md) | JWT Claims、资源授权、幂等、Cursor HMAC、Retry-After、错误目录和Command Registry | v0.1设计草案 |
-| [API Error Catalog](contracts/api-error-catalog.v1alpha1.json) | 稳定错误码与HTTP/重试语义 | Draft；等待CI |
+| [API Error Catalog](contracts/api-error-catalog.v1alpha1.json) | 稳定错误码与HTTP/重试语义 | Run #162跨模块审计脚本通过（局部） |
 | [Command Payload Registry](contracts/commands/registry.v1alpha1.json) | command_type/schema_version到Payload Schema映射 | Draft；等待CI |
 | [API Semantics Validator](scripts/validate_api_operational_semantics.py) | JWT Claim/授权/幂等/Cursor HMAC和命令Schema静态测试 | Draft；等待CI；不验JWT签名 |
 
