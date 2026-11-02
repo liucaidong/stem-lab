@@ -734,7 +734,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         )
         cls.admin.execute(
             f"CREATE POLICY receipts_complete_insert ON {SCHEMA}.receipts FOR INSERT TO {RUNTIME} "
-            f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
+            f"WITH CHECK(outcome='APPLIED' AND length(request_digest) BETWEEN 1 AND 256 AND {SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
             "tenant_id,job_id,session_id,'worker.job.complete','job',job_id,operation_id))"
         )
         cls.admin.execute(
