@@ -242,3 +242,6 @@ R03.52.3 CI evidence: [GitHub Actions Run #41443126489](https://github.com/liuca
 - runtime/retry_policy.py maps stable error codes to safe messages and capped full-jitter decisions; unknown codes fail closed.
 - scripts/validate_worker_retry_policy.py checks schema and policy invariants; scripts/test_worker_retry_policy.py verifies behavior.
 - The persisted Job attempt_count/maximum_attempts remain authoritative. No production exception classifier, live rollout, signed policy, or DLQ replay is implemented.
+
+
+R03.52.4 CI evidence: [GitHub Actions Run #41443666002](https://github.com/liucaidong/stem-lab/actions/runs/41443666002) SUCCESS; retry-policy schema validator passed (4 explicit policy entries) and behavior tests 7/7 passed. This verifies policy evaluation only; production classifier mapping and rollout remain unimplemented.

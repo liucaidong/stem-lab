@@ -288,7 +288,7 @@ This is not a distributed Scheduler or production process supervisor. PostgreSQL
 | Asset | Purpose | Status |
 |---|---|---|
 | [Process lifecycle bridge](runtime/process_lifecycle.py) | SIGINT/SIGTERM to WorkerPool shutdown; restores previous handlers | CI Run #41443126489 PASS (4 tests); deployment supervisor not implemented |
-| [Signal bridge tests](scripts/test_process_lifecycle.py) | Forwarding, handler restoration, main-thread guard and invalid configuration | CI pending |
+| [Signal bridge tests](scripts/test_process_lifecycle.py) | Forwarding, handler restoration, main-thread guard and invalid configuration | Run #41443666002 PASS |
 | [Shutdown design](docs/architecture/R03.52.3-process-signal-graceful-shutdown.md) | Signal safety, drain semantics and deployment boundary | v0.1 reference |
 | [Shutdown sequence](docs/architecture/R03.52.3-process-signal-shutdown-sequence.md) | Signal-to-poller shutdown sequence | Design diagram |
 
@@ -299,7 +299,7 @@ The bridge does not enforce a hard termination deadline, cancel non-cooperative 
 
 | Asset | Purpose | Status |
 |---|---|---|
-| [Retry Policy Schema](contracts/worker-retry-policy.schema.v1alpha1.json) | Versioned error policy contract | Draft; CI pending |
+| [Retry Policy Schema](contracts/worker-retry-policy.schema.v1alpha1.json) | Versioned error policy contract | Draft; Run #41443666002 PASS |
 | [Retry Policy Registry](contracts/worker-retry-policy.v1alpha1.json) | Illustrative transient/permanent/default policies | Candidate; not production policy |
 | [Retry evaluator](runtime/retry_policy.py) | Stable code mapping, fail-closed default, capped full jitter | Executable reference |
 | [Policy validator](scripts/validate_worker_retry_policy.py) | Schema, uniqueness and policy invariant checks | CI pending |
