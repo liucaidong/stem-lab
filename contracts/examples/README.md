@@ -8,6 +8,6 @@ These fixtures are synthetic and contain no real user or tenant data.
 | experiment-package.invalid.json | FAIL | Missing required model digest and unsupported runtime mode |
 | runtime-event.valid.json | PASS against runtime-event-envelope.schema.v1.json | Valid event envelope |\n| dc-circuit.reference-cases.json | JSON syntax check only; expert review pending | Synthetic DC circuit reference cases |
 
-Expected outcomes are test specifications, not evidence that a JSON Schema validator has run. The CI pipeline must execute a Draft 2020-12 compliant validator and assert both positive and negative cases.
+R03.23 records one-time local execution: Package Schema meta-validation and positive/negative fixtures passed; Runtime Event Schema meta-validation and positive fixture passed. This is not yet a CI run. The repository CI must repeat these assertions with pinned dependencies on every relevant change.
 
 Additional test suites must cover semantic references, digest verification, Package dependency resolution, license policy, model compatibility, event ordering, idempotency and tenant authorization. JSON Schema alone cannot verify these domain-level constraints.
