@@ -7,9 +7,9 @@
 | experiment-package.schema.v1alpha1.json | ExperimentPackage Manifest结构约束 | Draft；需正/负样例与兼容测试 |
 | runtime-event-envelope.schema.v1.json | Runtime领域事件通用信封 | Draft；三种代表事件Payload已另行定义 |
 | events/registry.v1.json与events/*.payload.schema.v1.json | 事件类型与Payload Schema映射 | Draft；仅覆盖三种代表事件，Consumer测试待完成 |
-| scientific-model.schema.v1alpha1.json | ScientificModel结构契约 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入，完整语义待执行 |
-| observation.schema.v1alpha1.json | Observation元数据与数据载荷契约 | Draft；本地元Schema/Fixture复核通过，语义验证待执行 |
-| openapi.v1.draft.yaml | Session/Command/Observation API契约 | Draft v0.2；openapi-spec-validator 0.9.0已接入，CI验证待执行 |
+| scientific-model.schema.v1alpha1.json | ScientificModel结构契约 | Draft；Schema、引用/范围/单位绑定语义正负断言通过Run #41/#42 CI；量纲体系待完成 |
+| observation.schema.v1alpha1.json | Observation元数据与数据载荷契约 | Draft；Schema与Package/Model/Quantity绑定语义正负断言通过Run #41/#42 CI；量纲体系待完成 |
+| openapi.v1.draft.yaml | Session/Command/Observation API契约 | Draft v0.2；OpenAPI 3.1规范验证及Run #41/#42 CI通过 |
 
 ## 使用约束
 
@@ -23,9 +23,10 @@
 ## 自动化验证
 
 - `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Registry驱动Runtime Event Envelope/Payload、Model/Observation样例、Model基础引用/范围语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
-- `requirements-contract-validation.txt`：固定直接依赖版本；传递依赖尚未hash锁定。
+- `requirements-contract-validation.txt`：声明直接依赖。
+- `requirements-contract-validation.lock.txt`：固定Run #42验证过的直接/传递依赖版本；目前未使用hash校验。
 - `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。
-- OpenAPI YAML解析与OpenAPI 3.1规范验证是两项不同检查。正式验证器已固定并接入脚本；[openapi-spec-validator 0.9.0官方PyPI页面](https://pypi.org/project/openapi-spec-validator/)说明其支持OpenAPI 3.1/3.2。CI执行结果需以GitHub Actions运行记录为准。
+- OpenAPI YAML解析与OpenAPI 3.1规范验证是两项不同检查。正式验证器已固定并接入脚本；[openapi-spec-validator 0.9.0官方PyPI页面](https://pypi.org/project/openapi-spec-validator/)说明其支持OpenAPI 3.1/3.2。Run #41/#42均成功：[Run #41](https://github.com/liucaidong/stem-lab/actions/runs/41392312080)、[Run #42](https://github.com/liucaidong/stem-lab/actions/runs/41392380372)。
 
 ## 下一步
 
