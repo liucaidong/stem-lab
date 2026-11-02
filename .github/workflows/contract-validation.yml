@@ -50,3 +50,6 @@ jobs:
 
       - name: Validate Runtime Event Registry and compatibility policy
         run: python scripts/validate_event_registry.py
+
+      - name: Run SQLite Event Inbox Outbox Replay integration harness
+        run: python scripts/test_event_delivery_sqlite.py
