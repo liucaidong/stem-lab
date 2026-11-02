@@ -127,6 +127,12 @@ jobs:
       - name: Test Worker Retry Policy evaluation
         run: python scripts/test_worker_retry_policy.py
 
+      - name: Validate DLQ Replay Plan contract
+        run: python scripts/validate_dlq_replay.py
+
+      - name: Test DLQ Replay authorization preflight
+        run: python scripts/test_dlq_replay.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 

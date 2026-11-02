@@ -306,3 +306,16 @@ The bridge does not enforce a hard termination deadline, cancel non-cooperative 
 | [Policy tests](scripts/test_worker_retry_policy.py) | Jitter, cap, attempts, unknown code and safe message tests | CI pending |
 
 No production exception classifier, dynamic policy rollout, Job policy-version pin, or DLQ operator workflow is included.
+
+
+### R03.52.5 — DLQ Replay Authorization & Audit Preflight
+
+| Asset | Purpose | Status |
+|---|---|---|
+| [DLQ Replay Plan Schema](contracts/dlq-replay-plan.schema.v1alpha1.json) | New Job identity, tenant, actor, reason and authorization policy version | Draft; CI pending |
+| [Valid Replay Plan](contracts/examples/dlq-replay-plan.valid.json) | Representative immutable replay intent | Fixture |
+| [Replay preflight](runtime/dlq_replay.py) | Fail-closed authorization scope and replay-limit checks | Executable reference |
+| [Replay validator](scripts/validate_dlq_replay.py) | Schema and distinct Job identity checks | CI pending |
+| [Replay tests](scripts/test_dlq_replay.py) | Authorization, tenant/job scope, status, replay limit and audit context | CI pending |
+
+This creates an authorization preflight plan only. It does not authenticate the actor or atomically create a new Job/update DLQ/audit records in PostgreSQL.

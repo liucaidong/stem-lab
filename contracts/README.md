@@ -245,3 +245,11 @@ R03.52.3 CI evidence: [GitHub Actions Run #41443126489](https://github.com/liuca
 
 
 R03.52.4 CI evidence: [GitHub Actions Run #41443666002](https://github.com/liucaidong/stem-lab/actions/runs/41443666002) SUCCESS; retry-policy schema validator passed (4 explicit policy entries) and behavior tests 7/7 passed. This verifies policy evaluation only; production classifier mapping and rollout remain unimplemented.
+
+
+## DLQ Replay Authorization & Audit Preflight (R03.52.5)
+
+- dlq-replay-plan.schema.v1alpha1.json describes an immutable replay plan with a distinct new Job ID and actor/reason/policy-version audit context.
+- runtime/dlq_replay.py enforces dead_lettered source state, replay ceiling, new ID, and exact authorization scope.
+- scripts/validate_dlq_replay.py validates the plan schema; scripts/test_dlq_replay.py tests fail-closed authorization and replay invariants.
+- This is preflight only. Trusted identity, transactional Job creation, replay counter update, idempotency and immutable DB audit are not implemented; DEC-19 remains OPEN.

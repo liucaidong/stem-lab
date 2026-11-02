@@ -35,13 +35,16 @@ def main():
   ref=command["payload_schema_ref"].split("/")[-1]
   if ref not in payload["$defs"]: raise SystemExit("Command payload reference missing: "+ref)
  workflow=(ROOT/".github/workflows/contract-validation.yml").read_text()
- required=["validate_expression_ast.py","validate_package_resource_graph.py","validate_package_canonical_manifest.py","validate_package_governance.py","validate_event_registry.py","test_event_delivery_sqlite.py","test_postgres_transaction_rls.py","validate_api_operational_semantics.py","validate_runtime_execution_contract.py","test_solver_numerical_reference.py","validate_visualization_instrument_contract.py","test_worker_runtime.py","test_worker_pool.py","test_process_lifecycle.py","validate_worker_retry_policy.py","test_worker_retry_policy.py"]
+ required=["validate_expression_ast.py","validate_package_resource_graph.py","validate_package_canonical_manifest.py","validate_package_governance.py","validate_event_registry.py","test_event_delivery_sqlite.py","test_postgres_transaction_rls.py","validate_api_operational_semantics.py","validate_runtime_execution_contract.py","test_solver_numerical_reference.py","validate_visualization_instrument_contract.py","test_worker_runtime.py","test_worker_pool.py","test_process_lifecycle.py","validate_worker_retry_policy.py","test_worker_retry_policy.py","validate_dlq_replay.py","test_dlq_replay.py"]
  missing=[p for p in required if p not in workflow]
  if missing: raise SystemExit("CI missing validators: "+", ".join(missing))
  if not (ROOT/"runtime/worker_runtime.py").exists(): raise SystemExit("missing Worker Runtime reference core")
  if not (ROOT/"runtime/worker_pool.py").exists(): raise SystemExit("missing Worker Pool reference core")
  if not (ROOT/"runtime/process_lifecycle.py").exists(): raise SystemExit("missing process lifecycle reference core")
  if not (ROOT/"runtime/retry_policy.py").exists(): raise SystemExit("missing Retry Policy reference core")
+ if not (ROOT/"runtime/dlq_replay.py").exists(): raise SystemExit("missing DLQ Replay reference core")
+ for p in ["contracts/dlq-replay-plan.schema.v1alpha1.json","contracts/examples/dlq-replay-plan.valid.json"]:
+  if not (ROOT/p).exists(): raise SystemExit("missing DLQ Replay asset "+p)
  for p in ["contracts/worker-retry-policy.schema.v1alpha1.json","contracts/worker-retry-policy.v1alpha1.json"]:
   if not (ROOT/p).exists(): raise SystemExit("missing Worker Retry Policy asset "+p)
  for p in ["contracts/experiment-package.schema.v1alpha1.json","contracts/package-canonical-manifest.schema.v1alpha1.json","contracts/package-attestation.schema.v1alpha1.json","contracts/package-provenance.schema.v1alpha1.json","contracts/package-license-record.schema.v1alpha1.json","contracts/runtime-event-envelope.schema.v1.json","contracts/visualization-instrument-contract.schema.v1alpha1.json"]:
