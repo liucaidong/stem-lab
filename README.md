@@ -67,6 +67,7 @@
 | [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；JSON语法已解析 |
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件信封结构 | Draft；JSON语法已解析 |
 | [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API骨架 | Draft；尚未执行YAML/OpenAPI校验 |
+| [Contract Test Fixtures](contracts/examples/README.md) | Package正/负样例与Runtime Event样例 | 已保存；验证器尚未执行 |
 
 ## 核心产品与架构决策
 
