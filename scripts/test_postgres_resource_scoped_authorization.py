@@ -127,6 +127,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             IF c->>'resource_type'<>'job' OR c->>'resource_id'<>c->>'job_id' THEN RETURN NULL; END IF;
           ELSIF c->>'action'='worker.receipt.reconcile' THEN
             IF c->>'resource_type'<>'receipt' OR c->>'resource_id'<>c->>'operation_id' THEN RETURN NULL; END IF;
+          ELSIF c->>'action' IN ('worker.outbox.dispatch','worker.outbox.ack') THEN
+            IF c->>'resource_type'<>'outbox_event' THEN RETURN NULL; END IF;
           ELSE
             RETURN NULL;
           END IF;
