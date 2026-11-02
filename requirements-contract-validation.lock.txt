@@ -18,3 +18,5 @@ rpds-py==2026.9.1
 six==1.17.0
 typing-extensions==4.16.0
 typing-inspection==0.4.4
+cbor2==6.1.5
+rfc8785==0.1.4
