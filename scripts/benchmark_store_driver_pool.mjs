@@ -4,19 +4,18 @@ import pg from "pg";
 
 const { Pool } = pg;
 const env = JSON.parse(fs.readFileSync(process.env.STORE_BENCH_ENV_FILE, "utf8"));
-const concurrencyLevels = [1, 8, 32];
-const iterationsPerWorker = 20;
 
 function percentile(values, p) {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.max(0, Math.ceil(p * sorted.length) - 1)];
 }
 
-function summarize(concurrency, latencies, acquireWaits, elapsed) {
+function summarize(concurrency, repetition, latencies, acquireWaits, elapsed) {
   const ms = (value) => Number((value * 1000).toFixed(3));
   return {
     driver: "node-postgres-pg-pgpool",
     concurrency,
+    repetition,
     operations: latencies.length,
     throughput_ops_per_second: Number((latencies.length / elapsed).toFixed(2)),
     latency_ms: {
@@ -29,20 +28,20 @@ function summarize(concurrency, latencies, acquireWaits, elapsed) {
       p95: ms(percentile(acquireWaits, 0.95)),
       p99: ms(percentile(acquireWaits, 0.99)),
     },
-    environment: "GitHub-hosted ephemeral runner; smoke only",
   };
 }
 
 const pool = new Pool({
   ...env.node_config,
-  max: 16,
+  max: env.pool_max,
+  min: env.pool_min,
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 10000,
   maxLifetimeSeconds: 60,
   pipeline: false,
 });
 
-async function operation() {
+async function operation(token) {
   const started = performance.now();
   const client = await pool.connect();
   const acquired = performance.now();
@@ -52,7 +51,7 @@ async function operation() {
     await client.query('SET LOCAL ROLE "' + env.runtime_role + '"');
     await client.query(
       "SELECT set_config($1, $2, true)",
-      ["app.tenant_assertion", env.token],
+      ["app.tenant_assertion", token],
     );
     const query = 'SELECT row_id FROM "' + env.schema + '".tenant_rows WHERE row_id = $1';
     const result = await client.query(query, ["a1"]);
@@ -78,9 +77,11 @@ async function operation() {
   };
 }
 
-async function runCase(concurrency) {
-  await Promise.all(Array.from({ length: 10 }, () => operation()));
-  const total = concurrency * iterationsPerWorker;
+async function runCase(concurrency, repetition) {
+  const token = env.tokens[repetition + ":" + concurrency];
+  if (!token) throw new Error("Missing assertion token for benchmark case");
+  await Promise.all(Array.from({ length: 10 }, () => operation(token)));
+  const total = concurrency * env.iterations_per_worker;
   let cursor = 0;
   const latencies = [];
   const acquireWaits = [];
@@ -90,7 +91,7 @@ async function runCase(concurrency) {
     while (true) {
       const index = cursor++;
       if (index >= total) return;
-      const result = await operation();
+      const result = await operation(token);
       latencies.push(result.latency);
       acquireWaits.push(result.acquire);
     }
@@ -98,13 +99,15 @@ async function runCase(concurrency) {
 
   await Promise.all(Array.from({ length: concurrency }, () => worker()));
   const elapsed = (performance.now() - started) / 1000;
-  return summarize(concurrency, latencies, acquireWaits, elapsed);
+  return summarize(concurrency, repetition, latencies, acquireWaits, elapsed);
 }
 
 try {
   const results = [];
-  for (const concurrency of concurrencyLevels) {
-    results.push(await runCase(concurrency));
+  for (let repetition = 1; repetition <= env.repetitions; repetition += 1) {
+    for (const concurrency of env.concurrency_levels) {
+      results.push(await runCase(concurrency, repetition));
+    }
   }
   fs.writeFileSync(process.env.STORE_BENCH_NODE_OUTPUT, JSON.stringify(results, null, 2));
   console.log(JSON.stringify(results, null, 2));
