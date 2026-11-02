@@ -237,3 +237,13 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [Solver Verification Schema](contracts/solver-verification-contract.schema.v1alpha1.json) | Solver能力与数值策略契约 | Draft；等待CI |
 | [DC/RC Numerical Harness](scripts/test_solver_numerical_reference.py) | DC平衡与RC Euler/RK4解析参考、收敛阶及稳定性测试 | Run #143通过数值参考Harness（局部）；参考算法仅测试用途 |
 
+
+
+### R03.43 — Rendering、Visualization 与 Instrument Contract
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.43架构设计](docs/architecture/R03.43-rendering-visualization-and-instrument-contract.md) | Renderer Adapter、Scene Graph、Coordinate System、Timeline、Interaction和Instrument | v0.1契约草案 |
+| [Visualization/Instrument Schema](contracts/visualization-instrument-contract.schema.v1alpha1.json) | Scene/Timeline/Instrument结构 | Draft；等待CI |
+| [Visualization Validator](scripts/validate_visualization_instrument_contract.py) | Scene Graph、Timeline和Observation Binding静态检查 | Draft；等待CI；未运行Renderer |
+
