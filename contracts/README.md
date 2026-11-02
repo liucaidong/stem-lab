@@ -87,3 +87,11 @@
 - 静态验证不执行Worker/Runtime/Solver；
 - Simulation Time与Wall-clock Time分离；
 - 设计细节见[R03.41](../docs/architecture/R03.41-simulation-runtime-engineering-contract.md)。
+
+
+## Scientific Solver Verification
+
+- solver-verification-contract.schema.v1alpha1.json定义Solver数值策略契约；
+- DC/RC numerical reference harness测试收敛、稳定性、精度、量纲和确定性；
+- Euler/RK4仅为测试参考积分器，不是生产Solver；
+- 详见[R03.42](../docs/architecture/R03.42-scientific-solver-verification-architecture.md)。
