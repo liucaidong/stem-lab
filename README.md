@@ -263,7 +263,7 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 
 | Asset | Purpose | Status |
 |---|---|---|
-| [Runtime orchestration core](runtime/worker_runtime.py) | Adapter-neutral claim/dispatch/heartbeat/fenced-completion lifecycle | Executable reference; no production Store adapter |
+| [Runtime orchestration core](runtime/worker_runtime.py) | Adapter-neutral claim/dispatch/heartbeat/fenced-completion lifecycle | CI Run #41441940260 PASS (9 tests); no production Store adapter |
 | [Lifecycle tests](scripts/test_worker_runtime.py) | Idle, success, safe failure, heartbeat loss, shutdown drain and invalid configuration | CI unit tests; fake Store only |
 | [Lifecycle design](docs/architecture/R03.52.1-worker-runtime-lifecycle-supervision.md) | Runtime responsibilities, invariants, shutdown and evidence boundaries | v0.1 reference |
 | [Protocol sequences](docs/architecture/R03.52.1-worker-runtime-lifecycle-sequences.md) | Normal execution, heartbeat loss and graceful shutdown | Design diagram |

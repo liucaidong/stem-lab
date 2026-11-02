@@ -209,3 +209,6 @@ R03.51 PostgreSQL reference evidence: [GitHub Actions Run #41440101768](https://
 - `scripts/test_worker_runtime.py` verifies lifecycle semantics with a fake Store. CI execution does not verify PostgreSQL adapter behavior or production process supervision.
 - A Store adapter must independently fence every write by tenant, job, owner, epoch and database-clock lease expiry. It must use bounded network/statement timeouts.
 - Python is not selected as the production Worker runtime; DEC-03 remains OPEN. DEC-04/05/13/19/30 remain OPEN. See `docs/architecture/R03.52.1-worker-runtime-lifecycle-supervision.md`.
+
+
+R03.52.1 CI evidence: [GitHub Actions Run #41441940260](https://github.com/liucaidong/stem-lab/actions/runs/41441940260) SUCCESS; 9/9 adapter-neutral Worker Runtime lifecycle tests passed. R03.51 PostgreSQL tests 20/20 and R03.50 PostgreSQL tests 8/8 also passed. No production Store adapter or process supervisor is implied.
