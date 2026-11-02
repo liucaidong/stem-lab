@@ -353,4 +353,4 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [PostgreSQL 17.11 + pgsodium 3.1.11 build](scripts/docker/pgsodium-postgres17.Dockerfile)
 - [Ed25519 verifier adversarial harness](scripts/test_postgres_tenant_ed25519_verifier.py)
 - Contract validation adds an isolated `tenant-ed25519-verifier` job. The issuer private key remains in the test process; PostgreSQL stores only public keys.
-- CI result: pending at time of this README update. Production provider compatibility and named security review remain open.
+- CI: [Run #305](https://github.com/liucaidong/stem-lab/actions/runs/41450630709) SUCCESS; PostgreSQL Ed25519 verifier 15/15 tests PASS and Contract validation SUCCESS. Production provider compatibility and named security review remain open.
