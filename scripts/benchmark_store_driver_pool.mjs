@@ -34,7 +34,7 @@ function summarize(concurrency, latencies, acquireWaits, elapsed) {
 }
 
 const pool = new Pool({
-  connectionString: env.dsn,
+  ...env.node_config,
   max: 16,
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 10000,
