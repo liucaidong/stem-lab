@@ -65,7 +65,7 @@
 | [R03.18 技术验证与Spike矩阵](docs/architecture/R03.18-technical-validation-and-spike-matrix.md) | 技术Spike、自动化测试、故障注入、数值验证和证据模板 | v0.1；尚未执行 |
 | [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、局部验证证据和工程准入Gate | v0.2；未达Implementation-Ready |
 | [R03.20 技术决策登记册](docs/architecture/R03.20-technical-decision-register.md) | 已接受原则、选型候选、产品/合规待决策项和ADR模板 | v0.1；待评审 |
-| [R03.21 工程准入WBS](docs/architecture/R03.21-engineering-readiness-wbs.md) | 产品决策、科学验证、契约、Spike、安全和解冻审计工作分解 | v0.1；尚未执行 |
+| [R03.21 工程准入WBS](docs/architecture/R03.21-engineering-readiness-wbs.md) | 产品决策、科学验证、契约、Spike、安全和解冻审计工作分解 | v0.2；持续更新 |
 | [R03.22 机器可读契约草案审阅](docs/architecture/R03.22-machine-readable-contract-review.md) | 契约草案审阅、局部机器验证结果与剩余缺口 | v0.2；Draft，局部验证 |
 | [R03.23 契约验证执行报告](docs/architecture/R03.23-contract-validation-execution-report.md) | Draft 2020-12 Schema元验证、正负样例及OpenAPI YAML解析执行记录 | v0.1；局部验证通过，契约未冻结 |
 | [R03.24 Scientific Model验证计划](docs/architecture/R03.24-scientific-model-verification-plan.md) | DC教学模型不变量、RC解析参考解、Solver收敛/单位/科学签核验收协议 | v0.1；验证计划，专家签核待完成 |
