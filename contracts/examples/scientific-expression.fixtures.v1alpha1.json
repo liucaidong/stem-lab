@@ -1,0 +1,350 @@
+{
+  "fixture_version": "1alpha1",
+  "symbol_table": {
+    "Vs": {
+      "unit_id": "V",
+      "quantity_kind": "electric-potential"
+    },
+    "I": {
+      "unit_id": "A",
+      "quantity_kind": "electric-current"
+    },
+    "R": {
+      "unit_id": "ohm",
+      "quantity_kind": "electric-resistance"
+    },
+    "R1": {
+      "unit_id": "ohm",
+      "quantity_kind": "electric-resistance"
+    },
+    "R2": {
+      "unit_id": "ohm",
+      "quantity_kind": "electric-resistance"
+    },
+    "C": {
+      "unit_id": "F",
+      "quantity_kind": "capacitance"
+    },
+    "Vc": {
+      "unit_id": "V",
+      "quantity_kind": "electric-potential"
+    }
+  },
+  "valid": [
+    {
+      "expression_id": "ohms-law-current",
+      "ast_version": "1alpha1",
+      "expected_type": {
+        "quantity_kind": "electric-current",
+        "dimension": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "root": {
+        "kind": "binary",
+        "operator": "divide",
+        "left": {
+          "kind": "symbol",
+          "symbol_id": "Vs"
+        },
+        "right": {
+          "kind": "symbol",
+          "symbol_id": "R"
+        }
+      }
+    },
+    {
+      "expression_id": "series-resistance",
+      "ast_version": "1alpha1",
+      "expected_type": {
+        "quantity_kind": "electric-resistance",
+        "dimension": [
+          1,
+          2,
+          -3,
+          -2
+        ]
+      },
+      "root": {
+        "kind": "binary",
+        "operator": "add",
+        "left": {
+          "kind": "symbol",
+          "symbol_id": "R1"
+        },
+        "right": {
+          "kind": "symbol",
+          "symbol_id": "R2"
+        }
+      }
+    },
+    {
+      "expression_id": "electric-power",
+      "ast_version": "1alpha1",
+      "expected_type": {
+        "quantity_kind": "power",
+        "dimension": [
+          1,
+          2,
+          -3,
+          0
+        ]
+      },
+      "root": {
+        "kind": "binary",
+        "operator": "multiply",
+        "left": {
+          "kind": "symbol",
+          "symbol_id": "Vs"
+        },
+        "right": {
+          "kind": "symbol",
+          "symbol_id": "I"
+        }
+      }
+    },
+    {
+      "expression_id": "rc-voltage-derivative",
+      "ast_version": "1alpha1",
+      "expected_type": {
+        "quantity_kind": "voltage-rate",
+        "dimension": [
+          1,
+          2,
+          -4,
+          -1
+        ]
+      },
+      "root": {
+        "kind": "binary",
+        "operator": "divide",
+        "left": {
+          "kind": "binary",
+          "operator": "subtract",
+          "left": {
+            "kind": "symbol",
+            "symbol_id": "Vs"
+          },
+          "right": {
+            "kind": "symbol",
+            "symbol_id": "Vc"
+          }
+        },
+        "right": {
+          "kind": "binary",
+          "operator": "multiply",
+          "left": {
+            "kind": "symbol",
+            "symbol_id": "R"
+          },
+          "right": {
+            "kind": "symbol",
+            "symbol_id": "C"
+          }
+        }
+      }
+    }
+  ],
+  "invalid": [
+    {
+      "case_id": "dimension-mismatch-add",
+      "expected_error": "DIMENSION_MISMATCH",
+      "expression": {
+        "expression_id": "bad-add",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "electric-potential",
+          "dimension": [
+            1,
+            2,
+            -3,
+            -1
+          ]
+        },
+        "root": {
+          "kind": "binary",
+          "operator": "add",
+          "left": {
+            "kind": "symbol",
+            "symbol_id": "Vs"
+          },
+          "right": {
+            "kind": "symbol",
+            "symbol_id": "I"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "unknown-symbol",
+      "expected_error": "UNKNOWN_SYMBOL",
+      "expression": {
+        "expression_id": "bad-symbol",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "electric-current",
+          "dimension": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "root": {
+          "kind": "symbol",
+          "symbol_id": "not-registered"
+        }
+      }
+    },
+    {
+      "case_id": "unregistered-function",
+      "expected_error": "UNREGISTERED_FUNCTION",
+      "expression": {
+        "expression_id": "bad-function",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "dimensionless",
+          "dimension": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "root": {
+          "kind": "call",
+          "function": "eval",
+          "arguments": [
+            {
+              "kind": "constant",
+              "value": 1,
+              "unit_id": "1",
+              "quantity_kind": "dimensionless"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "unsupported-operator",
+      "expected_error": "UNSUPPORTED_OPERATOR",
+      "expression": {
+        "expression_id": "bad-op",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "dimensionless",
+          "dimension": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "root": {
+          "kind": "binary",
+          "operator": "modulo",
+          "left": {
+            "kind": "constant",
+            "value": 1,
+            "unit_id": "1",
+            "quantity_kind": "dimensionless"
+          },
+          "right": {
+            "kind": "constant",
+            "value": 2,
+            "unit_id": "1",
+            "quantity_kind": "dimensionless"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "division-by-zero",
+      "expected_error": "DIVISION_BY_ZERO",
+      "expression": {
+        "expression_id": "bad-zero",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "electric-current",
+          "dimension": [
+            0,
+            0,
+            0,
+            1
+          ]
+        },
+        "root": {
+          "kind": "binary",
+          "operator": "divide",
+          "left": {
+            "kind": "symbol",
+            "symbol_id": "Vs"
+          },
+          "right": {
+            "kind": "constant",
+            "value": 0,
+            "unit_id": "ohm",
+            "quantity_kind": "electric-resistance"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "non-finite-number",
+      "expected_error": "NON_FINITE_NUMBER",
+      "expression": {
+        "expression_id": "bad-inf",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "dimensionless",
+          "dimension": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "root": {
+          "kind": "constant",
+          "value": null,
+          "unit_id": "1",
+          "quantity_kind": "dimensionless"
+        }
+      }
+    },
+    {
+      "case_id": "illegal-power",
+      "expected_error": "INVALID_POWER",
+      "expression": {
+        "expression_id": "bad-power",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "dimensionless",
+          "dimension": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "root": {
+          "kind": "binary",
+          "operator": "power",
+          "left": {
+            "kind": "symbol",
+            "symbol_id": "Vs"
+          },
+          "right": {
+            "kind": "constant",
+            "value": 0.5,
+            "unit_id": "1",
+            "quantity_kind": "dimensionless"
+          }
+        }
+      }
+    }
+  ]
+}
