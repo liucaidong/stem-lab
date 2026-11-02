@@ -121,3 +121,6 @@
 - Builder不下载资源、不验证真实内容字节、不签名、不做License法律判断；生产集成未实现。
 - 根节点原始Manifest Digest与最终Canonical Package Digest分离，根节点不进入Canonical Projection资源列表，避免自引用。
 - 设计边界见 [R03.45](../docs/architecture/R03.45-contract-integration-and-projection-builder-design.md)；AUD-001仍OPEN，DEC-27/28/29仍OPEN。
+
+
+R03.45验证型参考实现已纳入 `scripts/validate_contracts.py` 的CI入口；[GitHub Actions Run #173](https://github.com/liucaidong/stem-lab/actions/runs/41425774644)通过Manifest/Catalog投影、Model Expression绑定、传递依赖闭包、排序扰动和8个拒绝案例。该结果只证明当前Python参考验证器和Fixture，不代表生产发布器或内容字节验证完成。
