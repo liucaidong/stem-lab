@@ -48,21 +48,12 @@ def apply_transition(conn, tenant, session_id, expected_revision, to_state,
         conn.execute(f"SET LOCAL ROLE {ROLE}")
         conn.execute(f"SET LOCAL search_path TO {SCHEMA}, public")
         conn.execute("SELECT set_config('app.tenant_id', %s, true)", (tenant,))
-        inserted = conn.execute(
-            """INSERT INTO receipts
-               (tenant_id,session_id,operation,idempotency_key,request_digest,response_json)
-               VALUES (%s,%s,'transition',%s,%s,NULL)
-               ON CONFLICT DO NOTHING RETURNING idempotency_key""",
-            (tenant, session_id, idempotency_key, request_digest)
+        prior = conn.execute(
+            """SELECT request_digest,response_json FROM receipts
+               WHERE tenant_id=%s AND session_id=%s AND operation='transition' AND idempotency_key=%s""",
+            (tenant, session_id, idempotency_key)
         ).fetchone()
-        if inserted is None:
-            prior = conn.execute(
-                """SELECT request_digest,response_json FROM receipts
-                   WHERE tenant_id=%s AND session_id=%s AND operation='transition' AND idempotency_key=%s""",
-                (tenant, session_id, idempotency_key)
-            ).fetchone()
-            if prior is None:
-                raise RuntimeError("idempotency conflict row disappeared")
+        if prior is not None:
             if prior[0] != request_digest:
                 raise IdempotencyConflict()
             return {"outcome": "REPLAY_EXISTING_RECEIPT", "receipt": prior[1]}
@@ -79,6 +70,24 @@ def apply_transition(conn, tenant, session_id, expected_revision, to_state,
             raise RevisionConflict()
         if to_state not in ALLOWED[current_state]:
             raise ValueError("illegal transition")
+        # Lock the session before inserting the receipt. The receipt's composite
+        # FK takes a KEY SHARE lock on the session row; inserting it before
+        # FOR UPDATE can deadlock two concurrent commands upgrading row locks.
+        prior = conn.execute(
+            """SELECT request_digest,response_json FROM receipts
+               WHERE tenant_id=%s AND session_id=%s AND operation='transition' AND idempotency_key=%s""",
+            (tenant, session_id, idempotency_key)
+        ).fetchone()
+        if prior is not None:
+            if prior[0] != request_digest:
+                raise IdempotencyConflict()
+            return {"outcome": "REPLAY_EXISTING_RECEIPT", "receipt": prior[1]}
+        conn.execute(
+            """INSERT INTO receipts
+               (tenant_id,session_id,operation,idempotency_key,request_digest,response_json)
+               VALUES (%s,%s,'transition',%s,%s,NULL)""",
+            (tenant, session_id, idempotency_key, request_digest)
+        )
         next_revision = current_revision + 1
         sequence = next_revision - 1
         conn.execute(
@@ -232,8 +241,7 @@ class PackageIngestionPostgresTests(unittest.TestCase):
     def test_transition_ledger_is_append_only(self):
         self.run_transition()
         with self.assertRaises(errors.ObjectNotInPrerequisiteState):
-            with app_conn("A") as conn:
-                conn.execute("UPDATE transitions SET to_state='received' WHERE session_id='s1'")
+            self.a.execute(f"UPDATE {SCHEMA}.transitions SET to_state='received' WHERE session_id='s1'")
 
     def test_parallel_stale_revision_race_has_one_winner(self):
         barrier = threading.Barrier(2)
