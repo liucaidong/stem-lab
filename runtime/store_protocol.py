@@ -5,6 +5,7 @@ PostgreSQL driver, pool, migration runner, or production persistence adapter.
 """
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -161,7 +162,7 @@ class FailJobCommand:
             raise ValueError("error_code must be a stable uppercase code")
         if not self.safe_message or len(self.safe_message) > 512:
             raise ValueError("safe_message must contain 1..512 characters")
-        if self.retry_delay_seconds < 0 or self.retry_delay_seconds > 86400:
+        if not math.isfinite(self.retry_delay_seconds) or self.retry_delay_seconds < 0 or self.retry_delay_seconds > 86400:
             raise ValueError("retry_delay_seconds must be in [0, 86400]")
         if not self.idempotency_key or len(self.idempotency_key) > 256:
             raise ValueError("idempotency_key must contain 1..256 characters")
