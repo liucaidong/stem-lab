@@ -1,0 +1,138 @@
+{
+  "schema_version": "0.1-draft",
+  "model_id": "org.example.rc-series-charging-model",
+  "purpose": "technical_runtime_ode_validation_only_not_teaching_mvp",
+  "assumptions": [
+    "ideal_constant_voltage_source",
+    "ideal_resistor",
+    "ideal_capacitor",
+    "initial_capacitor_voltage_zero",
+    "no_leakage",
+    "no_instrument_loading",
+    "no_parasitics",
+    "constant_resistance_and_capacitance"
+  ],
+  "parameters": {
+    "source_voltage": {
+      "value": 10,
+      "unit": "V"
+    },
+    "resistance": {
+      "value": 1000,
+      "unit": "ohm"
+    },
+    "capacitance": {
+      "value": 0.001,
+      "unit": "F"
+    },
+    "time_constant": {
+      "value": 1,
+      "unit": "s"
+    }
+  },
+  "analytic_solution": {
+    "capacitor_voltage": "Vs * (1 - exp(-t/(R*C)))",
+    "resistor_voltage": "Vs * exp(-t/(R*C))",
+    "current": "(Vs/R) * exp(-t/(R*C))"
+  },
+  "cases": [
+    {
+      "case_id": "RC-CHARGE-000",
+      "time": {
+        "value": 0,
+        "unit": "s"
+      },
+      "expected": {
+        "capacitor_voltage": {
+          "value": 0,
+          "unit": "V"
+        },
+        "resistor_voltage": {
+          "value": 10,
+          "unit": "V"
+        },
+        "current": {
+          "value": 0.01,
+          "unit": "A"
+        }
+      }
+    },
+    {
+      "case_id": "RC-CHARGE-001",
+      "time": {
+        "value": 1,
+        "unit": "s"
+      },
+      "expected": {
+        "capacitor_voltage": {
+          "value": 6.321205588285577,
+          "unit": "V"
+        },
+        "resistor_voltage": {
+          "value": 3.6787944117144233,
+          "unit": "V"
+        },
+        "current": {
+          "value": 0.0036787944117144234,
+          "unit": "A"
+        }
+      }
+    },
+    {
+      "case_id": "RC-CHARGE-002",
+      "time": {
+        "value": 2,
+        "unit": "s"
+      },
+      "expected": {
+        "capacitor_voltage": {
+          "value": 8.646647167633873,
+          "unit": "V"
+        },
+        "resistor_voltage": {
+          "value": 1.353352832366127,
+          "unit": "V"
+        },
+        "current": {
+          "value": 0.001353352832366127,
+          "unit": "A"
+        }
+      }
+    },
+    {
+      "case_id": "RC-CHARGE-005",
+      "time": {
+        "value": 5,
+        "unit": "s"
+      },
+      "expected": {
+        "capacitor_voltage": {
+          "value": 9.932620530009146,
+          "unit": "V"
+        },
+        "resistor_voltage": {
+          "value": 0.06737946999085467,
+          "unit": "V"
+        },
+        "current": {
+          "value": 0.00006737946999085467,
+          "unit": "A"
+        }
+      }
+    }
+  ],
+  "numerical_policy": {
+    "comparison_tolerance": "Must be selected for a solver and verified against convergence tests; values here are analytic reference values, not a pre-approved runtime tolerance.",
+    "required_checks": [
+      "initial_condition",
+      "analytic_solution_error",
+      "KVL_at_each_sample",
+      "monotonic_capacitor_voltage",
+      "monotonic_nonincreasing_current",
+      "time_step_refinement_convergence",
+      "simulation_clock_monotonicity",
+      "stale_epoch_result_rejection"
+    ]
+  },
+  "review_status": "synthetic_reference_draft_expert_review_pending"
+}
