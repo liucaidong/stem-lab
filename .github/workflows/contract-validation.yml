@@ -77,6 +77,11 @@ jobs:
       - name: Validate Package ingestion lifecycle and idempotency contract
         run: python scripts/validate_package_ingestion_lifecycle.py
 
+      - name: Test Package ingestion PostgreSQL transaction, RLS, and Outbox integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_package_ingestion_postgres.py
+
       - name: Validate Package signature, provenance, and license governance
         run: python scripts/validate_package_governance.py
 
