@@ -60,6 +60,24 @@ def validate_schema_and_fixtures() -> None:
     event = load_json("contracts/examples/runtime-event.valid.json")
     require(not list(event_validator.iter_errors(event)),
             "Runtime Event positive fixture must validate")
+    event_registry = load_json("contracts/events/registry.v1.json")
+    for event_definition in event_registry["events"]:
+        payload_schema = load_json(
+            "contracts/events/" + event_definition["payload_schema"]
+        )
+        jsonschema.Draft202012Validator.check_schema(payload_schema)
+        event_fixture = load_json(event_definition["fixture"])
+        require(event_fixture["event_type"] == event_definition["event_type"],
+                "Event fixture type must match registry")
+        require(event_fixture["schema_version"] == event_definition["schema_version"],
+                "Event fixture version must match registry")
+        require(not list(event_validator.iter_errors(event_fixture)),
+                "Event envelope fixture must validate")
+        payload_validator = jsonschema.Draft202012Validator(
+            payload_schema, format_checker=jsonschema.FormatChecker()
+        )
+        require(not list(payload_validator.iter_errors(event_fixture["payload"])),
+                "Event payload fixture must validate against its type schema")
     model_validator = jsonschema.Draft202012Validator(
         model_schema, format_checker=jsonschema.FormatChecker()
     )
@@ -91,7 +109,7 @@ def validate_schema_and_fixtures() -> None:
     }
     require(bool(list(observation_validator.iter_errors(invalid_observation))),
             "Observation with both scalar value and valueRef must be rejected")
-    print("PASS: Draft 2020-12 meta-schema checks, fixtures, and Model reference/range semantics")
+    print("PASS: Draft 2020-12 meta-schema checks, typed Event payloads, fixtures, and Model reference/range semantics")
 
 
 def scientific_model_semantic_errors(model: dict[str, Any]) -> list[str]:
