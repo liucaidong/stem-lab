@@ -143,7 +143,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                  c->>'owner',(c->>'epoch')::bigint,c->>'action',c->>'resource_type',c->>'resource_id',c->>'operation_id')
           ON CONFLICT(issuer,kid,nonce) DO NOTHING;
           SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
-           WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce' FOR UPDATE;
+           WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
           RETURN FOUND AND ledger_tx=tx AND ledger_token=token;
         EXCEPTION WHEN OTHERS THEN RETURN false;
         END $authorize$
