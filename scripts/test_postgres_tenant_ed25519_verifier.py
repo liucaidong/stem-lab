@@ -90,7 +90,11 @@ class PostgreSQLTenantEd25519VerifierTests(unittest.TestCase):
             "kid text PRIMARY KEY, issuer text NOT NULL, public_key bytea NOT NULL, "
             "not_before timestamptz NOT NULL, not_after timestamptz, revoked_at timestamptz)"
         )
-        cls.admin.execute(f"ALTER TABLE {SCHEMA}.issuer_keys OWNER TO {VERIFIER_ROLE}")
+        # Keep the keyring owned by the migration/admin identity; the
+        # verifier owner receives SELECT only, never key lifecycle mutation.
+        cls.admin.execute(
+            f"GRANT SELECT ON {SCHEMA}.issuer_keys TO {VERIFIER_ROLE}"
+        )
         cls.admin.execute(
             f"INSERT INTO {SCHEMA}.issuer_keys "
             "(kid,issuer,public_key,not_before,not_after,revoked_at) "
