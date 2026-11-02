@@ -343,7 +343,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         DECLARE p text; s text; pb bytea; sb bytea; pk bytea; c jsonb;
                 i bigint; e bigint; now_s bigint; requested_types text[]; allowed_types text[];
                 tx xid8; ledger_tx xid8; ledger_tenant text; ledger_job text;
-                ledger_session text; ledger_epoch bigint; candidate_tenant text;
+                ledger_session text; ledger_epoch bigint; ledger_token text; ledger_assignment text; ledger_worker text; candidate_tenant text;
                 candidate_job text; candidate_session text; candidate_epoch bigint;
                 expiry timestamptz;
         BEGIN
@@ -362,6 +362,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              OR jsonb_typeof(c->'job_types')<>'array'
              OR jsonb_array_length(c->'job_types') NOT BETWEEN 1 AND 32 THEN RETURN; END IF;
           IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'job_types') x WHERE jsonb_typeof(x)<>'string')
+             OR EXISTS(SELECT 1 FROM jsonb_array_elements_text(c->'job_types') jt(value) WHERE length(value) NOT BETWEEN 1 AND 128)
              OR (SELECT count(*) FROM jsonb_array_elements_text(c->'job_types')) <>
                 (SELECT count(DISTINCT value) FROM jsonb_array_elements_text(c->'job_types') t(value)) THEN RETURN; END IF;
           IF jsonb_typeof(c->'iss')<>'string' OR jsonb_typeof(c->'kid')<>'string'
@@ -393,11 +394,12 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             (issuer,kid,nonce,token,transaction_id,assignment_id,worker_id)
           VALUES(c->>'iss',c->>'kid',c->>'nonce',token,tx,c->>'assignment_id',c->>'sub')
           ON CONFLICT(issuer,kid,nonce) DO NOTHING;
-          SELECT transaction_id,tenant_id,job_id,session_id,epoch
-            INTO ledger_tx,ledger_tenant,ledger_job,ledger_session,ledger_epoch
+          SELECT transaction_id,tenant_id,job_id,session_id,epoch,token,assignment_id,worker_id
+            INTO ledger_tx,ledger_tenant,ledger_job,ledger_session,ledger_epoch,ledger_token,ledger_assignment,ledger_worker
             FROM {SCHEMA}.claim_nonce_ledger
            WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
-          IF NOT FOUND OR ledger_tx<>tx THEN RETURN; END IF;
+          IF NOT FOUND OR ledger_tx<>tx OR ledger_token<>token
+             OR ledger_assignment<>c->>'assignment_id' OR ledger_worker<>c->>'sub' THEN RETURN; END IF;
           IF ledger_job IS NOT NULL THEN
             SELECT j.tenant_id,j.job_id,j.session_id,j.owner,j.epoch,j.lease_expires_at
               INTO claimed_tenant_id,claimed_job_id,claimed_session_id,claimed_owner,
@@ -635,6 +637,17 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 self.assertEqual(first[0][4],2)
         job=self.admin.execute(f"SELECT status,owner,epoch FROM {SCHEMA}.jobs WHERE job_id='job-claim-b'").fetchone()
         self.assertEqual(job,("running","worker-a",2))
+
+    def test_claim_nonce_cannot_switch_signed_claims_inside_same_transaction(self):
+        nonce="fedcba9876543210fedcba9876543210"
+        first=self.issue_claim(nonce=nonce)
+        second=self.issue_claim(nonce=nonce,exp=int(time.time())+90)
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                first_rows=conn.execute(f"SELECT * FROM {SCHEMA}.claim_next_v1(%s,60)",(first,)).fetchall()
+                second_rows=conn.execute(f"SELECT * FROM {SCHEMA}.claim_next_v1(%s,60)",(second,)).fetchall()
+                self.assertEqual(len(first_rows),1)
+                self.assertEqual(second_rows,[])
 
     def test_claim_nonce_cannot_be_replayed_in_another_transaction(self):
         token=self.issue_claim()
@@ -1011,6 +1024,10 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"SELECT * FROM {SCHEMA}.issuer_keys")
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 conn.execute(f"SELECT * FROM {SCHEMA}.nonce_ledger")
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SELECT * FROM {SCHEMA}.worker_assignments")
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SELECT * FROM {SCHEMA}.claim_nonce_ledger")
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 conn.execute(f"SET ROLE {VERIFIER}")
             self.assertEqual(conn.execute("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone(),(False,False))
