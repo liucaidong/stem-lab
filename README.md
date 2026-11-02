@@ -288,7 +288,7 @@ This is not a distributed Scheduler or production process supervisor. PostgreSQL
 | Asset | Purpose | Status |
 |---|---|---|
 | [Process lifecycle bridge](runtime/process_lifecycle.py) | SIGINT/SIGTERM to WorkerPool shutdown; restores previous handlers | CI Run #41443126489 PASS (4 tests); deployment supervisor not implemented |
-| [Signal bridge tests](scripts/test_process_lifecycle.py) | Forwarding, handler restoration, main-thread guard and invalid configuration | Run #41443666002 PASS |
+| [Signal bridge tests](scripts/test_process_lifecycle.py) | Forwarding, handler restoration, main-thread guard and invalid configuration | Run #41443126489 PASS (4 tests) |
 | [Shutdown design](docs/architecture/R03.52.3-process-signal-graceful-shutdown.md) | Signal safety, drain semantics and deployment boundary | v0.1 reference |
 | [Shutdown sequence](docs/architecture/R03.52.3-process-signal-shutdown-sequence.md) | Signal-to-poller shutdown sequence | Design diagram |
 
@@ -302,8 +302,8 @@ The bridge does not enforce a hard termination deadline, cancel non-cooperative 
 | [Retry Policy Schema](contracts/worker-retry-policy.schema.v1alpha1.json) | Versioned error policy contract | Draft; Run #41443666002 PASS |
 | [Retry Policy Registry](contracts/worker-retry-policy.v1alpha1.json) | Illustrative transient/permanent/default policies | Candidate; not production policy |
 | [Retry evaluator](runtime/retry_policy.py) | Stable code mapping, fail-closed default, capped full jitter | Executable reference |
-| [Policy validator](scripts/validate_worker_retry_policy.py) | Schema, uniqueness and policy invariant checks | Run #41444145950 PASS |
-| [Policy tests](scripts/test_worker_retry_policy.py) | Jitter, cap, attempts, unknown code and safe message tests | CI pending |
+| [Policy validator](scripts/validate_worker_retry_policy.py) | Schema, uniqueness and policy invariant checks | Run #41443666002 PASS |
+| [Policy tests](scripts/test_worker_retry_policy.py) | Jitter, cap, attempts, unknown code and safe message tests | Run #41443666002 PASS (7 tests) |
 
 No production exception classifier, dynamic policy rollout, Job policy-version pin, or DLQ operator workflow is included.
 
@@ -315,7 +315,7 @@ No production exception classifier, dynamic policy rollout, Job policy-version p
 | [DLQ Replay Plan Schema](contracts/dlq-replay-plan.schema.v1alpha1.json) | New Job identity, tenant, actor, reason and authorization policy version | Draft; Run #41444145950 PASS |
 | [Valid Replay Plan](contracts/examples/dlq-replay-plan.valid.json) | Representative immutable replay intent | Fixture |
 | [Replay preflight](runtime/dlq_replay.py) | Fail-closed authorization scope and replay-limit checks | Executable reference |
-| [Replay validator](scripts/validate_dlq_replay.py) | Schema and distinct Job identity checks | CI pending |
-| [Replay tests](scripts/test_dlq_replay.py) | Authorization, tenant/job scope, status, replay limit and audit context | CI pending |
+| [Replay validator](scripts/validate_dlq_replay.py) | Schema and distinct Job identity checks | Run #41444145950 PASS |
+| [Replay tests](scripts/test_dlq_replay.py) | Authorization, tenant/job scope, status, replay limit and audit context | Run #41444145950 PASS (8 tests) |
 
 This creates an authorization preflight plan only. It does not authenticate the actor or atomically create a new Job/update DLQ/audit records in PostgreSQL.
