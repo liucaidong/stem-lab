@@ -225,5 +225,5 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 |---|---|---|
 | [R03.41架构设计](docs/architecture/R03.41-simulation-runtime-engineering-contract.md) | Execution Lifecycle、Lease/Epoch/Fencing、Quota、Cancellation、Checkpoint、Recovery与双时钟 | v0.1契约草案 |
 | [Runtime Execution Schema](contracts/runtime-execution-contract.schema.v1alpha1.json) | Worker执行控制与资源/时钟契约 | Draft；等待CI |
-| [Runtime Execution Validator](scripts/validate_runtime_execution_contract.py) | 租约、时钟、Quota、Checkpoint和Replay静态规则 | Draft；等待CI；未运行Worker |
+| [Runtime Execution Validator](scripts/validate_runtime_execution_contract.py) | 租约、时钟、Quota、Checkpoint和Replay静态规则 | Draft；Run #137通过Runtime Execution静态契约验证（局部）；未运行Worker |
 
