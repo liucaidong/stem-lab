@@ -77,7 +77,7 @@
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件信封结构 | Draft；JSON语法已解析 |
 | [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API骨架 | Draft；尚未执行YAML/OpenAPI校验 |
 | [Contract Test Fixtures](contracts/examples/README.md) | Package正/负样例与Runtime Event样例 | 已保存；验证器尚未执行 |
-| [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；JSON语法已解析，科学签核待完成 |
+| [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；自动算术检查已纳入脚本，科学签核待完成 |\n| [RC Circuit参考算例JSON](contracts/examples/rc-circuit.reference-cases.json) | RC充电一阶ODE解析参考解；仅作Runtime技术验证 | Draft；非教学MVP，专家签核待完成 |
 
 ## 核心产品与架构决策
 
@@ -105,6 +105,6 @@
 - P3.17暂停；需先完成文档审计、契约冻结和技术Spike。
 - 代码冻结解除后仍需按Foundation→Package→Model→Runtime→Learning→Integration阶段实现和验收。
 
-## 版本记录
+### 自动化验证工具\n\n- [契约验证脚本](scripts/validate_contracts.py)\n- [验证依赖锁定](requirements-contract-validation.txt)\n- [GitHub Actions契约验证工作流](.github/workflows/contract-validation.yml)\n\n## 版本记录
 
 - 2026-11-02：补齐R01.8、R02.1–R02.14、R03.6–R03.23、机器可读契约草案、局部契约验证报告和工程准入审计。
