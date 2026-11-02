@@ -323,7 +323,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         BEGIN
           c:={SCHEMA}.verify_v2(token);
           IF c IS NULL OR c->>'action'<>'worker.job.dead_letter'
-             OR error_code IS NULL OR error_code !~ '^[A-Z][A-Z0-9_]{0,63}$'
+             OR error_code IS NULL OR error_code !~ '^[A-Z][A-Z0-9_]{{0,63}}$'
              OR terminal_reason IS NULL OR terminal_reason NOT IN ('max_attempts','non_retryable') THEN
             RETURN false;
           END IF;
@@ -1472,7 +1472,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion','transaction-only-value',true)")
             self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
-            conn.execute("RESET ROLE")
+            self.assertEqual(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0],"stale-session-value")
             conn.execute("RESET ROLE")
             conn.execute("RESET ALL")
             conn.execute("RESET app.resource_assertion")
