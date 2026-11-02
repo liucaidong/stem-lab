@@ -1471,7 +1471,6 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             self.assertEqual(conn.execute("SELECT current_user").fetchone()[0],RUNTIME)
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion','transaction-only-value',true)")
-            self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
             self.assertEqual(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0],"stale-session-value")
             conn.execute("RESET ROLE")
             conn.execute("RESET ALL")
