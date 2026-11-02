@@ -813,6 +813,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.admin.execute(f"DELETE FROM {SCHEMA}.receipts WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a'")
+        self.admin.execute(f"DELETE FROM {SCHEMA}.dlq_replay_principals WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.dlq_items WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.nonce_ledger")
         self.admin.execute(f"DELETE FROM {SCHEMA}.claim_nonce_ledger")
