@@ -52,7 +52,7 @@ BEGIN
     RETURN result;
   END IF;
   IF kind = 'object' THEN
-    item_count := pg_catalog.jsonb_object_length(p_value);
+    SELECT pg_catalog.count(*)::integer INTO item_count FROM pg_catalog.jsonb_object_keys(p_value);
     IF item_count > 4096 THEN RAISE EXCEPTION 'request digest object too large'; END IF;
     result := decode('4f','hex') || pg_catalog.int4send(item_count);
     FOR item IN
@@ -142,7 +142,7 @@ BEGIN
 
   args := p_envelope->'operation_arguments';
   IF pg_catalog.jsonb_typeof(args) IS DISTINCT FROM 'object'
-     OR pg_catalog.jsonb_object_length(args) <> pg_catalog.cardinality(expected_args)
+     OR (SELECT pg_catalog.count(*) FROM pg_catalog.jsonb_object_keys(args)) <> pg_catalog.cardinality(expected_args)
      OR (pg_catalog.cardinality(expected_args) > 0 AND NOT (args ?& expected_args)) THEN
     RAISE EXCEPTION 'operation arguments missing or unknown for action %', action_name;
   END IF;
