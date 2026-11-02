@@ -34,10 +34,12 @@ class SignalShutdownBridgeTests(unittest.TestCase):
                    side_effect=lambda sig: previous[sig]), \
              patch("runtime.process_lifecycle.signal.signal", side_effect=fake_signal):
             with SignalShutdownBridge(pool, monitor_interval_seconds=0.005):
-                installed[signal.SIGTERM](signal.SIGTERM, None)
+                handler_int = installed[signal.SIGINT]
+                handler_term = installed[signal.SIGTERM]
+                self.assertIs(handler_int, handler_term)
+                handler_term(signal.SIGTERM, None)
                 self.assertTrue(pool.shutdown_event.wait(1))
             self.assertEqual(pool.shutdown_calls, 1)
-        self.assertIs(installed[signal.SIGINT], installed[signal.SIGTERM])
 
     def test_context_restores_previous_signal_handlers(self):
         pool = FakePool()
