@@ -368,9 +368,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
                 with self.assertRaises(psycopg.errors.InsufficientPrivilege):
-                    conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','bad-session','job-a','session-b','op-a','job.completed')")
+                    with conn.transaction():
+                        conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','bad-session','job-a','session-b','op-a','job.completed')")
                 with self.assertRaises(psycopg.errors.InsufficientPrivilege):
-                    conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-b','bad-tenant','job-a','session-a','op-a','job.completed')")
+                    with conn.transaction():
+                        conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-b','bad-tenant','job-a','session-a','op-a','job.completed')")
 
     def test_complete_capability_cannot_write_failed_terminal_state(self):
         token=self.issue()
