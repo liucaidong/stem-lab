@@ -387,13 +387,19 @@ class PostgreSQLTenantAssertionVerifierTests(unittest.TestCase):
                     "WHERE tenant_id='tenant-a' AND row_id='a1'"
                 )
                 self.assertEqual(result.rowcount, 0)
-            with conn.transaction():
-                conn.execute("SELECT set_config('app.tenant_assertion',%s,true)", (update_token,))
-                result = conn.execute(
-                    f"UPDATE {SCHEMA}.tenant_rows SET value='changed' "
-                    "WHERE tenant_id='tenant-a' AND row_id='a1'"
-                )
-                self.assertEqual(result.rowcount, 1)
+            try:
+                with conn.transaction():
+                    conn.execute("SELECT set_config('app.tenant_assertion',%s,true)", (update_token,))
+                    result = conn.execute(
+                        f"UPDATE {SCHEMA}.tenant_rows SET value='changed' "
+                        "WHERE tenant_id='tenant-a' AND row_id='a1'"
+                    )
+                    self.assertEqual(result.rowcount, 1)
+                    # Keep tests order-independent: this assertion checks the
+                    # UPDATE policy, not durable fixture mutation.
+                    raise RuntimeError("rollback verifier update fixture")
+            except RuntimeError as exc:
+                self.assertEqual(str(exc), "rollback verifier update fixture")
 
     def test_runtime_cannot_read_signing_key_or_change_it(self):
         with self.connect_as_runtime() as conn:
