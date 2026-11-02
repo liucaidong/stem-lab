@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: STEM Lab API
-  version: 0.2.0-draft
+  version: 0.3.0-draft
   description: >
     Draft contract only. This document is not a production API declaration.
     Tenant and actor identity are derived from the authenticated server context.
