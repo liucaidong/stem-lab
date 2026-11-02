@@ -333,6 +333,119 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.dead_letter_v2(text,text,text) OWNER TO {VERIFIER}")
         cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.dead_letter_v2(text,text,text) FROM PUBLIC")
 
+
+        claim_sql = f"""
+        CREATE FUNCTION {SCHEMA}.claim_next_v1(token text, lease_seconds integer)
+        RETURNS TABLE(claimed_tenant_id text,claimed_job_id text,claimed_session_id text,
+                      claimed_owner text,claimed_epoch bigint,claimed_lease_expires_at timestamptz)
+        LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,{SCHEMA}
+        AS $claim$
+        DECLARE p text; s text; pb bytea; sb bytea; pk bytea; c jsonb;
+                i bigint; e bigint; now_s bigint; requested_types text[]; allowed_types text[];
+                tx xid8; ledger_tx xid8; ledger_tenant text; ledger_job text;
+                ledger_session text; ledger_epoch bigint; candidate_tenant text;
+                candidate_job text; candidate_session text; candidate_epoch bigint;
+                expiry timestamptz;
+        BEGIN
+          IF lease_seconds IS NULL OR lease_seconds NOT BETWEEN 5 AND 3600
+             OR token IS NULL OR length(token)>16384
+             OR token !~ '^[A-Za-z0-9_-]+[.][A-Za-z0-9_-]+$' THEN RETURN; END IF;
+          p:=split_part(token,'.',1); s:=split_part(token,'.',2);
+          pb:=decode(rpad(translate(p,'-_','+/'),((length(p)+3)/4)*4,'='),'base64');
+          sb:=decode(rpad(translate(s,'-_','+/'),((length(s)+3)/4)*4,'='),'base64');
+          IF octet_length(sb)<>64 THEN RETURN; END IF;
+          c:=convert_from(pb,'UTF8')::jsonb;
+          IF jsonb_typeof(c) IS DISTINCT FROM 'object'
+             OR NOT(c ?& ARRAY['v','iss','kid','sub','aud','action','assignment_id','job_types','iat','exp','nonce'])
+             OR c-ARRAY['v','iss','kid','sub','aud','action','assignment_id','job_types','iat','exp','nonce'] <> '{{}}'::jsonb
+             OR c->>'v'<>'1' OR jsonb_typeof(c->'v')<>'number'
+             OR jsonb_typeof(c->'job_types')<>'array'
+             OR jsonb_array_length(c->'job_types') NOT BETWEEN 1 AND 32 THEN RETURN; END IF;
+          IF EXISTS(SELECT 1 FROM jsonb_array_elements(c->'job_types') x WHERE jsonb_typeof(x)<>'string')
+             OR (SELECT count(*) FROM jsonb_array_elements_text(c->'job_types')) <>
+                (SELECT count(DISTINCT value) FROM jsonb_array_elements_text(c->'job_types') t(value)) THEN RETURN; END IF;
+          IF jsonb_typeof(c->'iss')<>'string' OR jsonb_typeof(c->'kid')<>'string'
+             OR jsonb_typeof(c->'sub')<>'string' OR jsonb_typeof(c->'aud')<>'string'
+             OR jsonb_typeof(c->'action')<>'string' OR jsonb_typeof(c->'assignment_id')<>'string'
+             OR jsonb_typeof(c->'iat')<>'number' OR jsonb_typeof(c->'exp')<>'number'
+             OR jsonb_typeof(c->'nonce')<>'string' THEN RETURN; END IF;
+          IF c->>'aud'<>'stemlab-worker-claim' OR c->>'action'<>'worker.job.claim'
+             OR length(c->>'assignment_id') NOT BETWEEN 1 AND 256
+             OR length(c->>'nonce') NOT BETWEEN 16 AND 256
+             OR c->>'nonce' !~ '^[A-Za-z0-9_-]+$' THEN RETURN; END IF;
+          IF (c->>'iat')::numeric<>trunc((c->>'iat')::numeric)
+             OR (c->>'exp')::numeric<>trunc((c->>'exp')::numeric) THEN RETURN; END IF;
+          i:=(c->>'iat')::bigint; e:=(c->>'exp')::bigint;
+          now_s:=floor(extract(epoch FROM clock_timestamp()))::bigint;
+          IF i>now_s OR e<=now_s OR e<=i OR e-i>120 THEN RETURN; END IF;
+          SELECT public_key INTO pk FROM {SCHEMA}.issuer_keys
+           WHERE kid=c->>'kid' AND issuer=c->>'iss' AND revoked_at IS NULL
+             AND not_before<=clock_timestamp() AND (not_after IS NULL OR not_after>clock_timestamp());
+          IF NOT FOUND OR pk IS NULL OR NOT pgsodium.crypto_sign_verify_detached(sb,convert_to(p,'UTF8'),pk) THEN RETURN; END IF;
+          SELECT allowed_job_types INTO allowed_types FROM {SCHEMA}.worker_assignments
+           WHERE assignment_id=c->>'assignment_id' AND worker_id=c->>'sub' AND enabled;
+          IF NOT FOUND THEN RETURN; END IF;
+          requested_types:=ARRAY(SELECT jsonb_array_elements_text(c->'job_types'));
+          IF NOT(requested_types <@ allowed_types) THEN RETURN; END IF;
+
+          tx:=pg_current_xact_id();
+          INSERT INTO {SCHEMA}.claim_nonce_ledger
+            (issuer,kid,nonce,token,transaction_id,assignment_id,worker_id)
+          VALUES(c->>'iss',c->>'kid',c->>'nonce',token,tx,c->>'assignment_id',c->>'sub')
+          ON CONFLICT(issuer,kid,nonce) DO NOTHING;
+          SELECT transaction_id,tenant_id,job_id,session_id,epoch
+            INTO ledger_tx,ledger_tenant,ledger_job,ledger_session,ledger_epoch
+            FROM {SCHEMA}.claim_nonce_ledger
+           WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+          IF NOT FOUND OR ledger_tx<>tx THEN RETURN; END IF;
+          IF ledger_job IS NOT NULL THEN
+            SELECT j.tenant_id,j.job_id,j.session_id,j.owner,j.epoch,j.lease_expires_at
+              INTO claimed_tenant_id,claimed_job_id,claimed_session_id,claimed_owner,
+                   claimed_epoch,claimed_lease_expires_at
+              FROM {SCHEMA}.jobs j
+             WHERE j.tenant_id=ledger_tenant AND j.job_id=ledger_job
+               AND j.session_id=ledger_session AND j.owner=c->>'sub'
+               AND j.epoch=ledger_epoch AND j.status='running';
+            IF FOUND THEN RETURN NEXT; END IF;
+            RETURN;
+          END IF;
+
+          SELECT j.tenant_id,j.job_id,j.session_id,j.epoch
+            INTO candidate_tenant,candidate_job,candidate_session,candidate_epoch
+            FROM {SCHEMA}.jobs j
+           WHERE j.status IN ('queued','retry') AND j.available_at<=clock_timestamp()
+             AND j.job_type=ANY(requested_types) AND j.attempt_count<j.maximum_attempts
+           ORDER BY j.available_at,j.tenant_id,j.job_id
+           FOR UPDATE SKIP LOCKED LIMIT 1;
+          IF NOT FOUND THEN RAISE EXCEPTION 'no eligible assigned job'; END IF;
+          UPDATE {SCHEMA}.jobs j
+             SET status='running',owner=c->>'sub',epoch=j.epoch+1,
+                 lease_expires_at=clock_timestamp()+make_interval(secs=>lease_seconds)
+           WHERE j.tenant_id=candidate_tenant AND j.job_id=candidate_job
+             AND j.session_id=candidate_session AND j.epoch=candidate_epoch
+             AND j.status IN ('queued','retry') AND j.available_at<=clock_timestamp()
+          RETURNING j.lease_expires_at INTO expiry;
+          IF NOT FOUND THEN RAISE EXCEPTION 'claim candidate changed'; END IF;
+          UPDATE {SCHEMA}.claim_nonce_ledger
+             SET tenant_id=candidate_tenant,job_id=candidate_job,session_id=candidate_session,
+                 epoch=candidate_epoch+1,lease_expires_at=expiry
+           WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce'
+             AND transaction_id=tx;
+          IF NOT FOUND THEN RAISE EXCEPTION 'claim nonce ledger binding failed'; END IF;
+          claimed_tenant_id:=candidate_tenant;
+          claimed_job_id:=candidate_job;
+          claimed_session_id:=candidate_session;
+          claimed_owner:=c->>'sub';
+          claimed_epoch:=candidate_epoch+1;
+          claimed_lease_expires_at:=expiry;
+          RETURN NEXT;
+        EXCEPTION WHEN OTHERS THEN RETURN;
+        END $claim$
+        """
+        cls.admin.execute(claim_sql)
+        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.claim_next_v1(text,integer) OWNER TO {VERIFIER}")
+        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.claim_next_v1(text,integer) FROM PUBLIC")
+
         allows_sql = f"""
         CREATE FUNCTION {SCHEMA}.assertion_allows(
           token text,row_tenant text,row_job text,row_session text,
@@ -405,6 +518,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         )
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.authorize_v2(text) TO {RUNTIME}")
+        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.claim_next_v1(text,integer) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.renew_v2(text,integer) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.fail_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.retry_v2(text,integer,text) TO {RUNTIME}")
