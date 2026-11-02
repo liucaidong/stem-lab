@@ -17,3 +17,9 @@ These fixtures are synthetic and contain no real user or tenant data.
 R03.23 records one-time local execution: Package Schema meta-validation and positive/negative fixtures passed; Runtime Event Schema meta-validation and positive fixture passed. This is not yet a CI run. The repository CI must repeat these assertions with pinned dependencies on every relevant change.
 
 Additional test suites must cover semantic references, digest verification, Package dependency resolution, license policy, model compatibility, event ordering, idempotency and tenant authorization. JSON Schema alone cannot verify these domain-level constraints.
+
+
+## Scientific Expression AST Fixtures
+
+- `scientific-expression.fixtures.v1alpha1.json`包含欧姆定律、串联电阻、功率和RC电压导数的正向类型样例，以及维度、符号、函数、运算符、除零、非有限数、幂和资源限制负向案例。
+- 这些Fixtures由`scripts/validate_expression_ast.py`静态验证；不进行表达式求值。
