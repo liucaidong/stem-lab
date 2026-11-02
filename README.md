@@ -75,6 +75,7 @@
 | [R03.28 OpenAPI安全/幂等/分页审阅](docs/architecture/R03.28-openapi-security-idempotency-pagination-review.md) | JWT与资源授权、幂等、ETag、Cursor、错误模型与限流缺口 | v0.1；OpenAPI 0.3；规范验证及API语义断言Run #49通过 |
 | [R03.29 单位与量纲契约草案](docs/architecture/R03.29-unit-dimension-contract-draft.md) | SI核心单位Registry、量纲向量、Model/Observation语义和DC/RC映射 | v0.1；Unit Registry/量纲基础断言Run #53通过，DEC-08仍OPEN |
 | [R03.30 Package内容完整性与发布门禁审阅](docs/architecture/R03.30-package-content-integrity-and-release-gate-review.md) | 资源SHA-256/size、路径安全、依赖闭包、许可、确定性Package Digest和签名门禁 | v0.1；单Asset真实Digest/size/路径/symlink安全测试Run #60/#62/#63/#65通过，完整发布门禁未完成 |
+| [R03.31 Package Digest/签名/Provenance决策候选](docs/architecture/R03.31-package-digest-signature-provenance-adr-candidates.md) | JCS/CBOR/归档Digest比较、签名Attestation和SPDX许可治理Spike | v0.1；DEC-27/28/29保持OPEN
 
 ### Contracts — 机器可读契约草案
 
