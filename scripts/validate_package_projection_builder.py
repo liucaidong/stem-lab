@@ -298,7 +298,7 @@ def main():
     expect("RESOURCE_DIGEST_MISMATCH", lambda m, c: m["spec"]["scene"].update(digest="sha256:"+"9"*64))
     expect("RESOURCE_METADATA_MISMATCH", lambda m, c: m["spec"]["assets"][0].update(licenseId="NOASSERTION"))
     expect("DUPLICATE_CATALOG_IDENTITY", lambda m, c: c["resources"].append(copy.deepcopy(c["resources"][0])))
-    expect("TRANSITIVE_DEPENDENCY_MISSING", lambda m, c: c["resources"][0]["dependencies"][0]["identity"].update(resource_id="missing-expression"))
+    expect("TRANSITIVE_DEPENDENCY_MISSING", lambda m, c: c["resources"][1]["dependencies"].append({"identity":{"resource_type":"dataset","resource_id":"missing-dataset","version":"1.0.0","digest":"sha256:"+"7"*64},"relation":"requires"}))
     expect("DEPENDENCY_CYCLE", lambda m, c: c["resources"][-1]["dependencies"].append({"identity":copy.deepcopy(c["resources"][0]["identity"]),"relation":"requires"}))
     expect("MODEL_EXPRESSION_REF_MISMATCH", lambda m, c: c["resources"][0]["dependencies"].clear())
     try:
