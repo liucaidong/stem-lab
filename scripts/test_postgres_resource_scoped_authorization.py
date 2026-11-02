@@ -126,7 +126,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 ledger_tx xid8; ledger_token text;
         BEGIN
           c:={SCHEMA}.verify_v2(token);
-          IF c IS NULL OR c->>'aud'<>'{AUDIENCE}' OR c->>'action'<>'worker.job.complete' THEN RETURN false; END IF;
+          IF c IS NULL OR c->>'aud'<>'{AUDIENCE}' OR c->>'action'<>'worker.job.complete'
+             OR c->>'job_id' IS DISTINCT FROM current_setting('app.resource_job_id',true)
+             OR c->>'operation_id' IS DISTINCT FROM current_setting('app.resource_operation_id',true) THEN
+            RETURN false;
+          END IF;
           SELECT owner,epoch,lease_expires_at,status INTO po,pe,px,ps
             FROM {SCHEMA}.jobs
            WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id' AND session_id=c->>'session_id';
@@ -320,7 +324,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 with conn.transaction():
                     conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                     conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
-                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                    conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                     self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
                     conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-x','APPLIED')")
                     raise RuntimeError("injected rollback")
@@ -361,6 +365,20 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.assertFalse(self.authorize_once(encoded+"."+b64url(sig)))
         self.assertFalse(self.authorize_once(self.issue(exp=int(time.time())-1)))
         self.assertFalse(self.authorize_once(self.issue(exp=int(time.time())+500)))
+
+    def test_runtime_cannot_mutate_owner_epoch_or_lease(self):
+        token=self.issue()
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                    conn.execute(f"UPDATE {SCHEMA}.jobs SET epoch=epoch+1 WHERE job_id='job-a'")
+
+    def test_signed_operation_id_must_match_transaction_scope(self):
+        self.assertFalse(self.authorize_once(self.issue(operation_id="other-operation")))
 
     def test_runtime_cannot_read_keys_or_nonce_ledger_or_assume_verifier(self):
         with self.runtime_connection() as conn:
