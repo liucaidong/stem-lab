@@ -4,6 +4,7 @@ DATABASE_URL must point to a disposable PostgreSQL test database.
 """
 from __future__ import annotations
 import os,threading,unittest,uuid
+from contextlib import contextmanager
 import psycopg
 from psycopg import errors
 
@@ -12,13 +13,17 @@ SCHEMA="stemlab_r039_"+uuid.uuid4().hex[:10]
 
 def admin():
  return psycopg.connect(DSN,autocommit=True)
+@contextmanager
 def app_conn(tenant=None):
  c=psycopg.connect(DSN)
- with c.transaction():
-  c.execute("SET LOCAL ROLE stemlab_app")
-  c.execute(f"SET LOCAL search_path TO {SCHEMA}, public")
-  if tenant is not None: c.execute("SELECT set_config('app.tenant_id', %s, true)",(tenant,))
- return c
+ try:
+  with c.transaction():
+   c.execute("SET LOCAL ROLE stemlab_app")
+   c.execute(f"SET LOCAL search_path TO {SCHEMA}, public")
+   if tenant is not None: c.execute("SELECT set_config('app.tenant_id', %s, true)",(tenant,))
+   yield c
+ finally:
+  c.close()
 
 class PostgreSQLContractTests(unittest.TestCase):
  @classmethod
@@ -106,11 +111,11 @@ class PostgreSQLContractTests(unittest.TestCase):
     c.execute("INSERT INTO inbox VALUES ('A','consumer-1','e1','digest-2')")
  def test_outbox_claim_uses_skip_locked_for_parallel_relays(self):
   self.a.execute(f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,payload) VALUES ('A','e1','{{}}'),('A','e2','{{}}')")
-  c1=psycopg.connect(DSN); c2=psycopg.connect(DSN)
+  c1=psycopg.connect(DSN,autocommit=True); c2=psycopg.connect(DSN,autocommit=True)
   try:
    c1.execute("BEGIN"); c1.execute(f"SET LOCAL search_path TO {SCHEMA}, public")
    c2.execute("BEGIN"); c2.execute(f"SET LOCAL search_path TO {SCHEMA}, public")
-   q="SELECT id FROM outbox WHERE published=false ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1"
+   q="SELECT id FROM outbox WHERE published=false ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED"
    id1=c1.execute(q).fetchone()[0]; id2=c2.execute(q).fetchone()[0]
    self.assertNotEqual(id1,id2)
    c1.commit(); c2.commit()
