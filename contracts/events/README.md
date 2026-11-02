@@ -20,3 +20,10 @@
 ## 自动化
 
 `scripts/validate_contracts.py`读取 `registry.v1.json`，对Payload Schema执行Draft 2020-12元Schema检查，并验证对应事件Envelope和Payload Fixture。CI成功运行仍需GitHub Actions证据。
+
+
+## Registry Governance Metadata
+
+Registry现在对每个代表事件记录Producer/Consumer、Lifecycle、Compatibility、Ordering Scope、Replay Policy、Retention、Data Classification和Poison Policy。当前只登记三种代表事件，新增事件需同时提交Schema、Fixture和治理元数据。
+
+自动化由scripts/validate_event_registry.py执行；真实Broker与Consumer验证归属R03.38。
