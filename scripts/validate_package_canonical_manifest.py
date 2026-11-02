@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Candidate canonicalization comparison; does not select a production profile."""
 from __future__ import annotations
-import copy,hashlib,json,math,unicodedata
+import copy,hashlib,json,math,unicodedata,runpy
 from pathlib import Path
 import cbor2,jsonschema,rfc8785
 ROOT=Path(__file__).resolve().parents[1]
@@ -78,4 +78,5 @@ def main():
   if actual!=case["expected_error"]: raise SystemExit(f'{case["case_id"]}: expected {case["expected_error"]}, got {actual}')
  print("PASS: canonical projection schema + resource/dependency ordering + JCS/CBOR deterministic candidate repeatability + digest sensitivity + 5 negative cases")
  print("CANDIDATES ONLY: RFC 8785 JCS and RFC 8949 core deterministic CBOR both exercised; DEC-27 remains OPEN")
+ runpy.run_path(str(ROOT/"scripts/validate_package_canonicalization_golden_vectors.py"),run_name="__main__")
 if __name__=="__main__": main()
