@@ -354,3 +354,13 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [Ed25519 verifier adversarial harness](scripts/test_postgres_tenant_ed25519_verifier.py)
 - Contract validation adds an isolated `tenant-ed25519-verifier` job. The issuer private key remains in the test process; PostgreSQL stores only public keys.
 - CI: [Run #305](https://github.com/liucaidong/stem-lab/actions/runs/41450630709) SUCCESS; PostgreSQL Ed25519 verifier 15/15 tests PASS and Contract validation SUCCESS. Production provider compatibility and named security review remain open.
+
+
+### R03.52.7.2 — Store Protocol & Unit of Work
+
+- [Store Protocol & Unit of Work contract](docs/architecture/R03.52.7.2-store-protocol-unit-of-work-contract.md)
+- [Machine-readable Worker Store schema](contracts/worker-store-protocol.schema.v1alpha1.json)
+- [Driver-neutral Python reference types](runtime/store_protocol.py)
+- [Contract conformance tests](scripts/test_store_protocol_contract.py)
+- CI: [Run #316](https://github.com/liucaidong/stem-lab/actions/runs/41451938308) SUCCESS; Store protocol tests PASS, Ed25519 PostgreSQL verifier 15/15 PASS, and Contract validation SUCCESS.
+- This closes the contract-definition increment only. No production Store adapter, driver, pool or migration tool is selected.

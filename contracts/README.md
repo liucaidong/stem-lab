@@ -265,3 +265,13 @@ R03.52.5 CI evidence: [GitHub Actions Run #41444145950](https://github.com/liuca
 - scripts/test_tenant_rls_trust_boundary_postgres.py: PostgreSQL 17 harness. It intentionally proves that plain GUC can be spoofed by an ordinary SQL-capable role; also verifies missing-context denial, commit/rollback cleanup and concurrent tenant sessions.
 - docs/architecture/R03.52.6.1-tenant-trust-boundary-threat-model.md, R03.52.6.2-tenant-isolation-architecture-options.md, R03.52.6.3-production-store-architecture.md, R03.52.6.4-executable-security-test-plan.md: architecture and verification boundaries.
 - DEC-04 and DEC-19 remain OPEN. No production issuer/verifier, Store adapter, pool or migration is implemented.
+
+
+## Worker Store Protocol v1alpha1
+
+- `worker-store-protocol.schema.v1alpha1.json`: language-neutral Store request/response/error schema.
+- `runtime/store_protocol.py`: Python reference dataclasses, stable error taxonomy, Store and Unit-of-Work Protocols. No database adapter is included.
+- `scripts/test_store_protocol_contract.py`: schema and value-invariant tests.
+- Normative design: [R03.52.7.2 Store Protocol & Unit of Work](architecture/R03.52.7.2-store-protocol-unit-of-work-contract.md).
+
+The contract carries tenant scope only through an opaque signed access assertion; it rejects caller-supplied top-level tenant selectors. A Unit of Work is one bounded transaction and one tenant context. Handler execution occurs outside the Unit of Work. Driver, pool, runtime and migration implementation remain unselected.
