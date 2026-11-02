@@ -70,7 +70,7 @@
 | [R03.23 契约验证执行报告](docs/architecture/R03.23-contract-validation-execution-report.md) | Draft 2020-12 Schema元验证、正负样例及OpenAPI YAML解析执行记录 | v0.1；局部验证通过，契约未冻结 |
 | [R03.24 Scientific Model验证计划](docs/architecture/R03.24-scientific-model-verification-plan.md) | DC教学模型不变量、RC解析参考解、Solver收敛/单位/科学签核验收协议 | v0.1；验证计划，专家签核待完成 |
 | [R03.25 Model/Observation契约草案审阅](docs/architecture/R03.25-model-observation-contract-draft-review.md) | ScientificModel与Observation Schema、Fixture、语义校验缺口 | v0.1；本地元验证通过，完整语义待完成 |
-| [R03.26 Runtime Event Payload契约审阅](docs/architecture/R03.26-runtime-event-payload-contract-review.md) | 三种代表事件Payload Schema、Registry、Fixture和Consumer测试缺口 | v0.1；Draft，CI/Consumer测试待完成 |
+| [R03.26 Runtime Event Payload契约审阅](docs/architecture/R03.26-runtime-event-payload-contract-review.md) | 三种代表事件Payload Schema、Registry、Fixture和Consumer测试缺口 | v0.1；本地Schema/Fixture复核通过，CI/Consumer测试待完成 |
 | [R03.27 PostgreSQL物理模型与RLS草案](docs/architecture/R03.27-postgresql-physical-data-model-and-rls-draft.md) | 物理表分组、复合租户约束、RLS上下文、事务与测试矩阵 | v0.1；候选设计，数据库Spike未执行 |
 
 ### Contracts — 机器可读契约草案
