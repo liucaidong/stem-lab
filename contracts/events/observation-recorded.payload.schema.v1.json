@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/events/observation-recorded/v1",
+  "title": "ObservationRecordedPayload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "observation_id",
+    "quantity_id",
+    "unit",
+    "simulation_time",
+    "simulation_time_unit",
+    "source_type",
+    "data"
+  ],
+  "properties": {
+    "observation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quantity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "simulation_time": {
+      "type": "number",
+      "minimum": 0
+    },
+    "simulation_time_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_type": {
+      "enum": [
+        "instrument",
+        "model",
+        "derived",
+        "imported"
+      ]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": [
+            "value"
+          ],
+          "not": {
+            "required": [
+              "value_ref"
+            ]
+          }
+        },
+        {
+          "required": [
+            "value_ref"
+          ],
+          "not": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "value_ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "uri",
+            "digest",
+            "size_bytes"
+          ],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "format": "uri"
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}
