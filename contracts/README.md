@@ -9,7 +9,7 @@
 | events/registry.v1.json与events/*.payload.schema.v1.json | 事件类型与Payload Schema映射 | Draft；仅覆盖三种代表事件，Consumer测试待完成 |
 | scientific-model.schema.v1alpha1.json | ScientificModel结构契约 | Draft；Schema、引用/范围/单位绑定语义正负断言通过Run #41/#42 CI；量纲体系待完成 |
 | observation.schema.v1alpha1.json | Observation元数据与数据载荷契约 | Draft；Schema与Package/Model/Quantity绑定语义正负断言通过Run #41/#42 CI；量纲体系待完成 |
-| openapi.v1.draft.yaml | Session/Command/Observation API契约 | Draft v0.2；OpenAPI 3.1规范验证及Run #41/#42 CI通过 |
+| openapi.v1.draft.yaml | Session/Command/Observation API契约 | Draft v0.3；增加Observation size/time约束及API安全/幂等/分页语义断言，Run #43待验证 |
 
 ## 使用约束
 
