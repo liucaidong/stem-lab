@@ -48,12 +48,13 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute("GRANT EXECUTE ON FUNCTION pgsodium.crypto_sign_verify_detached(bytea,bytea,bytea) TO " + VERIFIER)
 
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.sessions (tenant_id text NOT NULL,session_id text NOT NULL,revision bigint NOT NULL,PRIMARY KEY(tenant_id,session_id))")
-        cls.admin.execute(f"CREATE TABLE {SCHEMA}.jobs (tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL CHECK(epoch>0),status text NOT NULL CHECK(status IN ('running','succeeded','failed')),lease_expires_at timestamptz NOT NULL,PRIMARY KEY(tenant_id,job_id),UNIQUE(tenant_id,job_id,session_id),FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.jobs (tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text,epoch bigint NOT NULL CHECK(epoch>0),status text NOT NULL CHECK(status IN ('queued','running','retry','succeeded','failed','dead_lettered')),lease_expires_at timestamptz,available_at timestamptz NOT NULL DEFAULT clock_timestamp(),attempt_count integer NOT NULL DEFAULT 1 CHECK(attempt_count>=0),maximum_attempts integer NOT NULL DEFAULT 5 CHECK(maximum_attempts BETWEEN 1 AND 100),last_error_code text,PRIMARY KEY(tenant_id,job_id),UNIQUE(tenant_id,job_id,session_id),FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id),CHECK(status<>'running' OR (owner IS NOT NULL AND lease_expires_at IS NOT NULL)))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.receipts (tenant_id text NOT NULL,operation_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,request_digest text NOT NULL,outcome text NOT NULL,PRIMARY KEY(tenant_id,operation_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.transitions (tenant_id text NOT NULL,transition_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,from_state text NOT NULL,to_state text NOT NULL,PRIMARY KEY(tenant_id,transition_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox (tenant_id text NOT NULL,event_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,event_type text NOT NULL,PRIMARY KEY(tenant_id,event_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.dlq_items (tenant_id text NOT NULL,dlq_item_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,terminal_reason text NOT NULL,error_code text NOT NULL,attempt_count integer NOT NULL,lease_epoch bigint NOT NULL,replay_count integer NOT NULL DEFAULT 0,created_at timestamptz NOT NULL DEFAULT clock_timestamp(),PRIMARY KEY(tenant_id,dlq_item_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL,action text NOT NULL,resource_type text NOT NULL,resource_id text NOT NULL,operation_id text NOT NULL,PRIMARY KEY(issuer,kid,nonce))")
-        for table in ("sessions","jobs","receipts","transitions","outbox","nonce_ledger"):
+        for table in ("sessions","jobs","receipts","transitions","outbox","dlq_items","nonce_ledger"):
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} ENABLE ROW LEVEL SECURITY")
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} FORCE ROW LEVEL SECURITY")
 
@@ -64,10 +65,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE POLICY nonce_verifier_access ON {SCHEMA}.nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY transitions_verifier_insert ON {SCHEMA}.transitions FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY outbox_verifier_insert ON {SCHEMA}.outbox FOR INSERT TO {VERIFIER} WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY dlq_verifier_insert ON {SCHEMA}.dlq_items FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs,{SCHEMA}.receipts TO {VERIFIER}")
-        cls.admin.execute(f"GRANT UPDATE(status,lease_expires_at) ON {SCHEMA}.jobs TO {VERIFIER}")
+        cls.admin.execute(f"GRANT UPDATE(status,lease_expires_at,owner,available_at,attempt_count,last_error_code) ON {SCHEMA}.jobs TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.nonce_ledger TO {VERIFIER}")
-        cls.admin.execute(f"GRANT INSERT ON {SCHEMA}.transitions,{SCHEMA}.outbox TO {VERIFIER}")
+        cls.admin.execute(f"GRANT INSERT ON {SCHEMA}.transitions,{SCHEMA}.outbox,{SCHEMA}.dlq_items TO {VERIFIER}")
 
         verify_sql = f"""
         CREATE FUNCTION {SCHEMA}.verify_v2(token text) RETURNS jsonb
@@ -316,7 +318,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
         cls.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-a','session-a',4),('tenant-a','session-b',9),('tenant-b','session-x',1)")
         cls.admin.execute(
-            f"INSERT INTO {SCHEMA}.jobs VALUES "
+            f"INSERT INTO {SCHEMA}.jobs (tenant_id,job_id,session_id,owner,epoch,status,lease_expires_at) VALUES "
             "('tenant-a','job-a','session-a','worker-a',7,'running',clock_timestamp()+interval '5 minutes'),"
             "('tenant-a','job-b','session-b','worker-b',2,'running',clock_timestamp()+interval '5 minutes'),"
             "('tenant-b','job-x','session-x','worker-x',1,'running',clock_timestamp()+interval '5 minutes')"
@@ -333,10 +335,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.close()
 
     def setUp(self):
-        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET owner='worker-a',epoch=7,status='running',lease_expires_at=clock_timestamp()+interval '5 minutes' WHERE tenant_id='tenant-a' AND job_id='job-a'")
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET owner='worker-a',epoch=7,status='running',lease_expires_at=clock_timestamp()+interval '5 minutes',available_at=clock_timestamp(),attempt_count=1,maximum_attempts=5,last_error_code=NULL WHERE tenant_id='tenant-a' AND job_id='job-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.receipts WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a'")
+        self.admin.execute(f"DELETE FROM {SCHEMA}.dlq_items WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.nonce_ledger")
 
     @classmethod
