@@ -275,8 +275,8 @@ R03.52.1 does not select Python as the production Worker runtime (DEC-03 OPEN), 
 
 | Asset | Purpose | Status |
 |---|---|---|
-| [Worker Pool](runtime/worker_pool.py) | Fixed-size in-process poller supervisor with unique worker IDs and fail-fast propagation | Executable reference; CI pending |
-| [Worker Pool tests](scripts/test_worker_pool.py) | Concurrency bound, shutdown fan-out, identity uniqueness and failure propagation | CI pending |
+| [Worker Pool](runtime/worker_pool.py) | Fixed-size in-process poller supervisor with unique worker IDs and fail-fast propagation | CI Run #41442438174 PASS (5 tests); no production scheduler |
+| [Worker Pool tests](scripts/test_worker_pool.py) | Concurrency bound, shutdown fan-out, identity uniqueness and failure propagation | CI Run #41442438174 PASS (5 tests) |
 | [Worker Pool design](docs/architecture/R03.52.2-bounded-worker-poller-pool.md) | Process-local scheduling boundary and operational failure model | v0.1 reference |
 | [Worker Pool sequences](docs/architecture/R03.52.2-worker-pool-sequences.md) | Startup, shutdown and poller failure sequences | Design diagram |
 

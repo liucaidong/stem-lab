@@ -220,3 +220,6 @@ R03.52.1 CI evidence: [GitHub Actions Run #41441940260](https://github.com/liuca
 - scripts/test_worker_pool.py tests configured concurrency, shutdown fan-out, startup validation and failure propagation using fake pollers.
 - This is process-local orchestration. It is not a distributed scheduler, production supervisor, or proof of cross-replica concurrency limits.
 - PostgreSQL remains the durable claim authority; no production Store adapter is included.
+
+
+R03.52.2 CI evidence: [GitHub Actions Run #41442438174](https://github.com/liucaidong/stem-lab/actions/runs/41442438174) SUCCESS; Worker Pool 5/5, Worker Runtime 9/9, R03.51 PostgreSQL 20/20 and R03.50 PostgreSQL 8/8 passed. Worker Pool tests use fake pollers and do not verify cross-replica scheduling or production supervision.
