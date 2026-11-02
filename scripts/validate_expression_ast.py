@@ -111,6 +111,12 @@ def type_check(expr: dict, symbols: dict, units: dict):
         raise ExpressionError("EXPECTED_QUANTITY_KIND_MISMATCH",f"expected {expected['quantity_kind']}, inferred {actual[1]}")
     return actual
 def main():
+    for token in ('NaN', 'Infinity', '-Infinity'):
+        try:
+            json.loads('{\"value\":' + token + '}', parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+        except ValueError:
+            continue
+        raise SystemExit('non-finite JSON token accepted: ' + token)
     schema, fixture, registry = load(SCHEMA_PATH), load(FIXTURE_PATH), load(UNIT_PATH)
     jsonschema.Draft202012Validator.check_schema(schema)
     validator=jsonschema.Draft202012Validator(schema)
@@ -130,5 +136,5 @@ def main():
         if actual!=case["expected_error"]:
             errors.append(f'{case["case_id"]}: expected {case["expected_error"]}, got {actual}')
     if errors: raise SystemExit("\n".join(errors))
-    print(f'PASS: AST schema + {len(fixture["valid"])} valid expressions + {len(fixture["invalid"])} negative semantic cases; static only, no expression evaluation')
+    print(f'PASS: AST schema + {len(fixture["valid"])} valid expressions + {len(fixture["invalid"])} negative semantic cases + NaN/Infinity JSON token rejection; static only, no expression evaluation')
 if __name__=="__main__": main()
