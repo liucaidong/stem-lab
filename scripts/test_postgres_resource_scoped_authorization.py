@@ -268,7 +268,6 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
                 conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
-                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 return conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0]
 
     def test_valid_complete_unit_of_work(self):
@@ -374,7 +373,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 with conn.transaction():
                     conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                     conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
-                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                    conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                     barrier.wait(timeout=5)
                     return conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0]
         with ThreadPoolExecutor(max_workers=2) as pool:
