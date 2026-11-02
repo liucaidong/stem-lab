@@ -41,6 +41,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.public_key, cls.private_key = cls.admin.execute(
             "SELECT public,secret FROM pgsodium.crypto_sign_new_keypair()"
         ).fetchone()
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.worker_assignments (assignment_id text PRIMARY KEY,worker_id text NOT NULL,enabled boolean NOT NULL,allowed_job_types text[] NOT NULL CHECK(cardinality(allowed_job_types)>0))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.claim_nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,assignment_id text NOT NULL,worker_id text NOT NULL,tenant_id text,job_id text,session_id text,epoch bigint,lease_expires_at timestamptz,PRIMARY KEY(issuer,kid,nonce))"
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.issuer_keys (kid text PRIMARY KEY, issuer text NOT NULL, public_key bytea NOT NULL, not_before timestamptz NOT NULL, not_after timestamptz, revoked_at timestamptz)")
         cls.admin.execute(f"INSERT INTO {SCHEMA}.issuer_keys(kid,issuer,public_key,not_before) VALUES ('test-key',%s,%s,clock_timestamp()-interval '1 day')", (ISSUER, cls.public_key))
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.issuer_keys TO {VERIFIER}")
@@ -54,7 +56,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox (tenant_id text NOT NULL,event_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,event_type text NOT NULL,PRIMARY KEY(tenant_id,event_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.dlq_items (tenant_id text NOT NULL,dlq_item_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,terminal_reason text NOT NULL CHECK(terminal_reason IN ('max_attempts','non_retryable')),error_code text NOT NULL,attempt_count integer NOT NULL CHECK(attempt_count>0),lease_epoch bigint NOT NULL CHECK(lease_epoch>0),replay_count integer NOT NULL DEFAULT 0 CHECK(replay_count>=0),created_at timestamptz NOT NULL DEFAULT clock_timestamp(),PRIMARY KEY(tenant_id,dlq_item_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id)")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL,action text NOT NULL,resource_type text NOT NULL,resource_id text NOT NULL,operation_id text NOT NULL,PRIMARY KEY(issuer,kid,nonce))")
-        for table in ("sessions","jobs","receipts","transitions","outbox","dlq_items","nonce_ledger"):
+        for table in ("sessions","jobs","receipts","transitions","outbox","dlq_items","nonce_ledger","worker_assignments","claim_nonce_ledger"):
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} ENABLE ROW LEVEL SECURITY")
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} FORCE ROW LEVEL SECURITY")
 
@@ -66,9 +68,13 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE POLICY transitions_verifier_insert ON {SCHEMA}.transitions FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY outbox_verifier_insert ON {SCHEMA}.outbox FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY dlq_verifier_insert ON {SCHEMA}.dlq_items FOR INSERT TO {VERIFIER} WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY assignments_verifier_read ON {SCHEMA}.worker_assignments FOR SELECT TO {VERIFIER} USING(true)")
+        cls.admin.execute(f"CREATE POLICY claim_nonce_verifier_access ON {SCHEMA}.claim_nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs,{SCHEMA}.receipts TO {VERIFIER}")
         cls.admin.execute(f"GRANT UPDATE(status,lease_expires_at,owner,available_at,attempt_count,last_error_code,epoch) ON {SCHEMA}.jobs TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.nonce_ledger TO {VERIFIER}")
+        cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.worker_assignments TO {VERIFIER}")
+        cls.admin.execute(f"GRANT SELECT,INSERT,UPDATE ON {SCHEMA}.claim_nonce_ledger TO {VERIFIER}")
         cls.admin.execute(f"GRANT INSERT ON {SCHEMA}.transitions,{SCHEMA}.outbox,{SCHEMA}.dlq_items TO {VERIFIER}")
 
         verify_sql = f"""
@@ -434,6 +440,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.dlq_items WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.nonce_ledger")
+        self.admin.execute(f"DELETE FROM {SCHEMA}.claim_nonce_ledger")
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-b'")
 
     @classmethod
     def claims(cls, **overrides):
