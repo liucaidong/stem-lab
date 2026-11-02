@@ -256,7 +256,7 @@ class PackageIngestionPostgresTests(unittest.TestCase):
         self.assertEqual(results.count("APPLIED"),1)
         self.assertEqual(results.count("REVISION_CONFLICT"),1)
         self.assertEqual(self.a.execute(f"SELECT revision FROM {SCHEMA}.sessions WHERE tenant_id='A'").fetchone()[0],2)
-        self.assertEqual(self.a.execute(f"SELECT count(*) FROM outbox WHERE tenant_id='A'").fetchone()[0],1)
+        self.assertEqual(self.a.execute(f"SELECT count(*) FROM {SCHEMA}.outbox WHERE tenant_id='A'").fetchone()[0],1)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
