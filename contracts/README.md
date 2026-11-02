@@ -154,3 +154,11 @@ R03.46 Run #187进一步通过真实Package Projection Builder输出到JCS/CBOR�
 
 
 R03.47 [Run #193](https://github.com/liucaidong/stem-lab/actions/runs/41428620138)通过：精确Source Manifest字节校验、两个嵌入资源Fixture字节校验、Catalog Snapshot JCS candidate pin、顺序不变性及8项拒绝案例。仍是Fixture-only harness，不是生产摄取/对象存储/外部资源解析。
+
+
+## Package Archive Ingestion & Quarantine Boundary (R03.48)
+
+- `package-ingestion-policy.schema.v1alpha1.json`定义Archive大小、Entry数量、解压总量、压缩比、压缩方法和路径/Symlink/Encryption策略。
+- `scripts/test_package_archive_ingestion.py`在内存中生成和读取ZIP，不写磁盘；验证Manifest与资源Fixture字节绑定。
+- 覆盖13项拒绝案例；[Run #199](https://github.com/liucaidong/stem-lab/actions/runs/41428995668)成功。
+- 不代表生产隔离区、对象存储、恶意软件扫描、远程解析或安全审计已实现。详见 [R03.48](../docs/architecture/R03.48-package-archive-ingestion-and-quarantine-boundary.md)。
