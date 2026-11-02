@@ -44,3 +44,6 @@ jobs:
 
       - name: Validate canonical manifest serialization candidates
         run: python scripts/validate_package_canonical_manifest.py
+
+      - name: Validate Package signature, provenance, and license governance
+        run: python scripts/validate_package_governance.py
