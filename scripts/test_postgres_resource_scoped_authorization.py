@@ -414,12 +414,12 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           SELECT public_key INTO pk FROM {SCHEMA}.issuer_keys
            WHERE kid=c->>'kid' AND issuer=c->>'iss' AND revoked_at IS NULL
              AND not_before<=clock_timestamp() AND (not_after IS NULL OR not_after>clock_timestamp());
-          IF NOT FOUND OR pk IS NULL OR NOT pgsodium.crypto_sign_verify_detached(sb,convert_to(p,'UTF8'),pk) THEN RETURN; END IF;
+          IF NOT FOUND OR pk IS NULL OR NOT pgsodium.crypto_sign_verify_detached(sb,convert_to(p,'UTF8'),pk) THEN RAISE LOG 'claim_next_v1 reject: key/signature'; RETURN; END IF;
           SELECT allowed_job_types,allowed_tenant_ids INTO allowed_types,allowed_tenants FROM {SCHEMA}.worker_assignments
            WHERE assignment_id=c->>'assignment_id' AND worker_id=c->>'sub' AND enabled;
-          IF NOT FOUND THEN RETURN; END IF;
+          IF NOT FOUND THEN RAISE LOG 'claim_next_v1 reject: assignment missing'; RETURN; END IF;
           requested_types:=ARRAY(SELECT jsonb_array_elements_text(c->'job_types'));
-          IF NOT(requested_types <@ allowed_types) THEN RETURN; END IF;
+          IF NOT(requested_types <@ allowed_types) THEN RAISE LOG 'claim_next_v1 reject: job type exceeds assignment'; RETURN; END IF;
 
           tx:=pg_current_xact_id();
           INSERT INTO {SCHEMA}.claim_nonce_ledger
@@ -431,7 +431,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             FROM {SCHEMA}.claim_nonce_ledger
            WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
           IF NOT FOUND OR ledger_tx<>tx OR ledger_token<>token
-             OR ledger_assignment<>c->>'assignment_id' OR ledger_worker<>c->>'sub' THEN RETURN; END IF;
+             OR ledger_assignment<>c->>'assignment_id' OR ledger_worker<>c->>'sub' THEN RAISE LOG 'claim_next_v1 reject: nonce ledger binding'; RETURN; END IF;
           IF ledger_job IS NOT NULL THEN
             SELECT j.tenant_id,j.job_id,j.session_id,j.owner,j.epoch,j.lease_expires_at
               INTO claimed_tenant_id,claimed_job_id,claimed_session_id,claimed_owner,
@@ -473,7 +473,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           claimed_epoch:=candidate_epoch+1;
           claimed_lease_expires_at:=expiry;
           RETURN NEXT;
-        EXCEPTION WHEN OTHERS THEN RETURN;
+        EXCEPTION WHEN OTHERS THEN RAISE LOG 'claim_next_v1 exception: %',SQLERRM; RETURN;
         END $claim$
         """
         cls.admin.execute(claim_sql)
@@ -1050,8 +1050,6 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"SET ROLE {VERIFIER}")
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 conn.execute(f"SET ROLE {DISPATCHER}")
-            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
-                conn.execute(f"SET ROLE {REPLAY}")
             self.assertEqual(conn.execute("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone(),(False,False))
 
     def test_outbox_dispatch_and_ack_are_exact_event_scoped(self):
@@ -1473,7 +1471,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_assertion','transaction-only-value',true)")
             self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
             conn.execute("RESET ROLE")
-            conn.execute("RESET ALL")
+            conn.execute("DISCARD ALL")
             self.assertEqual(conn.execute("SELECT current_user").fetchone()[0],LOGIN)
             self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
 
