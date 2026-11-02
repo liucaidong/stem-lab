@@ -196,6 +196,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_postgres_tenant_ed25519_verifier.py
+
+      - name: Test PostgreSQL Job-rooted resource authorization, RLS and nonce replay
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_resource_scoped_authorization.py
       - name: Set up Node.js for node-postgres benchmark
         uses: actions/setup-node@v4
         with:
