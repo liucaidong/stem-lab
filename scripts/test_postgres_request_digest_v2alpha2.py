@@ -13,8 +13,12 @@ def main() -> None:
     try:
         encoding=conn.execute('SHOW server_encoding').fetchone()[0]
         assert encoding.upper()=='UTF8', f'PostgreSQL database encoding must be UTF8, got {encoding}'
-        for statement in SQL.split("\n\n"):
-            if statement.strip(): conn.execute(statement)
+        parts=SQL.split("CREATE OR REPLACE FUNCTION ")
+        assert len(parts)==4, f"expected schema + 3 function definitions, got {len(parts)}"
+        conn.execute(parts[0].strip())
+        for function_source in parts[1:]:
+            body=function_source.split("$fn$;",1)[0]
+            conn.execute("CREATE OR REPLACE FUNCTION "+body+"$fn$;")
         envelope=VECTOR["envelope"]
         claim=dict(envelope)
         claim.pop("operation_arguments")
