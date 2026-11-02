@@ -227,3 +227,13 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [Runtime Execution Schema](contracts/runtime-execution-contract.schema.v1alpha1.json) | Worker执行控制与资源/时钟契约 | Draft；等待CI |
 | [Runtime Execution Validator](scripts/validate_runtime_execution_contract.py) | 租约、时钟、Quota、Checkpoint和Replay静态规则 | Draft；Run #137通过Runtime Execution静态契约验证（局部）；未运行Worker |
 
+
+
+### R03.42 — Scientific Solver Verification Architecture
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.42架构设计](docs/architecture/R03.42-scientific-solver-verification-architecture.md) | ODE Contract、精度/稳定性/收敛性、误差估计、步长控制与确定性 | v0.1；DEC-10保持OPEN |
+| [Solver Verification Schema](contracts/solver-verification-contract.schema.v1alpha1.json) | Solver能力与数值策略契约 | Draft；等待CI |
+| [DC/RC Numerical Harness](scripts/test_solver_numerical_reference.py) | DC平衡与RC Euler/RK4解析参考、收敛阶及稳定性测试 | 等待CI；参考算法仅测试用途 |
+
