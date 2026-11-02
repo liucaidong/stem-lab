@@ -710,18 +710,28 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) OWNER TO {VERIFIER}")
         cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) FROM PUBLIC")
 
-        # Policies on job-scoped tables rely on nonce ledger consumption in this
-        # transaction. The caller-controlled GUC alone grants no access.
-        for table in ("transitions","outbox"):
-            cls.admin.execute(
-                f"CREATE POLICY {table}_runtime_scope ON {SCHEMA}.{table} FOR ALL TO {RUNTIME} "
-                f"USING({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
-                "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "job_id,operation_id)) "
-                f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
-                "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "job_id,operation_id))"
-            )
+        # Complete is the only runtime-writable transition/event shape. Other
+        # operation handlers write through verifier-owned SECURITY DEFINER functions.
+        cls.admin.execute(
+            f"CREATE POLICY transitions_runtime_insert ON {SCHEMA}.transitions FOR INSERT TO {RUNTIME} "
+            f"WITH CHECK(from_state='running' AND to_state='succeeded' "
+            f"AND transition_id=operation_id||':complete' "
+            f"AND {SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
+            "tenant_id,job_id,session_id,'worker.job.complete','job',job_id,operation_id))"
+        )
+        cls.admin.execute(
+            f"CREATE POLICY transitions_runtime_select ON {SCHEMA}.transitions FOR SELECT TO {RUNTIME} "
+            f"USING(from_state='running' AND to_state='succeeded' "
+            f"AND transition_id=operation_id||':complete' "
+            f"AND {SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
+            "tenant_id,job_id,session_id,'worker.job.complete','job',job_id,operation_id))"
+        )
+        cls.admin.execute(
+            f"CREATE POLICY outbox_runtime_insert ON {SCHEMA}.outbox FOR INSERT TO {RUNTIME} "
+            f"WITH CHECK(event_id=operation_id||':job.completed' AND event_type='job.completed' "
+            f"AND {SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
+            "tenant_id,job_id,session_id,'worker.job.complete','job',job_id,operation_id))"
+        )
         cls.admin.execute(
             f"CREATE POLICY receipts_complete_insert ON {SCHEMA}.receipts FOR INSERT TO {RUNTIME} "
             f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
@@ -1128,8 +1138,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 ).fetchall()
                 self.assertEqual(changed,[("job-a",)])
                 conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-1','APPLIED')")
-                conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','op-a','running','succeeded')")
-                conn.execute(f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
+                conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','op-a:complete','job-a','session-a','op-a','running','succeeded')")
+                conn.execute(f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) VALUES ('tenant-a','op-a:job.completed','job-a','session-a','op-a','job.completed')")
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"succeeded")
 
     def test_ambiguous_commit_reconciles_receipt_and_detects_digest_conflict(self):
@@ -1450,6 +1460,24 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
     def test_signed_operation_id_must_match_transaction_scope(self):
         self.assertFalse(self.authorize_once(self.issue(operation_id="other-operation")))
+
+    def test_runtime_cannot_forge_transition_or_outbox_event_semantics(self):
+        token=self.issue()
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                    with conn.transaction():
+                        conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','op-a:failed','job-a','session-a','op-a','running','failed')")
+                with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                    with conn.transaction():
+                        conn.execute(
+                            f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) "
+                            "VALUES ('tenant-a','op-a:job.failed','job-a','session-a','op-a','job.failed')"
+                        )
 
     def test_runtime_cannot_forge_outbox_dispatch_state(self):
         with self.runtime_connection() as conn:
