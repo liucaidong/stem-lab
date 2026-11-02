@@ -139,3 +139,6 @@ R03.45验证型参考实现已纳入 `scripts/validate_contracts.py` 的CI入口
 
 
 R03.46 Golden Vector CI证据：[Run #183](https://github.com/liucaidong/stem-lab/actions/runs/41427643723)通过Python JCS 3组、CBOR 1组以及独立Node.js 4组验证；所有固定Canonical Bytes和Digest匹配。完整RFC覆盖、CBOR浮点/Tag/byte string/bignum和生产Digest Profile仍未完成。
+
+
+R03.46 Run #187进一步通过真实Package Projection Builder输出到JCS/CBOR候选序列化链路、顺序扰动确定性和source-manifest-digest自引用隔离：[Run #187](https://github.com/liucaidong/stem-lab/actions/runs/41427937900)。真实Manifest字节Digest核验仍未实现。
