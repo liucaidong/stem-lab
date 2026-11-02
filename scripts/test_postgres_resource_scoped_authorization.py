@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Disposable PostgreSQL reference harness for Job-rooted v2 authorization.
+"""Disposable PostgreSQL reference harness for resource-scoped worker authorization.
 
-Exercises worker.job.complete only. Not a production Store Adapter.
+Exercises Claim, Job state operations, Receipt reconciliation, DLQ replay and Outbox dispatch. Not a production Store Adapter.
 """
 from __future__ import annotations
 import base64, json, os, threading, time, unittest, uuid
@@ -15,6 +15,8 @@ SCHEMA = "resource_auth_" + SUFFIX
 VERIFIER = "resource_verifier_" + SUFFIX
 RUNTIME = "resource_runtime_" + SUFFIX
 LOGIN = "resource_login_" + SUFFIX
+DISPATCHER = "resource_dispatcher_" + SUFFIX
+REPLAY = "resource_replay_" + SUFFIX
 PASSWORD = uuid.uuid4().hex
 DISPATCHER_PASSWORD = uuid.uuid4().hex
 REPLAY_PASSWORD = uuid.uuid4().hex + uuid.uuid4().hex
