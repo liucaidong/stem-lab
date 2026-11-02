@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/api-error-catalog/v1alpha1",
+  "title": "API Error Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "catalog_version",
+    "errors"
+  ],
+  "properties": {
+    "catalog_version": {
+      "const": "1alpha1"
+    },
+    "errors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "http_status",
+          "retryable",
+          "retry_after_allowed",
+          "client_action"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]+$"
+          },
+          "http_status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "retry_after_allowed": {
+            "type": "boolean"
+          },
+          "client_action": {
+            "enum": [
+              "do-not-retry",
+              "retry-with-backoff",
+              "refresh-auth",
+              "request-access",
+              "correct-request",
+              "resolve-conflict"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
