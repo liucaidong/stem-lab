@@ -35,3 +35,12 @@
 ## 测试样例
 
 参见 [examples/README.md](examples/README.md)，包含Package正向/负向JSON样例和Runtime Event样例。样例预期不等于验证器已执行；CI必须实际运行Draft 2020-12验证器并断言PASS/FAIL。
+
+
+## Scientific Expression AST
+
+- `scientific-expression-ast.schema.v1alpha1.json`定义版本化JSON AST结构；
+- AST节点只表示常量、符号引用、受限一元/二元运算和白名单函数调用；
+- 符号解析必须使用Scientific Model注册表，单位必须来自Unit Registry；
+- 静态检查不执行表达式，不是生产求值器或Solver；
+- 设计细节见[R03.33](../docs/architecture/R03.33-scientific-expression-ast-and-quantity-type-system.md)。
