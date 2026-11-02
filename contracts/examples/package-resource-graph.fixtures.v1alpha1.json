@@ -71,6 +71,30 @@
         "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "storage": "embedded",
         "uri": "resources/asset-diagram.json"
+      },
+      {
+        "resource_id": "expression:series-resistance",
+        "resource_type": "expression",
+        "version": "1.0.0",
+        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "storage": "embedded",
+        "uri": "resources/expression-series-resistance.json"
+      },
+      {
+        "resource_id": "expression:ohms-law",
+        "resource_type": "expression",
+        "version": "1.0.0",
+        "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "storage": "embedded",
+        "uri": "resources/expression-ohms-law.json"
+      },
+      {
+        "resource_id": "expression:voltage-drops",
+        "resource_type": "expression",
+        "version": "1.0.0",
+        "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "storage": "embedded",
+        "uri": "resources/expression-voltage-drops.json"
       }
     ],
     "edges": [
@@ -107,6 +131,21 @@
       {
         "from": "pkg:dc-series",
         "to": "asset:diagram",
+        "relation": "requires"
+      },
+      {
+        "from": "model:dc-series",
+        "to": "expression:series-resistance",
+        "relation": "requires"
+      },
+      {
+        "from": "model:dc-series",
+        "to": "expression:ohms-law",
+        "relation": "requires"
+      },
+      {
+        "from": "model:dc-series",
+        "to": "expression:voltage-drops",
         "relation": "requires"
       }
     ]
