@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/worker-resource-assertion/v2alpha1",
+  "title": "Worker Resource-Scoped Assertion Claims",
+  "description": "Experimental v2alpha1 Job-rooted capability claims. Proposal/reference contract only; not an approved production authorization protocol.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "iss",
+    "kid",
+    "tenant_id",
+    "sub",
+    "aud",
+    "action",
+    "job_id",
+    "session_id",
+    "owner",
+    "epoch",
+    "operation_id",
+    "iat",
+    "exp",
+    "nonce"
+  ],
+  "properties": {
+    "v": {
+      "const": 2
+    },
+    "iss": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "kid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "sub": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "aud": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "action": {
+      "enum": [
+        "worker.job.renew",
+        "worker.job.complete",
+        "worker.job.fail",
+        "worker.job.retry",
+        "worker.job.dead_letter",
+        "worker.dlq.replay",
+        "worker.outbox.dispatch",
+        "worker.receipt.reconcile"
+      ]
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "iat": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "exp": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "worker.outbox.dispatch"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "operation_id": {
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "Cross-field checks such as exp > iat and maximum lifetime are enforced by semantic validation and the PostgreSQL verifier; JSON Schema alone is insufficient."
+}
