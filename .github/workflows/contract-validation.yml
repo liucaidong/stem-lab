@@ -85,3 +85,6 @@ jobs:
 
       - name: Validate Visualization, Scene Graph, Timeline, and Instrument contracts
         run: python scripts/validate_visualization_instrument_contract.py
+
+      - name: Run cross-module Engineering Integration Audit
+        run: python scripts/validate_integration_audit.py
