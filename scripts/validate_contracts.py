@@ -75,6 +75,30 @@ def validate_schema_and_fixtures() -> None:
     invalid_package = load_json("contracts/examples/experiment-package.invalid.json")
     require(not list(package_validator.iter_errors(valid_package)),
             "Package positive fixture must validate")
+    require(not package_semantic_errors(valid_package, model_fixture),
+            "Package cross-field semantics must validate")
+    require(not package_asset_semantic_errors(valid_package),
+            "Package local asset digest and size must validate")
+    invalid_asset_digest = copy.deepcopy(valid_package)
+    invalid_asset_digest["spec"]["assets"][0]["digest"] = "sha256:" + "0" * 64
+    require(bool(package_asset_semantic_errors(invalid_asset_digest)),
+            "Package with incorrect asset digest must be rejected")
+    invalid_asset_size = copy.deepcopy(valid_package)
+    invalid_asset_size["spec"]["assets"][0]["sizeBytes"] += 1
+    require(bool(package_asset_semantic_errors(invalid_asset_size)),
+            "Package with incorrect asset size must be rejected")
+    invalid_asset_path = copy.deepcopy(valid_package)
+    invalid_asset_path["spec"]["assets"][0]["source"] = "../outside.json"
+    require(bool(package_asset_semantic_errors(invalid_asset_path)),
+            "Package with path traversal asset source must be rejected")
+    invalid_asset_absolute = copy.deepcopy(valid_package)
+    invalid_asset_absolute["spec"]["assets"][0]["source"] = "/etc/passwd"
+    require(bool(package_asset_semantic_errors(invalid_asset_absolute)),
+            "Package with absolute asset source must be rejected")
+    invalid_asset_missing = copy.deepcopy(valid_package)
+    invalid_asset_missing["spec"]["assets"][0]["source"] = "contracts/examples/resources/missing.json"
+    require(bool(package_asset_semantic_errors(invalid_asset_missing)),
+            "Package with missing asset source must be rejected")
     invalid_grade_band = copy.deepcopy(valid_package)
     invalid_grade_band["metadata"]["gradeBand"] = {"min": 12, "max": 6}
     require(bool(package_semantic_errors(invalid_grade_band, model_fixture)),
@@ -266,7 +290,7 @@ def package_asset_semantic_errors(package: dict[str, Any]) -> list[str]:
     root = ROOT.resolve()
     for asset in package["spec"]["assets"]:
         source = Path(asset["source"])
-        if source.is_absolute() or ".." in source.parts:
+        if source.is_absolute() or ".." in source.parts or "\\\\" in asset["source"]:
             errors.append(f"{asset['id']}: asset source must be a safe repository-relative path")
             continue
         candidate = ROOT / source
