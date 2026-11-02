@@ -185,3 +185,6 @@
 | [Event Registry Schema](contracts/events/registry.schema.v1alpha1.json) | 版本化事件治理元数据 | Draft；等待CI |
 | [Event Registry](contracts/events/registry.v1.json) | 三种代表事件登记及治理字段 | Draft；等待CI |
 | [Registry Validator](scripts/validate_event_registry.py) | 唯一性、兼容性、生命周期及Payload Schema/Fixture验证 | Draft；等待CI |
+
+
+R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema、3种代表Payload映射及7个负向策略案例。完整Event Catalog和真实Consumer兼容性仍未完成。
