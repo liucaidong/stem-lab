@@ -10,7 +10,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from runtime.tenant_context import (TenantContextError, verify_tenant_assertion,\n                                    assert_job_tenant_binding)
+from runtime.tenant_context import (TenantContextError, verify_tenant_assertion,
+                                    assert_job_tenant_binding)
 
 KEY = b"reference-only-test-key-material-32-bytes-minimum!!"
 
