@@ -146,6 +146,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_postgres_tenant_assertion_verifier.py
 
+      - name: Test language-neutral Worker Store and Unit of Work contract
+        run: python scripts/test_store_protocol_contract.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 
