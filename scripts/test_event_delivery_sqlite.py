@@ -142,8 +142,7 @@ class EventDeliveryIntegrationTests(unittest.TestCase):
   self.assertEqual(self.store.scalar("SELECT count(*) FROM side_effects"),1)
  def test_same_event_id_different_digest_is_rejected(self):
   mid=self.publish()
-  self.store.produce("e1","t1","s1",2,'{"delta":99}')
-  with self.store.db() as c: c.execute("INSERT INTO broker_messages(event_id,tenant_id,aggregate_id,sequence,digest,payload) VALUES(?,?,?,?,?,?)",("e1","t1","s1",2,self.store.digest('{"delta":99}'),'{"delta":99}'))
+  with self.store.db() as c: c.execute("INSERT INTO broker_messages(event_id,tenant_id,aggregate_id,sequence,digest,payload) VALUES(?,?,?,?,?,?)",("e1","t1","s1",1,self.store.digest('{"delta":99}'),'{"delta":99}'))
   conflicting=self.store.messages("e1")[-1]["message_id"]
   self.store.consume(mid)
   with self.assertRaises(IntegrityViolation): self.store.consume(conflicting)
@@ -151,7 +150,7 @@ class EventDeliveryIntegrationTests(unittest.TestCase):
   m1=self.publish("e1",1); self.store.produce("e2","t1","s1",2,'{"delta":2}'); self.store.relay_one(); m2=self.store.messages("e2")[0]["message_id"]
   # Deliver seq=2 first by testing it before seq=1.
   self.assertEqual(self.store.consume(m2),"gap")
-  self.assertEqual(self.store.scalar("SELECT last_sequence FROM consumer_cursor"),None)
+  self.assertEqual(self.store.scalar("SELECT count(*) FROM consumer_cursor"),0)
   self.assertEqual(self.store.consume(m1),"processed")
   self.assertEqual(self.store.consume(m2),"processed")
   self.assertEqual(self.store.scalar("SELECT last_sequence FROM consumer_cursor"),2)
