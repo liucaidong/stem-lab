@@ -9,7 +9,7 @@
 | events/registry.v1.json与events/*.payload.schema.v1.json | 事件类型与Payload Schema映射 | Draft；仅覆盖三种代表事件，Consumer测试待完成 |
 | scientific-model.schema.v1alpha1.json | ScientificModel结构契约 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入，完整语义待执行 |
 | observation.schema.v1alpha1.json | Observation元数据与数据载荷契约 | Draft；本地元Schema/Fixture复核通过，语义验证待执行 |
-| openapi.v1.draft.yaml | Session/Command/Observation API骨架 | Draft；需完整响应、错误、安全和Contract Test |
+| openapi.v1.draft.yaml | Session/Command/Observation API契约 | Draft v0.2；openapi-spec-validator 0.9.0已接入，CI验证待执行 |
 
 ## 使用约束
 
@@ -25,7 +25,7 @@
 - `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Registry驱动Runtime Event Envelope/Payload、Model/Observation样例、Model基础引用/范围语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
 - `requirements-contract-validation.txt`：固定验证依赖版本。
 - `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。
-- OpenAPI YAML基础解析不等于OpenAPI 3.1规范验证；该正式验证器尚未纳入。CI执行结果需以GitHub Actions运行记录为准。
+- OpenAPI YAML解析与OpenAPI 3.1规范验证是两项不同检查。正式验证器已固定并接入脚本；CI执行结果需以GitHub Actions运行记录为准。
 
 ## 下一步
 
