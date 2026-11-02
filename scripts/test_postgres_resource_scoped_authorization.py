@@ -176,7 +176,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 "operation_id)) "
                 f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "current_setting('app.resource_job_id',true),current_setting('app.resource_operation_id',true)))"
+                "operation_id))"
             )
         cls.admin.execute(
             f"CREATE POLICY jobs_runtime_select ON {SCHEMA}.jobs FOR SELECT TO {RUNTIME} "
@@ -290,6 +290,13 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"succeeded")
 
+    def test_same_claims_and_key_produce_identical_token(self):
+        fixed = {
+            "nonce": "0123456789abcdef0123456789abcdef",
+            "iat": 1800000000,
+            "exp": 1800000060,
+        }
+        self.assertEqual(self.issue(**fixed), self.issue(**fixed))
     def test_same_token_reused_only_inside_same_transaction(self):
         token=self.issue()
         with self.runtime_connection() as conn:
