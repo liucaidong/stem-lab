@@ -15,7 +15,7 @@ def main():
  if errors: raise SystemExit("audit report schema: "+errors[0].message)
  model=load(ROOT/"contracts/scientific-model.schema.v1alpha1.json")
  ast=load(ROOT/"contracts/scientific-expression-ast.schema.v1alpha1.json")
- if model["properties"]["expressionLanguage"]["const"]!=ast["properties"]["language_id"]["const"]:
+ if model["properties"]["spec"]["properties"]["expressionLanguage"]["const"]!=ast["properties"]["language_id"]["const"]:
   raise SystemExit("ScientificModel expressionLanguage does not match AST language_id")
  graph=load(ROOT/"contracts/package-resource-graph.schema.v1alpha1.json")
  if "expression" not in graph["$defs"]["node"]["properties"]["resource_type"]["enum"]:
