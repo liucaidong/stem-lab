@@ -1,0 +1,24 @@
+{
+  "event_id": "evt_fixture_execution_succeeded_001",
+  "event_type": "ExecutionSucceeded",
+  "schema_version": "1.0",
+  "tenant_id": "tenant_fixture",
+  "aggregate_type": "RuntimeSession",
+  "aggregate_id": "session_fixture",
+  "aggregate_sequence": 5,
+  "state_version": 4,
+  "epoch": 2,
+  "occurred_at": "2026-11-02T08:00:01Z",
+  "correlation_id": "corr_fixture",
+  "causation_id": "execution_fixture",
+  "payload": {
+    "execution_id": "execution_fixture",
+    "output_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "solver_id": "org.example.algebraic-solver",
+    "solver_version": "1.0.0",
+    "resulting_state_version": 4,
+    "simulation_time": 0,
+    "simulation_time_unit": "s",
+    "observation_count": 1
+  }
+}
