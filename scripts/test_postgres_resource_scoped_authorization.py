@@ -177,10 +177,10 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 f"CREATE POLICY {table}_runtime_scope ON {SCHEMA}.{table} FOR ALL TO {RUNTIME} "
                 f"USING({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "operation_id)) "
+                "job_id,operation_id)) "
                 f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "operation_id))"
+                "job_id,operation_id))"
             )
         cls.admin.execute(
             f"CREATE POLICY jobs_runtime_select ON {SCHEMA}.jobs FOR SELECT TO {RUNTIME} "
