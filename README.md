@@ -371,3 +371,11 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [PostgreSQL driver, pool and runtime candidate assessment](docs/architecture/R03.52.7.3.1-driver-pool-runtime-candidate-assessment.md)
 - Preliminary priority: Psycopg 3 + psycopg_pool for a Python Worker; node-postgres pg-pool for a TypeScript API; asyncpg as the Python asyncio challenger; SQLAlchemy is an optional abstraction, not a driver.
 - No production stack selected. DEC-03 runtime and DEC-14 deployment/provider remain OPEN.
+
+
+### R03.52.7.3.2 — Driver / Pool Smoke Benchmark
+
+- [Smoke benchmark report and measured results](docs/architecture/R03.52.7.3.2-driver-pool-smoke-benchmark-report.md)
+- CI Run #330 SUCCESS: PostgreSQL 17.11 + Ed25519 verifier/RLS exercised through Psycopg sync/async, asyncpg and node-postgres pools.
+- Initial measurements are smoke evidence only; node-postgres led this CI run at concurrency 8/32, while Psycopg sync led at concurrency 1. No production performance ranking or driver selection is made.
+- DEC-03 and DEC-14 remain OPEN; next increment is controlled full-operation and fault benchmarking.
