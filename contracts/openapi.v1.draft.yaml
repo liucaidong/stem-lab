@@ -336,7 +336,126 @@ components:
               format: uri
             digest:
               type: string
-              pattern: '^sha256:[a-f0-9]{64}$'
+              pattern: '^sha256:[a-f0-9]{64}
+          type: string
+          minLength: 1
+        simulation_time:
+          type: number
+          minimum: 0
+        simulation_time_unit:
+          type: string
+          minLength: 1
+        observed_at:
+          type: string
+          format: date-time
+        source_type:
+          type: string
+          enum: [instrument, model, derived, imported]
+        source_id:
+          type: [string, 'null']
+        model_version_id:
+          type: [string, 'null']
+        quality_status:
+          type: string
+        schema_version:
+          type: string
+          minLength: 1
+
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message, correlation_id, retryable]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+        correlation_id:
+          type: string
+          minLength: 1
+        retryable:
+          type: boolean
+        field_errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, code, message]
+            properties:
+              field: { type: string }
+              code: { type: string }
+              message: { type: string }
+        current_version:
+          type: integer
+          minimum: 0
+
+  responses:
+    BadRequest:
+      description: Invalid request syntax or request schema.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Forbidden:
+      description: Authenticated principal is not authorized for the resource or operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFound:
+      description: Resource does not exist or is not visible to the caller.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Conflict:
+      description: Idempotency or domain state conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    UnprocessableEntity:
+      description: Request is structurally valid but violates a domain or scientific constraint.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    TooManyRequests:
+      description: Rate limit or tenant quota exceeded.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    InternalServerError:
+      description: Unexpected server failure; response must not expose internal implementation details.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+            size_bytes:
+              type: integer
+              minimum: 0
         unit:
           type: string
           minLength: 1
