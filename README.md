@@ -245,5 +245,5 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 |---|---|---|
 | [R03.43架构设计](docs/architecture/R03.43-rendering-visualization-and-instrument-contract.md) | Renderer Adapter、Scene Graph、Coordinate System、Timeline、Interaction和Instrument | v0.1契约草案 |
 | [Visualization/Instrument Schema](contracts/visualization-instrument-contract.schema.v1alpha1.json) | Scene/Timeline/Instrument结构 | Draft；等待CI |
-| [Visualization Validator](scripts/validate_visualization_instrument_contract.py) | Scene Graph、Timeline和Observation Binding静态检查 | Draft；等待CI；未运行Renderer |
+| [Visualization Validator](scripts/validate_visualization_instrument_contract.py) | Scene Graph、Timeline和Observation Binding静态检查 | Draft；Run #148通过静态Visualization/Instrument验证（局部）；未运行Renderer |
 
