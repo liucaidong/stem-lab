@@ -162,3 +162,11 @@ R03.47 [Run #193](https://github.com/liucaidong/stem-lab/actions/runs/4142862013
 - `scripts/test_package_archive_ingestion.py`在内存中生成和读取ZIP，不写磁盘；验证Manifest与资源Fixture字节绑定。
 - 覆盖13项拒绝案例；[Run #199](https://github.com/liucaidong/stem-lab/actions/runs/41428995668)成功。
 - 不代表生产隔离区、对象存储、恶意软件扫描、远程解析或安全审计已实现。详见 [R03.48](../docs/architecture/R03.48-package-archive-ingestion-and-quarantine-boundary.md)。
+
+
+## Package Ingestion Lifecycle (R03.49)
+
+- `package-ingestion-session.schema.v1alpha1.json`定义会话状态、revision、attempt、验证证据和append-only transition log。
+- `scripts/validate_package_ingestion_lifecycle.py`校验状态机允许边、状态链、revision、sequence、验证证据、终态原因和幂等语义。
+- `validated`只表示结构/字节完整性门禁通过，不表示签名、许可、信任或发布审批通过。
+- 生产数据库持久化、上传API、Worker/Lease、Broker和Quarantine Service尚未实现。详见 [R03.49](../docs/architecture/R03.49-package-ingestion-state-machine-and-quarantine-lifecycle.md)。
