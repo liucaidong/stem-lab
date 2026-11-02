@@ -42,7 +42,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             "SELECT public,secret FROM pgsodium.crypto_sign_new_keypair()"
         ).fetchone()
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.worker_assignments (assignment_id text PRIMARY KEY,worker_id text NOT NULL,enabled boolean NOT NULL,allowed_job_types text[] NOT NULL CHECK(cardinality(allowed_job_types)>0))")
-        cls.admin.execute(f"CREATE TABLE {SCHEMA}.claim_nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,assignment_id text NOT NULL,worker_id text NOT NULL,tenant_id text,job_id text,session_id text,epoch bigint,lease_expires_at timestamptz,PRIMARY KEY(issuer,kid,nonce))"
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.claim_nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,assignment_id text NOT NULL,worker_id text NOT NULL,tenant_id text,job_id text,session_id text,epoch bigint,lease_expires_at timestamptz,PRIMARY KEY(issuer,kid,nonce))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.issuer_keys (kid text PRIMARY KEY, issuer text NOT NULL, public_key bytea NOT NULL, not_before timestamptz NOT NULL, not_after timestamptz, revoked_at timestamptz)")
         cls.admin.execute(f"INSERT INTO {SCHEMA}.issuer_keys(kid,issuer,public_key,not_before) VALUES ('test-key',%s,%s,clock_timestamp()-interval '1 day')", (ISSUER, cls.public_key))
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.issuer_keys TO {VERIFIER}")
