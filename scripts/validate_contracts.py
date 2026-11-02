@@ -62,6 +62,12 @@ def validate_schema_and_fixtures() -> None:
     require(not list(event_validator.iter_errors(event)),
             "Runtime Event positive fixture must validate")
     event_registry = load_json("contracts/events/registry.v1.json")
+    registry_keys = [
+        (item["event_type"], item["schema_version"])
+        for item in event_registry["events"]
+    ]
+    require(len(registry_keys) == len(set(registry_keys)),
+            "Event registry event_type/schema_version pairs must be unique")
     for event_definition in event_registry["events"]:
         payload_schema = load_json(
             "contracts/events/" + event_definition["payload_schema"]
