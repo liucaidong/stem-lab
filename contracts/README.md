@@ -127,3 +127,12 @@ R03.45验证型参考实现已纳入 `scripts/validate_contracts.py` 的CI入口
 
 
 最新加固验证为 [GitHub Actions Run #177](https://github.com/liucaidong/stem-lab/actions/runs/41426075633)：11项拒绝案例、ScientificModel spec形状、直接引用唯一性、Canonical Path唯一性/大小写碰撞及依赖闭包通过。生产资源摄取、真实字节Digest、签名和License Enforcement未实现。
+
+
+## Canonicalization Golden Vectors (R03.46)
+
+- `examples/package-canonicalization-golden-vectors.v1alpha1.json`保存固定JCS/CBOR输入、规范化字节Hex和domain-separated SHA-256期望值。
+- `scripts/validate_package_canonicalization_golden_vectors.py`使用固定Python库验证。
+- `scripts/verify_package_canonicalization_golden_vectors.mjs`使用Node.js独立实现验证同一组Golden Vectors。
+- JCS覆盖UTF-16属性排序/Unicode、数值格式/负零和嵌套数据；CBOR只覆盖Core Deterministic整数/文本/Map/Array/bool/null子集。
+- 不代表完整RFC一致性或生产Profile选型；DEC-27仍OPEN，DEC-17/28/29不变。详见 [R03.46](../docs/architecture/R03.46-projection-builder-hardening-and-golden-vectors.md)。
