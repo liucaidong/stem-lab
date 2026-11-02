@@ -36,7 +36,7 @@ assert spec.loader is not None
 spec.loader.exec_module(fixture)
 
 CONCURRENCY_LEVELS = (1, 8, 32)
-ITERATIONS_PER_WORKER = 80
+ITERATIONS_PER_WORKER = 20
 POOL_MIN = 2
 POOL_MAX = 16
 
