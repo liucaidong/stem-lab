@@ -59,8 +59,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
         cls.admin.execute(f"CREATE POLICY sessions_verifier_read ON {SCHEMA}.sessions FOR SELECT TO {VERIFIER} USING(true)")
         cls.admin.execute(f"CREATE POLICY jobs_verifier_read ON {SCHEMA}.jobs FOR SELECT TO {VERIFIER} USING(true)")
+        cls.admin.execute(f"CREATE POLICY receipts_verifier_read ON {SCHEMA}.receipts FOR SELECT TO {VERIFIER} USING(true)")
         cls.admin.execute(f"CREATE POLICY nonce_verifier_access ON {SCHEMA}.nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
-        cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs TO {VERIFIER}")
+        cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs,{SCHEMA}.receipts TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.nonce_ledger TO {VERIFIER}")
 
         verify_sql = f"""
@@ -102,9 +103,14 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           i:=(c->>'iat')::bigint; e:=(c->>'exp')::bigint;
           now_s:=floor(extract(epoch FROM clock_timestamp()))::bigint;
           IF i>now_s OR e<=now_s OR e<=i OR e-i>{MAX_LIFETIME} THEN RETURN NULL; END IF;
-          IF c->>'action' NOT IN ('worker.job.renew','worker.job.complete','worker.job.fail','worker.job.retry','worker.job.dead_letter')
-             OR c->>'resource_type'<>'job' OR c->>'resource_id'<>c->>'job_id'
-             OR (c->>'epoch')::bigint<1 THEN RETURN NULL; END IF;
+          IF c->>'action' IN ('worker.job.renew','worker.job.complete','worker.job.fail','worker.job.retry','worker.job.dead_letter') THEN
+            IF c->>'resource_type'<>'job' OR c->>'resource_id'<>c->>'job_id' THEN RETURN NULL; END IF;
+          ELSIF c->>'action'='worker.receipt.reconcile' THEN
+            IF c->>'resource_type'<>'receipt' OR c->>'resource_id'<>c->>'operation_id' THEN RETURN NULL; END IF;
+          ELSE
+            RETURN NULL;
+          END IF;
+          IF (c->>'epoch')::bigint<1 THEN RETURN NULL; END IF;
           SELECT public_key INTO pk FROM {SCHEMA}.issuer_keys
            WHERE kid=c->>'kid' AND issuer=c->>'iss' AND revoked_at IS NULL
              AND not_before<=clock_timestamp() AND (not_after IS NULL OR not_after>clock_timestamp());
@@ -126,16 +132,25 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 ledger_tx xid8; ledger_token text;
         BEGIN
           c:={SCHEMA}.verify_v2(token);
-          IF c IS NULL OR c->>'aud'<>'{AUDIENCE}' OR c->>'action'<>'worker.job.complete'
+          IF c IS NULL OR c->>'aud'<>'{AUDIENCE}'
              OR c->>'job_id' IS DISTINCT FROM current_setting('app.resource_job_id',true)
              OR c->>'operation_id' IS DISTINCT FROM current_setting('app.resource_operation_id',true) THEN
             RETURN false;
           END IF;
-          SELECT owner,epoch,lease_expires_at,status INTO po,pe,px,ps
-            FROM {SCHEMA}.jobs
-           WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id' AND session_id=c->>'session_id';
-          IF NOT FOUND OR po IS DISTINCT FROM c->>'owner' OR pe IS DISTINCT FROM (c->>'epoch')::bigint
-             OR ps IS DISTINCT FROM 'running' OR px<=clock_timestamp() THEN RETURN false; END IF;
+          IF c->>'action'='worker.job.complete' THEN
+            SELECT owner,epoch,lease_expires_at,status INTO po,pe,px,ps
+              FROM {SCHEMA}.jobs
+             WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id' AND session_id=c->>'session_id';
+            IF NOT FOUND OR po IS DISTINCT FROM c->>'owner' OR pe IS DISTINCT FROM (c->>'epoch')::bigint
+               OR ps IS DISTINCT FROM 'running' OR px<=clock_timestamp() THEN RETURN false; END IF;
+          ELSIF c->>'action'='worker.receipt.reconcile' THEN
+            PERFORM 1 FROM {SCHEMA}.receipts
+             WHERE tenant_id=c->>'tenant_id' AND operation_id=c->>'operation_id'
+               AND job_id=c->>'job_id' AND session_id=c->>'session_id';
+            IF NOT FOUND THEN RETURN false; END IF;
+          ELSE
+            RETURN false;
+          END IF;
           tx:=pg_current_xact_id();
           INSERT INTO {SCHEMA}.nonce_ledger
             (issuer,kid,nonce,token,transaction_id,tenant_id,job_id,session_id,owner,epoch,action,resource_type,resource_id,operation_id)
@@ -172,7 +187,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
         # Policies on job-scoped tables rely on nonce ledger consumption in this
         # transaction. The caller-controlled GUC alone grants no access.
-        for table in ("receipts","transitions","outbox"):
+        for table in ("transitions","outbox"):
             cls.admin.execute(
                 f"CREATE POLICY {table}_runtime_scope ON {SCHEMA}.{table} FOR ALL TO {RUNTIME} "
                 f"USING({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
@@ -182,6 +197,21 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
                 "job_id,operation_id))"
             )
+        cls.admin.execute(
+            f"CREATE POLICY receipts_complete_insert ON {SCHEMA}.receipts FOR INSERT TO {RUNTIME} "
+            f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
+            "tenant_id,job_id,session_id,'worker.job.complete','job',job_id,operation_id))"
+        )
+        cls.admin.execute(
+            f"CREATE POLICY receipts_complete_select ON {SCHEMA}.receipts FOR SELECT TO {RUNTIME} "
+            f"USING({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
+            "tenant_id,job_id,session_id,'worker.job.complete','job',job_id,operation_id))"
+        )
+        cls.admin.execute(
+            f"CREATE POLICY receipts_reconcile_select ON {SCHEMA}.receipts FOR SELECT TO {RUNTIME} "
+            f"USING({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
+            "tenant_id,job_id,session_id,'worker.receipt.reconcile','receipt',operation_id,operation_id))"
+        )
         cls.admin.execute(
             f"CREATE POLICY jobs_runtime_select ON {SCHEMA}.jobs FOR SELECT TO {RUNTIME} "
             f"USING(status IN ('running','succeeded') AND {SCHEMA}.assertion_allows("
@@ -293,6 +323,41 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','op-a','running','succeeded')")
                 conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"succeeded")
+
+    def test_ambiguous_commit_reconciles_receipt_and_detects_digest_conflict(self):
+        completion=self.issue()
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(completion,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(completion,)).fetchone()[0])
+                conn.execute(f"UPDATE {SCHEMA}.jobs SET status='succeeded' WHERE tenant_id='tenant-a' AND job_id='job-a' AND session_id='session-a' AND owner='worker-a' AND epoch=7 AND status='running' AND lease_expires_at>clock_timestamp()")
+                conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-1','APPLIED')")
+                conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','op-a','running','succeeded')")
+                conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
+        # The commit above is treated as acknowledged ambiguously: a fresh,
+        # separately signed Receipt capability resolves the durable outcome.
+        reconcile=self.issue(action="worker.receipt.reconcile",resource_type="receipt",resource_id="op-a")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(reconcile,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(reconcile,)).fetchone()[0])
+                row=conn.execute(f"SELECT request_digest,outcome FROM {SCHEMA}.receipts WHERE tenant_id='tenant-a' AND operation_id='op-a'").fetchone()
+                self.assertEqual(row,("digest-1","APPLIED"))
+                same_digest="DUPLICATE" if row[0]=="digest-1" else "IDEMPOTENCY_CONFLICT"
+                changed_digest="DUPLICATE" if row[0]=="digest-other" else "IDEMPOTENCY_CONFLICT"
+                self.assertEqual(same_digest,"DUPLICATE")
+                self.assertEqual(changed_digest,"IDEMPOTENCY_CONFLICT")
+
+    def test_receipt_reconcile_rejects_wrong_or_missing_receipt(self):
+        self.admin.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-1','APPLIED')")
+        wrong=self.issue(action="worker.receipt.reconcile",resource_type="receipt",resource_id="other-operation")
+        missing=self.issue(action="worker.receipt.reconcile",resource_type="receipt",resource_id="op-missing",operation_id="op-missing")
+        self.assertFalse(self.authorize_once(wrong))
+        self.assertFalse(self.authorize_once(missing))
 
     def test_same_claims_and_key_produce_identical_token(self):
         fixed = {
