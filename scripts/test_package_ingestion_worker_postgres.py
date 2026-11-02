@@ -151,6 +151,12 @@ def complete(conn, job_id, worker, epoch, expected_revision=1, fail_outbox=False
                WHERE tenant_id='tenant-a' AND session_id='s1'""", (next_revision,)
         )
         conn.execute(
+            """INSERT INTO receipts(tenant_id,session_id,operation,idempotency_key,request_digest,response_json)
+               VALUES ('tenant-a','s1','job_completion',%s,%s,%s::jsonb)""",
+            (f"complete-{job_id}-{epoch}","sha256:"+"a"*64,
+             json.dumps({"job_id":job_id,"lease_epoch":epoch,"session_revision":next_revision})),
+        )
+        conn.execute(
             """INSERT INTO transitions
                (tenant_id,session_id,sequence,from_state,to_state,command_id,idempotency_key,
                 request_digest,actor_id,expected_revision,resulting_revision)
@@ -230,6 +236,11 @@ class WorkerLeasePostgresTests(unittest.TestCase):
             package_version text NOT NULL,status text NOT NULL,revision integer NOT NULL,
             updated_at timestamptz NOT NULL DEFAULT clock_timestamp(),
             PRIMARY KEY(tenant_id,session_id));
+          CREATE TABLE {SCHEMA}.receipts(
+            tenant_id text NOT NULL,session_id text NOT NULL,operation text NOT NULL,
+            idempotency_key text NOT NULL,request_digest text NOT NULL,response_json jsonb,
+            PRIMARY KEY(tenant_id,session_id,operation,idempotency_key),
+            FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id));
           CREATE TABLE {SCHEMA}.transitions(
             tenant_id text NOT NULL,session_id text NOT NULL,sequence integer NOT NULL,
             from_state text NOT NULL,to_state text NOT NULL,command_id text NOT NULL,
@@ -246,7 +257,7 @@ class WorkerLeasePostgresTests(unittest.TestCase):
         """)
         ddl = Path("sql/package-ingestion-worker/R03.51-ingestion-worker.sql").read_text()
         cls.admin.execute(ddl.replace("stemlab_ingest",SCHEMA))
-        for table in ("sessions","transitions","outbox","ingestion_jobs","ingestion_job_dlq"):
+        for table in ("sessions","receipts","transitions","outbox","ingestion_jobs","ingestion_job_dlq"):
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} ENABLE ROW LEVEL SECURITY")
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} FORCE ROW LEVEL SECURITY")
             if table not in ("ingestion_jobs","ingestion_job_dlq"):
@@ -264,7 +275,7 @@ class WorkerLeasePostgresTests(unittest.TestCase):
         cls.admin.close()
 
     def setUp(self):
-        self.admin.execute(f"TRUNCATE {SCHEMA}.ingestion_job_dlq,{SCHEMA}.ingestion_jobs,{SCHEMA}.outbox,{SCHEMA}.transitions,{SCHEMA}.sessions CASCADE")
+        self.admin.execute(f"TRUNCATE {SCHEMA}.ingestion_job_dlq,{SCHEMA}.ingestion_jobs,{SCHEMA}.outbox,{SCHEMA}.transitions,{SCHEMA}.receipts,{SCHEMA}.sessions CASCADE")
         self.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-a','s1','pkg','1.0.0','quarantined',1,clock_timestamp())")
         with app_conn() as c:
             create_job(c,"j1")
@@ -325,6 +336,7 @@ class WorkerLeasePostgresTests(unittest.TestCase):
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.sessions").fetchone()[0],"validated")
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.ingestion_jobs").fetchone()[0],"succeeded")
         self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.transitions").fetchone()[0],1)
+        self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.receipts").fetchone()[0],1)
         self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.outbox").fetchone()[0],1)
 
     def test_outbox_failure_rolls_back_completion_and_session(self):
@@ -386,6 +398,7 @@ class WorkerLeasePostgresTests(unittest.TestCase):
             self.assertEqual(self.admin.execute(f"SELECT status,revision FROM {SCHEMA}.sessions WHERE tenant_id='tenant-a'").fetchone(),("quarantined",1))
             self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.ingestion_jobs WHERE job_id='j1'").fetchone()[0],"running")
             self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.transitions").fetchone()[0],0)
+            self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.receipts").fetchone()[0],0)
             self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.outbox").fetchone()[0],0)
         finally:
             self.admin.execute(f"DROP TRIGGER reject_validated ON {SCHEMA}.sessions")
