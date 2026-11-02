@@ -95,6 +95,10 @@ def validate_schema_and_fixtures() -> None:
     invalid_asset_absolute["spec"]["assets"][0]["source"] = "/etc/passwd"
     require(bool(package_asset_semantic_errors(invalid_asset_absolute)),
             "Package with absolute asset source must be rejected")
+    invalid_asset_backslash = copy.deepcopy(valid_package)
+    invalid_asset_backslash["spec"]["assets"][0]["source"] = "contracts\\examples\\resources\\fixture-asset.json"
+    require(bool(package_asset_semantic_errors(invalid_asset_backslash)),
+            "Package with backslash path separators must be rejected")
     invalid_asset_missing = copy.deepcopy(valid_package)
     invalid_asset_missing["spec"]["assets"][0]["source"] = "contracts/examples/resources/missing.json"
     require(bool(package_asset_semantic_errors(invalid_asset_missing)),
@@ -290,7 +294,7 @@ def package_asset_semantic_errors(package: dict[str, Any]) -> list[str]:
     root = ROOT.resolve()
     for asset in package["spec"]["assets"]:
         source = Path(asset["source"])
-        if source.is_absolute() or ".." in source.parts or "\\\\" in asset["source"]:
+        if source.is_absolute() or ".." in source.parts or "\\" in asset["source"]:
             errors.append(f"{asset['id']}: asset source must be a safe repository-relative path")
             continue
         candidate = ROOT / source
