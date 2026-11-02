@@ -65,12 +65,12 @@
 | [R03.18 技术验证与Spike矩阵](docs/architecture/R03.18-technical-validation-and-spike-matrix.md) | 技术Spike、自动化测试、故障注入、数值验证和证据模板 | v0.1；尚未执行 |
 | [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、局部验证证据和工程准入Gate | v0.2；未达Implementation-Ready |
 | [R03.20 技术决策登记册](docs/architecture/R03.20-technical-decision-register.md) | 已接受原则、选型候选、产品/合规待决策项和ADR模板 | v0.1；待评审 |
-| [R03.21 工程准入WBS](docs/architecture/R03.21-engineering-readiness-wbs.md) | 产品决策、科学验证、契约、Spike、安全和解冻审计工作分解 | v0.2；Run #41 CI成功，持续更新 |
+| [R03.21 工程准入WBS](docs/architecture/R03.21-engineering-readiness-wbs.md) | 产品决策、科学验证、契约、Spike、安全和解冻审计工作分解 | v0.2；Run #41/#42 CI成功，持续更新 |
 | [R03.22 机器可读契约草案审阅](docs/architecture/R03.22-machine-readable-contract-review.md) | 契约草案审阅、局部机器验证结果与剩余缺口 | v0.2；Draft，局部验证 |
 | [R03.23 契约验证执行报告](docs/architecture/R03.23-contract-validation-execution-report.md) | Draft 2020-12 Schema元验证、正负样例及OpenAPI YAML解析执行记录 | v0.1；局部验证通过，契约未冻结 |
 | [R03.24 Scientific Model验证计划](docs/architecture/R03.24-scientific-model-verification-plan.md) | DC教学模型不变量、RC解析参考解、Solver收敛/单位/科学签核验收协议 | v0.1；验证计划，专家签核待完成 |
 | [R03.25 Model/Observation契约草案审阅](docs/architecture/R03.25-model-observation-contract-draft-review.md) | ScientificModel与Observation Schema、Fixture、语义校验缺口 | v0.1；本地元验证通过，完整语义待完成 |
-| [R03.26 Runtime Event Payload契约审阅](docs/architecture/R03.26-runtime-event-payload-contract-review.md) | 三种代表事件Payload Schema、Registry、Fixture和Consumer测试缺口 | v0.1；Schema/Fixture与CI Run #41通过，Consumer测试待完成 |
+| [R03.26 Runtime Event Payload契约审阅](docs/architecture/R03.26-runtime-event-payload-contract-review.md) | 三种代表事件Payload Schema、Registry、Fixture和Consumer测试缺口 | v0.1；Schema/Fixture与CI Run #41/#42通过，Consumer测试待完成 |
 | [R03.27 PostgreSQL物理模型与RLS草案](docs/architecture/R03.27-postgresql-physical-data-model-and-rls-draft.md) | 物理表分组、复合租户约束、RLS上下文、事务与测试矩阵 | v0.1；候选设计，数据库Spike未执行 |
 
 ### Contracts — 机器可读契约草案
@@ -78,13 +78,13 @@
 | 文件 | 内容 | 状态 |
 |---|---|---|
 | [Contracts目录说明](contracts/README.md) | 契约草案使用约束与正式冻结要求 | Draft |
-| [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；Draft 2020-12元检查及正/负样例通过，CI待确认 |
+| [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；Draft 2020-12元检查及正/负样例通过，CI Run #41/#42通过 |
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件通用信封结构 | Draft；元Schema与正样例已验证 |
-| [Runtime Event Payload Registry](contracts/events/README.md) | SessionStarted/ExecutionSucceeded/ObservationRecorded三种事件Payload Schema | Draft；脚本已接入，CI运行待确认 |
+| [Runtime Event Payload Registry](contracts/events/README.md) | SessionStarted/ExecutionSucceeded/ObservationRecorded三种事件Payload Schema | Draft；脚本已接入，CI Run #41/#42通过 |
 | [Scientific Model Schema](contracts/scientific-model.schema.v1alpha1.json) | 模型参数、变量、方程引用、约束和求解器需求 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入 |
 | [Observation Schema](contracts/observation.schema.v1alpha1.json) | 观测来源、单位、仿真时间、质量和载荷引用 | Draft；本地元Schema/Fixture复核通过，完整语义待完成 |
-| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.2；OpenAPI 3.1规范验证与Run #41 CI通过；全量锁定依赖回归待确认 |
-| [Contract Test Fixtures](contracts/examples/README.md) | Package/Event/Model/Observation样例及DC/RC参考算例 | CI Run #41通过；全量依赖锁文件后的回归待确认 |
+| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.2；OpenAPI 3.1规范验证与Run #41 CI通过；全量版本锁定依赖Run #42通过 |
+| [Contract Test Fixtures](contracts/examples/README.md) | Package/Event/Model/Observation样例及DC/RC参考算例 | CI Run #41/#42通过；全量版本锁定依赖回归完成 |
 | [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；自动算术检查已纳入脚本，科学签核待完成 |
 | [RC Circuit参考算例JSON](contracts/examples/rc-circuit.reference-cases.json) | RC充电一阶ODE解析参考解；仅作Runtime技术验证 | Draft；非教学MVP，专家签核待完成 |
 
@@ -117,7 +117,8 @@
 ### 自动化验证工具
 
 - [契约验证脚本](scripts/validate_contracts.py)
-- [验证依赖锁定](requirements-contract-validation.txt)
+- [直接依赖声明](requirements-contract-validation.txt)
+- [全量依赖版本锁定](requirements-contract-validation.lock.txt)
 - [GitHub Actions契约验证工作流](.github/workflows/contract-validation.yml)
 
 ## 版本记录
