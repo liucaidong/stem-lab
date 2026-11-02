@@ -72,7 +72,7 @@
 | [R03.25 Model/Observation契约草案审阅](docs/architecture/R03.25-model-observation-contract-draft-review.md) | ScientificModel与Observation Schema、Fixture、语义校验缺口 | v0.1；本地元验证通过，完整语义待完成 |
 | [R03.26 Runtime Event Payload契约审阅](docs/architecture/R03.26-runtime-event-payload-contract-review.md) | 三种代表事件Payload Schema、Registry、Fixture和Consumer测试缺口 | v0.1；Schema/Fixture与CI Run #41/#42通过，Consumer测试待完成 |
 | [R03.27 PostgreSQL物理模型与RLS草案](docs/architecture/R03.27-postgresql-physical-data-model-and-rls-draft.md) | 物理表分组、复合租户约束、RLS上下文、事务与测试矩阵 | v0.1；候选设计，数据库Spike未执行 |
-| [R03.28 OpenAPI安全/幂等/分页审阅](docs/architecture/R03.28-openapi-security-idempotency-pagination-review.md) | JWT与资源授权、幂等、ETag、Cursor、错误模型与限流缺口 | v0.1；OpenAPI 0.3候选修订，CI待验证 |
+| [R03.28 OpenAPI安全/幂等/分页审阅](docs/architecture/R03.28-openapi-security-idempotency-pagination-review.md) | JWT与资源授权、幂等、ETag、Cursor、错误模型与限流缺口 | v0.1；OpenAPI 0.3；规范验证及API语义断言Run #49通过 |
 
 ### Contracts — 机器可读契约草案
 
