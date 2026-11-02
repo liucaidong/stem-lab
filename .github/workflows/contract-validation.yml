@@ -71,6 +71,9 @@ jobs:
       - name: Validate Package source and resource content integrity fixtures
         run: python scripts/validate_package_content_integrity.py
 
+      - name: Test safe in-memory Package archive ingestion boundary
+        run: python scripts/test_package_archive_ingestion.py
+
       - name: Validate Package signature, provenance, and license governance
         run: python scripts/validate_package_governance.py
 
