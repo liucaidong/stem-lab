@@ -34,7 +34,7 @@ def check_limits(node: Any, depth=1, count=None, max_depth=MAX_DEPTH, max_nodes=
         for value in node.values():
             if isinstance(value,(dict,list)): check_limits(value,depth+1,count,max_depth,max_nodes)
     elif isinstance(node,list):
-        for value in node: check_limits(value,depth+1,count)
+        for value in node: check_limits(value,depth+1,count,max_depth,max_nodes)
 def type_check(expr: dict, symbols: dict, units: dict):
     nodes=[0]
     def infer(node: dict):
