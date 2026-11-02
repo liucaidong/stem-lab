@@ -95,3 +95,11 @@
 - DC/RC numerical reference harness测试收敛、稳定性、精度、量纲和确定性；
 - Euler/RK4仅为测试参考积分器，不是生产Solver；
 - 详见[R03.42](../docs/architecture/R03.42-scientific-solver-verification-architecture.md)。
+
+
+## Visualization and Instrument
+
+- visualization-instrument-contract.schema.v1alpha1.json定义Renderer/Scene/Timeline/Instrument契约；
+- Simulation Time与Wall-clock Timeline严格区分；
+- 仪表读数必须绑定Observation与Quantity/Unit；
+- 静态验证不运行Renderer或真实采样；详见[R03.43](../docs/architecture/R03.43-rendering-visualization-and-instrument-contract.md)。
