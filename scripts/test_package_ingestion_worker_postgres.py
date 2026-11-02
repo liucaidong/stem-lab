@@ -389,7 +389,7 @@ class WorkerLeasePostgresTests(unittest.TestCase):
 
     def test_session_update_failure_rolls_back_job_completion(self):
         self.admin.execute(f"""CREATE FUNCTION {SCHEMA}.reject_validated() RETURNS trigger
-          LANGUAGE plpgsql AS $ BEGIN IF NEW.status='validated' THEN RAISE EXCEPTION 'injected session update failure'; END IF; RETURN NEW; END $""")
+          LANGUAGE plpgsql AS $body$ BEGIN IF NEW.status='validated' THEN RAISE EXCEPTION 'injected session update failure'; END IF; RETURN NEW; END; $body$""")
         self.admin.execute(f"CREATE TRIGGER reject_validated BEFORE UPDATE ON {SCHEMA}.sessions FOR EACH ROW EXECUTE FUNCTION {SCHEMA}.reject_validated()")
         try:
             with app_conn() as c: lease=claim_one(c,"worker-a")
