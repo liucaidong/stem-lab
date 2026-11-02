@@ -345,6 +345,4325 @@
           }
         }
       }
+    },
+    {
+      "case_id": "multiply-result-dimension-mismatch",
+      "expected_error": "EXPECTED_DIMENSION_MISMATCH",
+      "expression": {
+        "expression_id": "bad-multiply-dimension",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "electric-potential",
+          "dimension": [
+            1,
+            2,
+            -3,
+            -1
+          ]
+        },
+        "root": {
+          "kind": "binary",
+          "operator": "multiply",
+          "left": {
+            "kind": "symbol",
+            "symbol_id": "Vs"
+          },
+          "right": {
+            "kind": "symbol",
+            "symbol_id": "Vs"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "expression-depth-limit",
+      "expected_error": "DEPTH_LIMIT",
+      "expression": {
+        "expression_id": "too-deep",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "electric-potential",
+          "dimension": [
+            1,
+            2,
+            -3,
+            -1
+          ]
+        },
+        "root": {
+          "kind": "unary",
+          "operator": "positive",
+          "operand": {
+            "kind": "unary",
+            "operator": "positive",
+            "operand": {
+              "kind": "unary",
+              "operator": "positive",
+              "operand": {
+                "kind": "unary",
+                "operator": "positive",
+                "operand": {
+                  "kind": "unary",
+                  "operator": "positive",
+                  "operand": {
+                    "kind": "unary",
+                    "operator": "positive",
+                    "operand": {
+                      "kind": "unary",
+                      "operator": "positive",
+                      "operand": {
+                        "kind": "unary",
+                        "operator": "positive",
+                        "operand": {
+                          "kind": "unary",
+                          "operator": "positive",
+                          "operand": {
+                            "kind": "unary",
+                            "operator": "positive",
+                            "operand": {
+                              "kind": "unary",
+                              "operator": "positive",
+                              "operand": {
+                                "kind": "unary",
+                                "operator": "positive",
+                                "operand": {
+                                  "kind": "unary",
+                                  "operator": "positive",
+                                  "operand": {
+                                    "kind": "unary",
+                                    "operator": "positive",
+                                    "operand": {
+                                      "kind": "unary",
+                                      "operator": "positive",
+                                      "operand": {
+                                        "kind": "unary",
+                                        "operator": "positive",
+                                        "operand": {
+                                          "kind": "unary",
+                                          "operator": "positive",
+                                          "operand": {
+                                            "kind": "unary",
+                                            "operator": "positive",
+                                            "operand": {
+                                              "kind": "unary",
+                                              "operator": "positive",
+                                              "operand": {
+                                                "kind": "unary",
+                                                "operator": "positive",
+                                                "operand": {
+                                                  "kind": "unary",
+                                                  "operator": "positive",
+                                                  "operand": {
+                                                    "kind": "unary",
+                                                    "operator": "positive",
+                                                    "operand": {
+                                                      "kind": "unary",
+                                                      "operator": "positive",
+                                                      "operand": {
+                                                        "kind": "unary",
+                                                        "operator": "positive",
+                                                        "operand": {
+                                                          "kind": "unary",
+                                                          "operator": "positive",
+                                                          "operand": {
+                                                            "kind": "unary",
+                                                            "operator": "positive",
+                                                            "operand": {
+                                                              "kind": "unary",
+                                                              "operator": "positive",
+                                                              "operand": {
+                                                                "kind": "unary",
+                                                                "operator": "positive",
+                                                                "operand": {
+                                                                  "kind": "unary",
+                                                                  "operator": "positive",
+                                                                  "operand": {
+                                                                    "kind": "unary",
+                                                                    "operator": "positive",
+                                                                    "operand": {
+                                                                      "kind": "unary",
+                                                                      "operator": "positive",
+                                                                      "operand": {
+                                                                        "kind": "unary",
+                                                                        "operator": "positive",
+                                                                        "operand": {
+                                                                          "kind": "unary",
+                                                                          "operator": "positive",
+                                                                          "operand": {
+                                                                            "kind": "unary",
+                                                                            "operator": "positive",
+                                                                            "operand": {
+                                                                              "kind": "unary",
+                                                                              "operator": "positive",
+                                                                              "operand": {
+                                                                                "kind": "unary",
+                                                                                "operator": "positive",
+                                                                                "operand": {
+                                                                                  "kind": "unary",
+                                                                                  "operator": "positive",
+                                                                                  "operand": {
+                                                                                    "kind": "unary",
+                                                                                    "operator": "positive",
+                                                                                    "operand": {
+                                                                                      "kind": "unary",
+                                                                                      "operator": "positive",
+                                                                                      "operand": {
+                                                                                        "kind": "unary",
+                                                                                        "operator": "positive",
+                                                                                        "operand": {
+                                                                                          "kind": "symbol",
+                                                                                          "symbol_id": "Vs"
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          }
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "expression-node-limit",
+      "expected_error": "NODE_LIMIT",
+      "expression": {
+        "expression_id": "too-many-nodes",
+        "ast_version": "1alpha1",
+        "expected_type": {
+          "quantity_kind": "electric-potential",
+          "dimension": [
+            1,
+            2,
+            -3,
+            -1
+          ]
+        },
+        "root": {
+          "kind": "binary",
+          "operator": "add",
+          "left": {
+            "kind": "binary",
+            "operator": "add",
+            "left": {
+              "kind": "binary",
+              "operator": "add",
+              "left": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "right": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "right": {
+              "kind": "binary",
+              "operator": "add",
+              "left": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "right": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "binary",
+            "operator": "add",
+            "left": {
+              "kind": "binary",
+              "operator": "add",
+              "left": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "right": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "right": {
+              "kind": "binary",
+              "operator": "add",
+              "left": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "right": {
+                "kind": "binary",
+                "operator": "add",
+                "left": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "right": {
+                  "kind": "binary",
+                  "operator": "add",
+                  "left": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "binary",
+                    "operator": "add",
+                    "left": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    },
+                    "right": {
+                      "kind": "binary",
+                      "operator": "add",
+                      "left": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      },
+                      "right": {
+                        "kind": "binary",
+                        "operator": "add",
+                        "left": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        },
+                        "right": {
+                          "kind": "binary",
+                          "operator": "add",
+                          "left": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          },
+                          "right": {
+                            "kind": "symbol",
+                            "symbol_id": "Vs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }
