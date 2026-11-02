@@ -14,8 +14,10 @@ RUN apt-get update \
        -o /tmp/pgsodium.zip \
     && mkdir -p /tmp/pgsodium-src \
     && unzip -q /tmp/pgsodium.zip -d /tmp/pgsodium-src \
-    && cd /tmp/pgsodium-src \
-    && make \
-    && make install \
+    && PGSODIUM_MAKEFILE="$(find /tmp/pgsodium-src -maxdepth 4 -name Makefile -print -quit)" \
+    && test -n "$PGSODIUM_MAKEFILE" \
+    && cd "$(dirname "$PGSODIUM_MAKEFILE")" \
+    && make PG_CONFIG=/usr/lib/postgresql/17/bin/pg_config \
+    && make install PG_CONFIG=/usr/lib/postgresql/17/bin/pg_config \
     && cd / \
     && rm -rf /tmp/pgsodium-src /tmp/pgsodium.zip /var/lib/apt/lists/*
