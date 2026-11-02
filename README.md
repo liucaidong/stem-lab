@@ -15,6 +15,7 @@
 | R01.2 | [全球竞品深度能力矩阵](docs/research/R01.2-competitor-capability-matrix.md) | v0.1 初稿 |
 | R01.3 | [竞品证据与来源登记册](docs/research/R01.3-competitor-evidence-register.md) | v0.1 初稿 |
 | R01.4 | [竞品差距与产品机会假设](docs/research/R01.4-product-opportunity-hypotheses.md) | v0.1 初稿 |
+| R01.5 | [竞品集成、部署、授权与扩展能力补证](docs/research/R01.5-competitor-integration-deployment-licensing.md) | v0.1 初稿 |
 
 ## 研究与设计原则
 
