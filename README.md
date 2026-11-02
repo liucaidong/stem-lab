@@ -159,7 +159,7 @@
 | 文档/资产 | 内容 | 状态 |
 |---|---|---|
 | [R03.35架构设计](docs/architecture/R03.35-canonical-manifest-and-deterministic-package-digest.md) | Canonical Projection、资源排序、Digest覆盖/排除字段、JCS/CBOR/归档比较 | v0.1；DEC-27保持OPEN |
-| [Canonical Manifest Schema](contracts/package-canonical-manifest.schema.v1alpha1.json) | 确定性摘要输入Projection | Draft；等待CI |
-| [Canonical Manifest Fixtures](contracts/examples/package-canonical-manifest.fixtures.v1alpha1.json) | 正向Projection与路径/Unicode/数值负向案例 | Draft；等待CI |
-| [Canonicalization Candidate Validator](scripts/validate_package_canonical_manifest.py) | JCS与Deterministic CBOR候选重复性、排序和Digest敏感性 | Spike；等待CI |
+| [Canonical Manifest Schema](contracts/package-canonical-manifest.schema.v1alpha1.json) | 确定性摘要输入Projection | Draft；Run #95 JCS/CBOR候选重复性与5个负向案例通过（局部） |
+| [Canonical Manifest Fixtures](contracts/examples/package-canonical-manifest.fixtures.v1alpha1.json) | 正向Projection与路径/Unicode/数值负向案例 | Draft；Run #95正/负向Projection测试通过（局部） |
+| [Canonicalization Candidate Validator](scripts/validate_package_canonical_manifest.py) | JCS与Deterministic CBOR候选重复性、排序和Digest敏感性 | Spike；Run #95双候选静态重复性测试通过（局部） |
 
