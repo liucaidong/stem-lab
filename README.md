@@ -77,7 +77,7 @@
 | [Contracts目录说明](contracts/README.md) | 契约草案使用约束与正式冻结要求 | Draft |
 | [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；JSON语法已解析 |
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件信封结构 | Draft；JSON语法已解析 |
-| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API骨架 | Draft；YAML解析通过，OpenAPI规范验证未执行 |
+| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.2；扩展后重新解析及OpenAPI规范验证待执行 |
 | [Contract Test Fixtures](contracts/examples/README.md) | Package正/负样例、Runtime Event及DC/RC参考算例 | 局部本地验证通过；CI运行待确认 |
 | [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；自动算术检查已纳入脚本，科学签核待完成 |
 | [RC Circuit参考算例JSON](contracts/examples/rc-circuit.reference-cases.json) | RC充电一阶ODE解析参考解；仅作Runtime技术验证 | Draft；非教学MVP，专家签核待完成 |
