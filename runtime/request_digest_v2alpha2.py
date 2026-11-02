@@ -16,6 +16,12 @@ ACTIONS = {
  "worker.receipt.reconcile": (),
  "worker.outbox.ack": (),
 }
+RESOURCE_FOR_ACTION = {
+ "worker.job.renew":"job","worker.job.complete":"job","worker.job.fail":"job",
+ "worker.job.retry":"job","worker.job.dead_letter":"job",
+ "worker.dlq.replay":"dlq_item","worker.outbox.dispatch":"outbox_event",
+ "worker.receipt.reconcile":"receipt","worker.outbox.ack":"outbox_event",
+}
 ID_RE = re.compile(r"^[^\x00-\x1f\x7f]{1,256}$")
 
 class RequestEncodingError(ValueError): pass
@@ -71,7 +77,11 @@ def validate_envelope(e: dict[str,Any]) -> None:
     if e["action"] not in ACTIONS: raise RequestEncodingError("unsupported action")
     for field in ENVELOPE_FIELDS:
         if not isinstance(e[field],str) or not ID_RE.fullmatch(e[field]): raise RequestEncodingError("invalid "+field)
-    if e["resource_type"] not in {"job","dlq_item","outbox_event","receipt"}: raise RequestEncodingError("invalid resource_type")
+    if e["resource_type"] != RESOURCE_FOR_ACTION[e["action"]]: raise RequestEncodingError("action/resource_type mismatch")
+    if e["action"].startswith("worker.job.") and e["resource_id"] != e["job_id"]:
+        raise RequestEncodingError("Job action resource_id must equal job_id")
+    if e["action"]=="worker.receipt.reconcile" and e["resource_id"] != e["operation_id"]:
+        raise RequestEncodingError("Receipt resource_id must equal operation_id")
     args=e["operation_arguments"]
     if not isinstance(args,dict) or set(args)!=set(ACTIONS[e["action"]]): raise RequestEncodingError("operation arguments do not match action")
     for key,value in args.items():
@@ -92,6 +102,11 @@ def canonical_request_bytes(e: dict[str,Any]) -> bytes:
     encoded_args=_value(e["operation_arguments"])
     out.extend(b"J"+_lp(encoded_args))
     return bytes(out)
+
+def canonical_request_bytes_from_json(raw: bytes|str) -> bytes:
+    value=parse_json_strict(raw)
+    if not isinstance(value,dict): raise RequestEncodingError("Request Envelope must be a JSON object")
+    return canonical_request_bytes(value)
 
 def request_digest(e: dict[str,Any]) -> str:
     return "sha256:"+hashlib.sha256(canonical_request_bytes(e)).hexdigest()
