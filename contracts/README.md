@@ -170,3 +170,6 @@ R03.47 [Run #193](https://github.com/liucaidong/stem-lab/actions/runs/4142862013
 - `scripts/validate_package_ingestion_lifecycle.py`校验状态机允许边、状态链、revision、sequence、验证证据、终态原因和幂等语义。
 - `validated`只表示结构/字节完整性门禁通过，不表示签名、许可、信任或发布审批通过。
 - 生产数据库持久化、上传API、Worker/Lease、Broker和Quarantine Service尚未实现。详见 [R03.49](../docs/architecture/R03.49-package-ingestion-state-machine-and-quarantine-lifecycle.md)。
+
+
+R03.49 [Run #204](https://github.com/liucaidong/stem-lab/actions/runs/41429361691)通过状态机、revision/sequence、验证证据门禁、终态原因、幂等重放/冲突和10项拒绝案例。该Harness仅验证契约，不代表生产持久化、Worker、Broker或Quarantine Service已实现。
