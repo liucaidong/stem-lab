@@ -269,3 +269,15 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [Protocol sequences](docs/architecture/R03.52.1-worker-runtime-lifecycle-sequences.md) | Normal execution, heartbeat loss and graceful shutdown | Design diagram |
 
 R03.52.1 does not select Python as the production Worker runtime (DEC-03 OPEN), nor a DB/migration adapter (DEC-04), broker (DEC-05/30), tenant trust boundary (DEC-19), or observability stack (DEC-13). No production readiness claim.
+
+
+### R03.52.2 — Bounded Worker Poller Pool & Concurrency Supervision
+
+| Asset | Purpose | Status |
+|---|---|---|
+| [Worker Pool](runtime/worker_pool.py) | Fixed-size in-process poller supervisor with unique worker IDs and fail-fast propagation | Executable reference; CI pending |
+| [Worker Pool tests](scripts/test_worker_pool.py) | Concurrency bound, shutdown fan-out, identity uniqueness and failure propagation | CI pending |
+| [Worker Pool design](docs/architecture/R03.52.2-bounded-worker-poller-pool.md) | Process-local scheduling boundary and operational failure model | v0.1 reference |
+| [Worker Pool sequences](docs/architecture/R03.52.2-worker-pool-sequences.md) | Startup, shutdown and poller failure sequences | Design diagram |
+
+This is not a distributed Scheduler or production process supervisor. PostgreSQL claim remains the durable scheduling authority. No fairness, autoscaling, global replica concurrency, DB adapter or broker is selected.

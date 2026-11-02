@@ -212,3 +212,11 @@ R03.51 PostgreSQL reference evidence: [GitHub Actions Run #41440101768](https://
 
 
 R03.52.1 CI evidence: [GitHub Actions Run #41441940260](https://github.com/liucaidong/stem-lab/actions/runs/41441940260) SUCCESS; 9/9 adapter-neutral Worker Runtime lifecycle tests passed. R03.51 PostgreSQL tests 20/20 and R03.50 PostgreSQL tests 8/8 also passed. No production Store adapter or process supervisor is implied.
+
+
+## Bounded Worker Poller Pool (R03.52.2)
+
+- runtime/worker_pool.py starts a fixed number of WorkerRuntime poll loops and requires unique worker identities.
+- scripts/test_worker_pool.py tests configured concurrency, shutdown fan-out, startup validation and failure propagation using fake pollers.
+- This is process-local orchestration. It is not a distributed scheduler, production supervisor, or proof of cross-replica concurrency limits.
+- PostgreSQL remains the durable claim authority; no production Store adapter is included.

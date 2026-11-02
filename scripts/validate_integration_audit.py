@@ -35,10 +35,11 @@ def main():
   ref=command["payload_schema_ref"].split("/")[-1]
   if ref not in payload["$defs"]: raise SystemExit("Command payload reference missing: "+ref)
  workflow=(ROOT/".github/workflows/contract-validation.yml").read_text()
- required=["validate_expression_ast.py","validate_package_resource_graph.py","validate_package_canonical_manifest.py","validate_package_governance.py","validate_event_registry.py","test_event_delivery_sqlite.py","test_postgres_transaction_rls.py","validate_api_operational_semantics.py","validate_runtime_execution_contract.py","test_solver_numerical_reference.py","validate_visualization_instrument_contract.py","test_worker_runtime.py"]
+ required=["validate_expression_ast.py","validate_package_resource_graph.py","validate_package_canonical_manifest.py","validate_package_governance.py","validate_event_registry.py","test_event_delivery_sqlite.py","test_postgres_transaction_rls.py","validate_api_operational_semantics.py","validate_runtime_execution_contract.py","test_solver_numerical_reference.py","validate_visualization_instrument_contract.py","test_worker_runtime.py","test_worker_pool.py"]
  missing=[p for p in required if p not in workflow]
  if missing: raise SystemExit("CI missing validators: "+", ".join(missing))
  if not (ROOT/"runtime/worker_runtime.py").exists(): raise SystemExit("missing Worker Runtime reference core")
+ if not (ROOT/"runtime/worker_pool.py").exists(): raise SystemExit("missing Worker Pool reference core")
  for p in ["contracts/experiment-package.schema.v1alpha1.json","contracts/package-canonical-manifest.schema.v1alpha1.json","contracts/package-attestation.schema.v1alpha1.json","contracts/package-provenance.schema.v1alpha1.json","contracts/package-license-record.schema.v1alpha1.json","contracts/runtime-event-envelope.schema.v1.json","contracts/visualization-instrument-contract.schema.v1alpha1.json"]:
   if not (ROOT/p).exists(): raise SystemExit("missing contract asset "+p)
  print(f'PASS: cross-module consistency inventory + {len(report["checks"])} audit checks + {len(report["findings"])} recorded findings')
