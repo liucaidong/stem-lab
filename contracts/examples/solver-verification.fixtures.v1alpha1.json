@@ -51,10 +51,10 @@
     "initial_voltage_v": 0,
     "end_time_s": 5,
     "step_sizes_s": [
-      0.5,
       0.25,
       0.125,
-      0.0625
+      0.0625,
+      0.03125
     ],
     "absolute_tolerance": 0.01,
     "expected_rk4_order_min": 3.5,
