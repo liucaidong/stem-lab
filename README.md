@@ -206,3 +206,14 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [R03.39架构设计](docs/architecture/R03.39-postgresql-transaction-rls-and-durable-messaging.md) | PostgreSQL事务、RLS、复合外键、幂等、Inbox/Outbox | v0.1候选；DEC-04/19保持OPEN |
 | [PostgreSQL集成测试](scripts/test_postgres_transaction_rls.py) | 真实PostgreSQL服务、RLS与事务/消息表测试 | Run #123通过10项PostgreSQL 17真实数据库集成测试（局部）；生产数据库版本/迁移工具仍未选型 |
 
+
+
+### R03.40 — API Security 与 Operational Semantics
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.40架构设计](docs/architecture/R03.40-api-security-and-operational-semantics.md) | JWT Claims、资源授权、幂等、Cursor HMAC、Retry-After、错误目录和Command Registry | v0.1设计草案 |
+| [API Error Catalog](contracts/api-error-catalog.v1alpha1.json) | 稳定错误码与HTTP/重试语义 | Draft；等待CI |
+| [Command Payload Registry](contracts/commands/registry.v1alpha1.json) | command_type/schema_version到Payload Schema映射 | Draft；等待CI |
+| [API Semantics Validator](scripts/validate_api_operational_semantics.py) | JWT Claim/授权/幂等/Cursor HMAC和命令Schema静态测试 | Draft；等待CI；不验JWT签名 |
+
