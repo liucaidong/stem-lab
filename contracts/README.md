@@ -123,4 +123,4 @@
 - 设计边界见 [R03.45](../docs/architecture/R03.45-contract-integration-and-projection-builder-design.md)；AUD-001仍OPEN，DEC-27/28/29仍OPEN。
 
 
-R03.45验证型参考实现已纳入 `scripts/validate_contracts.py` 的CI入口；[GitHub Actions Run #173](https://github.com/liucaidong/stem-lab/actions/runs/41425774644)通过Manifest/Catalog投影、Model Expression绑定、传递依赖闭包、排序扰动和8个拒绝案例。该结果只证明当前Python参考验证器和Fixture，不代表生产发布器或内容字节验证完成。
+R03.45验证型参考实现已纳入 `scripts/validate_contracts.py` 的CI入口；[GitHub Actions Run #173](https://github.com/liucaidong/stem-lab/actions/runs/41425774644)通过Manifest/Catalog投影、Model Expression绑定、传递依赖闭包、排序扰动和11个拒绝案例。该结果只证明当前Python参考验证器和Fixture，不代表生产发布器或内容字节验证完成。
