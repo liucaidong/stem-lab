@@ -626,6 +626,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         return conn
 
     @classmethod
+    def dispatcher_connection(cls):
+        dsn=make_conninfo(DSN,user=DISPATCHER,password=DISPATCHER_PASSWORD)
+        return psycopg.connect(dsn,autocommit=True)
+
+    @classmethod
     def authorize_once(cls,token):
         with cls.runtime_connection() as conn:
             with conn.transaction():
@@ -705,7 +710,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 self.assertEqual(changed,[("job-a",)])
                 conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-1','APPLIED')")
                 conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','op-a','running','succeeded')")
-                conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
+                conn.execute(f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
         self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"succeeded")
 
     def test_ambiguous_commit_reconciles_receipt_and_detects_digest_conflict(self):
