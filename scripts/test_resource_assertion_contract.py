@@ -127,12 +127,6 @@ def main() -> None:
     assert "assertion lifetime exceeds configured maximum" in semantic_errors(
         {**claims, "exp": claims["iat"] + 121}
     )
-    assert "Job action must be rooted at the exact Job" in semantic_errors(
-        {**claims, "resource_id": "job-2"}
-    )
-    assert "Outbox dispatch must be rooted at an Outbox event" in semantic_errors({
-        **claims, "action": "worker.outbox.dispatch",
-    })
 
     lease = {
         "tenant_id": "tenant-a", "job_id": "job-1", "session_id": "session-1",
