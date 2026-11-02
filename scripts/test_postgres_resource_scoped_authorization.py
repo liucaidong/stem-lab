@@ -499,14 +499,14 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              OR lease_seconds IS NULL OR lease_seconds NOT BETWEEN 5 AND 3600 THEN RAISE LOG 'dispatch_outbox_v2 reject: token claims/lease'; RETURN; END IF;
           IF NOT EXISTS(SELECT 1 FROM {SCHEMA}.outbox_dispatchers
                         WHERE dispatcher_id=c->>'sub' AND enabled) THEN RAISE LOG 'dispatch_outbox_v2 reject: dispatcher not enabled'; RETURN; END IF;
-          SELECT dispatch_state,dispatch_owner,dispatch_epoch,dispatch_lease_expires_at,
-                 operation_id,event_type,payload
+          SELECT o.dispatch_state,o.dispatch_owner,o.dispatch_epoch,o.dispatch_lease_expires_at,
+                 o.operation_id,o.event_type,o.payload
             INTO state,current_owner,current_epoch,current_expiry,op,event_kind,body
-            FROM {SCHEMA}.outbox
-           WHERE tenant_id=c->>'tenant_id' AND event_id=c->>'resource_id'
-             AND job_id=c->>'job_id' AND session_id=c->>'session_id'
-             AND operation_id=c->>'operation_id'
-           FOR UPDATE;
+            FROM {SCHEMA}.outbox AS o
+           WHERE o.tenant_id=c->>'tenant_id' AND o.event_id=c->>'resource_id'
+             AND o.job_id=c->>'job_id' AND o.session_id=c->>'session_id'
+             AND o.operation_id=c->>'operation_id'
+           FOR UPDATE OF o;
           IF NOT FOUND THEN RAISE LOG 'dispatch_outbox_v2 reject: event scope not found'; RETURN; END IF;
           tx:=pg_current_xact_id();
           inserted:=false;
