@@ -27,6 +27,7 @@ class SignalShutdownBridge:
         self._monitor_stop = threading.Event()
         self._previous: dict[int, object] = {}
         self._monitor: threading.Thread | None = None
+        self._handler = self._handle_signal
 
     def _handle_signal(self, signum: int, frame: FrameType | None) -> None:
         self._requested.set()
@@ -36,7 +37,7 @@ class SignalShutdownBridge:
             raise RuntimeError("signal handlers must be installed from the main thread")
         for signum in self.handled_signals:
             self._previous[signum] = signal.getsignal(signum)
-            signal.signal(signum, self._handle_signal)
+            signal.signal(signum, self._handler)
         self._monitor = threading.Thread(
             target=self._monitor_loop,
             name="worker-signal-shutdown-bridge",
