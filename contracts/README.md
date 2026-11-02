@@ -44,3 +44,12 @@
 - 符号解析必须使用Scientific Model注册表，单位必须来自Unit Registry；
 - 静态检查不执行表达式，不是生产求值器或Solver；
 - 设计细节见[R03.33](../docs/architecture/R03.33-scientific-expression-ast-and-quantity-type-system.md)。
+
+
+## Package Resource Graph
+
+- `package-resource-graph.schema.v1alpha1.json`定义版本化资源图结构；
+- 所有依赖边必须解析，图必须无环，所有资源必须位于Package根可达闭包；
+- 外部资源使用HTTPS主机allowlist，受限资源需要显式访问策略ID；
+- 资源图与现有Package Manifest映射仍待集成；静态检查不等于生产发布服务；
+- 设计细节见[R03.34](../docs/architecture/R03.34-package-resource-graph-and-dependency-closure.md)。
