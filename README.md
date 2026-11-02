@@ -327,6 +327,7 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [Tenant Isolation Architecture Options](docs/architecture/R03.52.6.2-tenant-isolation-architecture-options.md)
 - [Production Store Architecture](docs/architecture/R03.52.6.3-production-store-architecture.md)
 - [Executable Security Test Plan](docs/architecture/R03.52.6.4-executable-security-test-plan.md)
+- [Architecture Decision Proposal (DEC-04 / DEC-19)](docs/architecture/R03.52.6-architecture-decision-proposal.md)
 - [Verification Report](docs/architecture/R03.52.6-verification-report.md)
 - Reference verifier: runtime/tenant_context.py; tests: scripts/test_tenant_context.py and scripts/test_tenant_rls_trust_boundary_postgres.py.
 - The GUC spoof test is an expected vulnerability reproduction, not evidence of secure tenant isolation. DEC-04/19 remain OPEN; Product Code Freeze ACTIVE; P3.17 OUT OF SCOPE; production_ready=false.
