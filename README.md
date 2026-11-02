@@ -197,3 +197,12 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [R03.38验证设计](docs/architecture/R03.38-event-consumer-inbox-outbox-and-replay-verification.md) | Producer/Relay/Consumer事务、幂等、顺序、Replay、DLQ和ACK语义 | v0.1；SQLite Harness，不是PostgreSQL/NATS生产集成 |
 | [SQLite Event Integration Harness](scripts/test_event_delivery_sqlite.py) | 真实SQLite事务与Inbox/Outbox/消息/副作用/DLQ表测试 | Run #118通过10项SQLite事务集成测试；非PostgreSQL/NATS生产集成 |
 
+
+
+### R03.39 — PostgreSQL Transaction、RLS 与 Durable Messaging
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.39架构设计](docs/architecture/R03.39-postgresql-transaction-rls-and-durable-messaging.md) | PostgreSQL事务、RLS、复合外键、幂等、Inbox/Outbox | v0.1候选；DEC-04/19保持OPEN |
+| [PostgreSQL集成测试](scripts/test_postgres_transaction_rls.py) | 真实PostgreSQL服务、RLS与事务/消息表测试 | 等待CI；PostgreSQL 17仅为CI测试目标 |
+
