@@ -44,7 +44,7 @@ def graph_id(identity):
     return identity["resource_type"] + ":" + identity["resource_id"]
 
 def path_check(uri, storage, canonical_path):
-    if (not canonical_path or canonical_path.startswith("/") or "\\\\" in canonical_path or
+    if (not canonical_path or canonical_path.startswith("/") or "\\" in canonical_path or
         re.match(r"^[A-Za-z]:", canonical_path) or
         any(part in ("", ".", "..") for part in canonical_path.split("/")) or
         unicodedata.normalize("NFC", canonical_path) != canonical_path):
