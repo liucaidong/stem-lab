@@ -71,7 +71,7 @@ def psycopg_sync_case(dsn: str, schema: str, role: str, token: str,
                       concurrency: int) -> dict[str, object]:
     pool = ConnectionPool(
         conninfo=dsn, min_size=POOL_MIN, max_size=POOL_MAX,
-        timeout=10, open=False,
+        timeout=10, open=False, kwargs={"prepare_threshold": None},
     )
     pool.open(wait=True, timeout=30)
 
@@ -213,6 +213,7 @@ def main() -> None:
         "database": parsed.path.lstrip("/") or "stemlab_test",
         "user": fixture.LOGIN_ROLE,
         "password": fixture.LOGIN_PASSWORD,
+        "statement_cache_size": 0,
     }
     token = test_class.issue_assertion(expires_at=int(time.time()) + 120)
     results: list[dict[str, object]] = []
@@ -252,6 +253,7 @@ def main() -> None:
             "postgresql": "17.11",
             "rls": "pgsodium Ed25519 verifier enabled",
             "pool": {"min": POOL_MIN, "max": POOL_MAX},
+            "prepared_statements": "disabled for portable baseline",
             "iterations_per_worker_per_concurrency": ITERATIONS_PER_WORKER,
             "results": results,
         }
