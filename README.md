@@ -390,3 +390,6 @@ This creates an authorization preflight plan only. It does not authenticate the 
 
 
 - Controlled benchmark harness verification: CI Run #333 SUCCESS. Run #332 failed on an intermediate Python/Node token-handoff mismatch and is retained in the audit trail; the subsequent synchronized commit passed.
+
+
+- Second smoke run #333 SUCCESS; environment manifest captured. Results vary materially from Run #330, so no production driver ranking is claimed. See the expanded benchmark report.
