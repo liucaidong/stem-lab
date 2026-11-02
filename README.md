@@ -175,3 +175,13 @@
 | [License Record Schema](contracts/package-license-record.schema.v1alpha1.json) | Asset来源、权利声明、证据及审核 | Draft；Run #106 Schema/Fixture验证通过（局部） |
 | [Governance Validator](scripts/validate_package_governance.py) | 信任注册表、Package主体绑定和许可策略静态检查 | Draft；Run #106静态策略验证通过（局部）；不执行密码学验签 |
 
+
+
+### R03.37 — Runtime Event Registry 与 Compatibility Governance
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.37架构设计](docs/architecture/R03.37-runtime-event-registry-and-compatibility-governance.md) | Event Versioning、Producer/Consumer、Lifecycle、Replay、Retention和Poison Event | v0.1设计草案 |
+| [Event Registry Schema](contracts/events/registry.schema.v1alpha1.json) | 版本化事件治理元数据 | Draft；等待CI |
+| [Event Registry](contracts/events/registry.v1.json) | 三种代表事件登记及治理字段 | Draft；等待CI |
+| [Registry Validator](scripts/validate_event_registry.py) | 唯一性、兼容性、生命周期及Payload Schema/Fixture验证 | Draft；等待CI |
