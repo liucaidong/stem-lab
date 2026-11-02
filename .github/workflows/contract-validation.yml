@@ -239,6 +239,11 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_postgres_tenant_ed25519_verifier.py
 
+      - name: Test PostgreSQL independent Request Digest v2alpha2 against Python golden vector
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_request_digest_v2alpha2.py
+
       - name: Test PostgreSQL Job-rooted resource authorization, RLS and nonce replay
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test

@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import json, pathlib, sys, unittest
+import json, pathlib, sys, unittest, jsonschema
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from runtime.request_digest_v2alpha2 import RequestEncodingError, canonical_request_bytes, canonical_bytes_base64url, parse_json_strict, request_digest
 VECTOR=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.golden.json").read_text())
+SCHEMA=json.loads((ROOT/"contracts/worker-resource-assertion.schema.v2alpha2.json").read_text())
+VALID_ASSERTION=json.loads((ROOT/"contracts/examples/worker-resource-assertion.v2alpha2.valid.json").read_text())
+INVALID_ASSERTIONS=json.loads((ROOT/"contracts/examples/worker-resource-assertion.v2alpha2.invalid.json").read_text())
 class RequestDigestTests(unittest.TestCase):
+    def test_schema_itself_is_valid(self):
+        jsonschema.Draft202012Validator.check_schema(SCHEMA)
+    def test_v2alpha2_schema_valid_and_invalid_examples(self):
+        validator=jsonschema.Draft202012Validator(SCHEMA)
+        self.assertEqual(list(validator.iter_errors(VALID_ASSERTION)),[])
+        for case in INVALID_ASSERTIONS['cases']:
+            with self.subTest(case=case['name']): self.assertTrue(list(validator.iter_errors(case['claims'])))
     def test_golden_bytes_base64url_and_sha256(self):
         e=VECTOR["envelope"]
         self.assertEqual(canonical_bytes_base64url(e),VECTOR["canonical_bytes_base64url"])
