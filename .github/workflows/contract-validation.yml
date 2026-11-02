@@ -53,3 +53,8 @@ jobs:
 
       - name: Run SQLite Event Inbox Outbox Replay integration harness
         run: python scripts/test_event_delivery_sqlite.py
+
+      - name: Validate PostgreSQL transaction, RLS, Inbox, and Outbox integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_transaction_rls.py
