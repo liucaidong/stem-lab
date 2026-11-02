@@ -256,3 +256,12 @@ R03.52.4 CI evidence: [GitHub Actions Run #41443666002](https://github.com/liuca
 
 
 R03.52.5 CI evidence: [GitHub Actions Run #41444145950](https://github.com/liucaidong/stem-lab/actions/runs/41444145950) SUCCESS; DLQ Replay Plan schema validation passed and 8/8 authorization preflight tests passed. This does not establish a trusted identity issuer or production transactional replay.
+
+
+## R03.52.6 Tenant Trust Boundary contracts and harnesses
+
+- runtime/tenant_context.py: HMAC assertion verifier reference contract (version, tenant, subject, audience, action, resource/job binding, iat/exp, nonce); not a production issuer or database verifier.
+- scripts/test_tenant_context.py: positive and negative reference verifier tests.
+- scripts/test_tenant_rls_trust_boundary_postgres.py: PostgreSQL 17 harness. It intentionally proves that plain GUC can be spoofed by an ordinary SQL-capable role; also verifies missing-context denial, commit/rollback cleanup and concurrent tenant sessions.
+- docs/architecture/R03.52.6.1-tenant-trust-boundary-threat-model.md, R03.52.6.2-tenant-isolation-architecture-options.md, R03.52.6.3-production-store-architecture.md, R03.52.6.4-executable-security-test-plan.md: architecture and verification boundaries.
+- DEC-04 and DEC-19 remain OPEN. No production issuer/verifier, Store adapter, pool or migration is implemented.
