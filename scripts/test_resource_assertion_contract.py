@@ -28,6 +28,7 @@ ACTIONS = {
     "worker.job.dead_letter",
     "worker.dlq.replay",
     "worker.outbox.dispatch",
+    "worker.outbox.ack",
     "worker.receipt.reconcile",
 }
 
@@ -65,7 +66,7 @@ def semantic_errors(claims: dict, *, max_lifetime: int = 120) -> list[str]:
         errors.append("Job action must be rooted at the exact Job")
     elif action == "worker.dlq.replay" and resource_type != "dlq_item":
         errors.append("DLQ replay must be rooted at a DLQ item")
-    elif action == "worker.outbox.dispatch" and resource_type != "outbox_event":
+    elif action in {"worker.outbox.dispatch", "worker.outbox.ack"} and resource_type != "outbox_event":
         errors.append("Outbox dispatch must be rooted at an Outbox event")
     elif action == "worker.receipt.reconcile" and resource_type != "receipt":
         errors.append("Receipt reconciliation must be rooted at a Receipt")
