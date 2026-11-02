@@ -133,6 +133,14 @@ jobs:
       - name: Test DLQ Replay authorization preflight
         run: python scripts/test_dlq_replay.py
 
+      - name: Test tenant assertion verifier reference contract
+        run: python scripts/test_tenant_context.py
+
+      - name: Test PostgreSQL tenant RLS trust boundary and GUC spoofability
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_tenant_rls_trust_boundary_postgres.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 
