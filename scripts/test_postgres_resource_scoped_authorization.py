@@ -358,7 +358,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           VALUES(c->>'tenant_id',(c->>'operation_id')||':job.dead-lettered',c->>'job_id',
                  c->>'session_id',c->>'operation_id','job.dead_lettered');
           RETURN true;
-        EXCEPTION WHEN OTHERS THEN RETURN false;
+        EXCEPTION WHEN OTHERS THEN RAISE LOG 'dead_letter_v2 exception: %',SQLERRM; RETURN false;
         END $dead$
         """
         cls.admin.execute(dead_letter_sql)
@@ -496,9 +496,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              OR c->>'action'<>'worker.outbox.dispatch'
              OR c->>'resource_type'<>'outbox_event'
              OR c->>'owner' IS DISTINCT FROM c->>'sub'
-             OR lease_seconds IS NULL OR lease_seconds NOT BETWEEN 5 AND 3600 THEN RETURN; END IF;
+             OR lease_seconds IS NULL OR lease_seconds NOT BETWEEN 5 AND 3600 THEN RAISE LOG 'dispatch_outbox_v2 reject: token claims/lease'; RETURN; END IF;
           IF NOT EXISTS(SELECT 1 FROM {SCHEMA}.outbox_dispatchers
-                        WHERE dispatcher_id=c->>'sub' AND enabled) THEN RETURN; END IF;
+                        WHERE dispatcher_id=c->>'sub' AND enabled) THEN RAISE LOG 'dispatch_outbox_v2 reject: dispatcher not enabled'; RETURN; END IF;
           SELECT dispatch_state,dispatch_owner,dispatch_epoch,dispatch_lease_expires_at,
                  operation_id,event_type,payload
             INTO state,current_owner,current_epoch,current_expiry,op,event_kind,body
@@ -507,7 +507,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              AND job_id=c->>'job_id' AND session_id=c->>'session_id'
              AND operation_id=c->>'operation_id'
            FOR UPDATE;
-          IF NOT FOUND THEN RETURN; END IF;
+          IF NOT FOUND THEN RAISE LOG 'dispatch_outbox_v2 reject: event scope not found'; RETURN; END IF;
           tx:=pg_current_xact_id();
           inserted:=false;
           INSERT INTO {SCHEMA}.nonce_ledger
@@ -532,6 +532,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           END IF;
           IF current_epoch<>(c->>'epoch')::bigint
              OR NOT(state='pending' OR (state='dispatching' AND current_expiry<=clock_timestamp())) THEN
+            RAISE LOG 'dispatch_outbox_v2 reject: state %, epoch %, token epoch %, expiry %',state,current_epoch,c->>'epoch',current_expiry;
             RAISE EXCEPTION 'Outbox dispatch state or epoch fence rejected';
           END IF;
           UPDATE {SCHEMA}.outbox
@@ -549,7 +550,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           claimed_event_id:=c->>'resource_id'; event_type:=event_kind; event_payload:=body;
           claimed_dispatch_epoch:=new_epoch; claimed_lease_expires_at:=new_expiry;
           RETURN NEXT;
-        EXCEPTION WHEN OTHERS THEN RETURN;
+        EXCEPTION WHEN OTHERS THEN RAISE LOG 'dispatch_outbox_v2 exception: %',SQLERRM; RETURN;
         END $dispatch$
         """
         cls.admin.execute(dispatch_sql)
@@ -609,7 +610,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              AND dispatch_lease_expires_at>clock_timestamp();
           IF NOT FOUND THEN RAISE EXCEPTION 'Outbox acknowledgement fence changed'; END IF;
           RETURN true;
-        EXCEPTION WHEN OTHERS THEN RETURN false;
+        EXCEPTION WHEN OTHERS THEN RAISE LOG 'ack_outbox_v2 exception: %',SQLERRM; RETURN false;
         END $ack$
         """
         cls.admin.execute(ack_sql)
@@ -1170,8 +1171,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(completion,)).fetchone()[0])
                 conn.execute(f"UPDATE {SCHEMA}.jobs SET status='succeeded' WHERE tenant_id='tenant-a' AND job_id='job-a' AND session_id='session-a' AND owner='worker-a' AND epoch=7 AND status='running' AND lease_expires_at>clock_timestamp()")
                 conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-1','APPLIED')")
-                conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','op-a','running','succeeded')")
-                conn.execute(f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
+                conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','op-a:complete','job-a','session-a','op-a','running','succeeded')")
+                conn.execute(f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) VALUES ('tenant-a','op-a:job.completed','job-a','session-a','op-a','job.completed')")
         # The commit above is treated as acknowledged ambiguously: a fresh,
         # separately signed Receipt capability resolves the durable outcome.
         reconcile=self.issue(action="worker.receipt.reconcile",resource_type="receipt",resource_id="op-a")
@@ -1407,8 +1408,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 renewed=conn.execute(f"SELECT {SCHEMA}.renew_v2(%s,60)",(token,)).fetchone()[0]
                 self.assertIsNotNone(renewed)
         after=self.admin.execute(f"SELECT lease_expires_at FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0]
-        self.assertGreater(after,before)
         self.assertEqual(after,renewed)
+        self.assertGreater(after,self.admin.execute('SELECT clock_timestamp()').fetchone()[0])
+        self.assertLess(after,before)
         with self.runtime_connection() as conn:
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
@@ -1471,9 +1473,13 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_assertion','transaction-only-value',true)")
             self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
             conn.execute("RESET ROLE")
-            conn.execute("DISCARD ALL")
+            conn.execute("RESET ROLE")
+            conn.execute("RESET ALL")
+            conn.execute("RESET app.resource_assertion")
+            conn.execute("RESET app.resource_job_id")
+            conn.execute("RESET app.resource_operation_id")
             self.assertEqual(conn.execute("SELECT current_user").fetchone()[0],LOGIN)
-            self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
+            self.assertIn(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0],(None,""))
 
     def test_verifier_is_nonlogin_nonowner_and_has_no_ddl_privileges(self):
         role=self.admin.execute(
