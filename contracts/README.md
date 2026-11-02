@@ -71,3 +71,11 @@
 - License Record绑定具体Asset Digest及来源/权利/审核证据；
 - 静态治理验证不等于密码学验签、真实密钥管理或法律审查；
 - 详细规则见[R03.36](../docs/architecture/R03.36-package-signature-provenance-and-license-governance.md)。
+
+
+## API Security and Operational Semantics
+
+- api-error-catalog.v1alpha1.json定义稳定错误码和重试语义；
+- commands目录定义Command Payload Schema与Registry；
+- API安全语义验证器测试JWT Claims、资源授权、幂等与Cursor HMAC；
+- 真实JWT验签、JWKS、API Middleware和分布式Rate Limit仍未实现。
