@@ -182,6 +182,8 @@ class StoreProtocolValueTests(unittest.TestCase):
             FailJobCommand(lease, "raw exception", "safe", True, 1, "fail-1")
         with self.assertRaises(ValueError):
             FailJobCommand(lease, "FAILED", "x" * 513, True, 1, "fail-1")
+        with self.assertRaises(ValueError):
+            FailJobCommand(lease, "FAILED", "safe", True, float("nan"), "fail-1")
 
     def test_unknown_transaction_outcome_is_explicit(self):
         error = StoreError(
