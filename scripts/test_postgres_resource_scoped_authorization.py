@@ -173,11 +173,18 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 f"CREATE POLICY {table}_runtime_scope ON {SCHEMA}.{table} FOR ALL TO {RUNTIME} "
                 f"USING({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
-                "current_setting('app.resource_job_id',true),current_setting('app.resource_operation_id',true))) "
+                "operation_id)) "
                 f"WITH CHECK({SCHEMA}.assertion_allows(current_setting('app.resource_assertion',true),"
                 "tenant_id,job_id,session_id,'worker.job.complete','job',"
                 "current_setting('app.resource_job_id',true),current_setting('app.resource_operation_id',true)))"
             )
+        cls.admin.execute(
+            f"CREATE POLICY jobs_runtime_select ON {SCHEMA}.jobs FOR SELECT TO {RUNTIME} "
+            f"USING(status='running' AND {SCHEMA}.assertion_allows("
+            "current_setting('app.resource_assertion',true),tenant_id,job_id,session_id,"
+            "'worker.job.complete','job',current_setting('app.resource_job_id',true),"
+            "current_setting('app.resource_operation_id',true)))"
+        )
         cls.admin.execute(
             f"CREATE POLICY jobs_runtime_scope ON {SCHEMA}.jobs FOR UPDATE TO {RUNTIME} "
             f"USING(status='running' AND {SCHEMA}.assertion_allows("
@@ -198,7 +205,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         )
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.authorize_v2(text) TO {RUNTIME}")
-        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text) TO {RUNTIME}")
+        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT UPDATE(status) ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions TO {RUNTIME}")
@@ -261,6 +268,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
                 conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 return conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0]
 
     def test_valid_complete_unit_of_work(self):
@@ -269,6 +277,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
                 self.assertEqual(conn.execute(f"SELECT job_id FROM {SCHEMA}.jobs").fetchall(),[("job-a",)])
                 changed=conn.execute(
@@ -288,6 +297,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
                 self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
 
@@ -304,13 +314,14 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 with conn.transaction():
                     conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                     conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                     self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
-                    conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','rollback-op','job-a','session-a','digest-x','APPLIED')")
+                    conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-x','APPLIED')")
                     raise RuntimeError("injected rollback")
         finally:
             conn.close()
         self.assertTrue(self.authorize_once(token))
-        self.assertIsNone(self.admin.execute(f"SELECT 1 FROM {SCHEMA}.receipts WHERE operation_id='rollback-op'").fetchone())
+        self.assertIsNone(self.admin.execute(f"SELECT 1 FROM {SCHEMA}.receipts WHERE operation_id='op-a'").fetchone())
 
     def test_wrong_tenant_job_session_owner_epoch_or_audience_denied(self):
         cases=[{"tenant_id":"tenant-b"},{"job_id":"job-b","resource_id":"job-b"},
@@ -329,6 +340,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             with conn.transaction():
                 conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                 conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                 self.assertEqual(conn.execute(f"SELECT job_id FROM {SCHEMA}.jobs").fetchall(),[])
 
     def test_tampered_signature_unknown_claim_and_bad_expiry_denied(self):
@@ -362,6 +374,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 with conn.transaction():
                     conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
                     conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
                     barrier.wait(timeout=5)
                     return conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0]
         with ThreadPoolExecutor(max_workers=2) as pool:
