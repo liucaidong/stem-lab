@@ -50,6 +50,12 @@ def create_job(conn, job_id, session_id="s1", job_type="validate", max_attempts=
         (job_id, session_id, job_type, max_attempts),
     )
 
+def retry_delay(attempt_number, base_seconds=5, maximum_seconds=900, rng=None):
+    """Full jitter: Uniform(0, min(cap, base * 2^(attempt-1)))."""
+    if attempt_number < 1 or base_seconds < 0 or maximum_seconds < 0:
+        raise ValueError("invalid retry policy")
+    ceiling = min(maximum_seconds, base_seconds * (2 ** (attempt_number - 1)))
+    return (rng or random).uniform(0, ceiling)
 def claim_one(conn, worker, lease_seconds=30):
     """Atomic claim; DB clock is authoritative. Returns the new epoch as fencing token."""
     with conn.transaction():
@@ -266,7 +272,7 @@ class WorkerLeasePostgresTests(unittest.TestCase):
     def test_single_worker_claim_returns_lease_and_epoch(self):
         with app_conn() as c:
             claim = claim_one(c,"worker-a")
-        self.assertEqual(claim[2:],(1,1))
+        self.assertEqual(claim[1:3],(1,1))
 
     def test_two_workers_cannot_claim_same_job(self):
         barrier=threading.Barrier(2)
@@ -354,6 +360,78 @@ class WorkerLeasePostgresTests(unittest.TestCase):
         with app_conn() as c: self.assertEqual(complete(c,"j1","worker-a",lease[2]),"DUPLICATE")
         self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.outbox").fetchone()[0],1)
 
+    def test_duplicate_active_job_type_is_rejected(self):
+        with app_conn() as c:
+            with self.assertRaises(errors.UniqueViolation):
+                with c.transaction():
+                    create_job(c,"j-duplicate",job_type="validate")
+            create_job(c,"j-scan",job_type="scan")
+
+    def test_retry_available_at_delays_next_claim(self):
+        with app_conn() as c: lease=claim_one(c,"worker-a")
+        with app_conn() as c: self.assertEqual(fail_job(c,"j1","worker-a",lease[2],True,delay_seconds=30),"RETRY")
+        with app_conn() as c: self.assertIsNone(claim_one(c,"worker-b"))
+        with app_conn() as c:
+            c.execute("UPDATE ingestion_jobs SET available_at=clock_timestamp()-interval '1 second' WHERE job_id='j1'")
+            self.assertIsNotNone(claim_one(c,"worker-b"))
+
+    def test_session_update_failure_rolls_back_job_completion(self):
+        self.admin.execute(f"""CREATE FUNCTION {SCHEMA}.reject_validated() RETURNS trigger
+          LANGUAGE plpgsql AS $ BEGIN IF NEW.status='validated' THEN RAISE EXCEPTION 'injected session update failure'; END IF; RETURN NEW; END $""")
+        self.admin.execute(f"CREATE TRIGGER reject_validated BEFORE UPDATE ON {SCHEMA}.sessions FOR EACH ROW EXECUTE FUNCTION {SCHEMA}.reject_validated()")
+        try:
+            with app_conn() as c: lease=claim_one(c,"worker-a")
+            with self.assertRaises(errors.RaiseException):
+                with app_conn() as c: complete(c,"j1","worker-a",lease[2])
+            self.assertEqual(self.admin.execute(f"SELECT status,revision FROM {SCHEMA}.sessions WHERE tenant_id='tenant-a'").fetchone(),("quarantined",1))
+            self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.ingestion_jobs WHERE job_id='j1'").fetchone()[0],"running")
+            self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.transitions").fetchone()[0],0)
+            self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.outbox").fetchone()[0],0)
+        finally:
+            self.admin.execute(f"DROP TRIGGER reject_validated ON {SCHEMA}.sessions")
+            self.admin.execute(f"DROP FUNCTION {SCHEMA}.reject_validated()")
+
+    def test_concurrent_renewal_and_completion_are_serialized(self):
+        with app_conn() as c: lease=claim_one(c,"worker-a")
+        barrier=threading.Barrier(2)
+        def do_renew():
+            barrier.wait()
+            with app_conn() as c: return renew(c,"j1","worker-a",lease[2])
+        def do_complete():
+            barrier.wait()
+            with app_conn() as c: return complete(c,"j1","worker-a",lease[2])
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f1=pool.submit(do_renew); f2=pool.submit(do_complete)
+            renewal=f1.result(); completion=f2.result()
+        self.assertIn(renewal,(True,False))
+        self.assertEqual(completion,"APPLIED")
+
+    def test_concurrent_reclaim_and_old_completion_reject_old_epoch(self):
+        with app_conn() as c: old=claim_one(c,"worker-old",lease_seconds=1)
+        with app_conn() as c: c.execute("UPDATE ingestion_jobs SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE job_id='j1'")
+        barrier=threading.Barrier(2)
+        def do_reclaim():
+            barrier.wait()
+            with app_conn() as c: return claim_one(c,"worker-new")
+        def do_old_complete():
+            barrier.wait()
+            with app_conn() as c: return complete(c,"j1","worker-old",old[2])
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f1=pool.submit(do_reclaim); f2=pool.submit(do_old_complete)
+            new=f1.result(); outcome=f2.result()
+        self.assertIsNotNone(new)
+        self.assertIn(outcome,("STALE","EXPIRED"))
+        self.assertEqual(new[2],old[2]+1)
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.sessions WHERE tenant_id='tenant-a'").fetchone()[0],"quarantined")
+    def test_retry_delay_is_capped_full_jitter(self):
+        class Fixed:
+            @staticmethod
+            def uniform(low, high):
+                return high
+        self.assertEqual(retry_delay(1, 4, 10, Fixed), 4)
+        self.assertEqual(retry_delay(5, 4, 10, Fixed), 10)
+        with self.assertRaises(ValueError):
+            retry_delay(0)
     def test_rls_blocks_cross_tenant_job_reads(self):
         self.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-b','s1','pkg','1.0.0','quarantined',1,clock_timestamp())")
         self.admin.execute(f"INSERT INTO {SCHEMA}.ingestion_jobs(tenant_id,job_id,session_id,package_id,package_version,job_type,status) VALUES ('tenant-b','jb','s1','pkg','1.0.0','validate','queued')")
