@@ -58,6 +58,7 @@
 | [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、机器可验证工件和工程准入Gate | v0.1；未达Implementation-Ready |
 | [R03.20 技术决策登记册](docs/architecture/R03.20-technical-decision-register.md) | 已接受原则、选型候选、产品/合规待决策项和ADR模板 | v0.1；待评审 |
 | [R03.21 工程准入WBS](docs/architecture/R03.21-engineering-readiness-wbs.md) | 产品决策、科学验证、契约、Spike、安全和解冻审计工作分解 | v0.1；尚未执行 |
+| [R03.22 机器可读契约草案审阅](docs/architecture/R03.22-machine-readable-contract-review.md) | JSON语法检查结果、未执行验证、Schema缺口和修订任务 | v0.1；Draft未验证 |
 
 ### Contracts — 机器可读契约草案
 
