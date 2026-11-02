@@ -235,7 +235,8 @@ def main() -> None:
         node_output = os.environ["STORE_BENCH_NODE_OUTPUT"]
         Path(env_path).write_text(json.dumps({
             "node_config": {
-                **asyncpg_config,
+                key: asyncpg_config[key]
+                for key in ("host", "port", "database", "user", "password")
             },
             "schema": fixture.SCHEMA,
             "runtime_role": fixture.RUNTIME_ROLE,
