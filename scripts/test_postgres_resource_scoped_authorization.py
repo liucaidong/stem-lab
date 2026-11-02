@@ -15,7 +15,8 @@ SCHEMA = "resource_auth_" + SUFFIX
 VERIFIER = "resource_verifier_" + SUFFIX
 RUNTIME = "resource_runtime_" + SUFFIX
 LOGIN = "resource_login_" + SUFFIX
-PASSWORD = uuid.uuid4().hex + uuid.uuid4().hex
+PASSWORD = uuid.uuid4().hex
+DISPATCHER_PASSWORD = uuid.uuid4().hex + uuid.uuid4().hex
 ISSUER = "stemlab-resource-test-issuer"
 AUDIENCE = "stemlab-worker-store"
 MAX_LIFETIME = 120
@@ -37,11 +38,13 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE ROLE {RUNTIME} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS")
         cls.admin.execute(f"CREATE ROLE {LOGIN} LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD '{PASSWORD}'")
         cls.admin.execute(f"GRANT {RUNTIME} TO {LOGIN}")
+        cls.admin.execute(f"CREATE ROLE {DISPATCHER} LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD '{DISPATCHER_PASSWORD}'")
         cls.admin.execute(f"CREATE SCHEMA {SCHEMA} AUTHORIZATION {VERIFIER}")
         cls.public_key, cls.private_key = cls.admin.execute(
             "SELECT public,secret FROM pgsodium.crypto_sign_new_keypair()"
         ).fetchone()
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.worker_assignments (assignment_id text PRIMARY KEY,worker_id text NOT NULL,enabled boolean NOT NULL,allowed_job_types text[] NOT NULL CHECK(cardinality(allowed_job_types)>0))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox_dispatchers (dispatcher_id text PRIMARY KEY,enabled boolean NOT NULL)")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.claim_nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,assignment_id text NOT NULL,worker_id text NOT NULL,tenant_id text,job_id text,session_id text,epoch bigint,lease_expires_at timestamptz,PRIMARY KEY(issuer,kid,nonce))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.issuer_keys (kid text PRIMARY KEY, issuer text NOT NULL, public_key bytea NOT NULL, not_before timestamptz NOT NULL, not_after timestamptz, revoked_at timestamptz)")
         cls.admin.execute(f"INSERT INTO {SCHEMA}.issuer_keys(kid,issuer,public_key,not_before) VALUES ('test-key',%s,%s,clock_timestamp()-interval '1 day')", (ISSUER, cls.public_key))
@@ -53,10 +56,10 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.jobs (tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,job_type text NOT NULL DEFAULT 'generic',owner text,epoch bigint NOT NULL CHECK(epoch>0),status text NOT NULL CHECK(status IN ('queued','running','retry','succeeded','failed','dead_lettered')),lease_expires_at timestamptz,available_at timestamptz NOT NULL DEFAULT clock_timestamp(),attempt_count integer NOT NULL DEFAULT 1 CHECK(attempt_count>=0),maximum_attempts integer NOT NULL DEFAULT 5 CHECK(maximum_attempts BETWEEN 1 AND 100),last_error_code text,PRIMARY KEY(tenant_id,job_id),UNIQUE(tenant_id,job_id,session_id),FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id),CHECK(status<>'running' OR (owner IS NOT NULL AND lease_expires_at IS NOT NULL)))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.receipts (tenant_id text NOT NULL,operation_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,request_digest text NOT NULL,outcome text NOT NULL,PRIMARY KEY(tenant_id,operation_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.transitions (tenant_id text NOT NULL,transition_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,from_state text NOT NULL,to_state text NOT NULL,PRIMARY KEY(tenant_id,transition_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
-        cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox (tenant_id text NOT NULL,event_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,event_type text NOT NULL,PRIMARY KEY(tenant_id,event_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox (tenant_id text NOT NULL,event_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,event_type text NOT NULL,payload jsonb NOT NULL DEFAULT '{{}}'::jsonb,dispatch_state text NOT NULL DEFAULT 'pending' CHECK(dispatch_state IN ('pending','dispatching','dispatched')),dispatch_owner text,dispatch_epoch bigint NOT NULL DEFAULT 1 CHECK(dispatch_epoch>0),dispatch_lease_expires_at timestamptz,dispatch_attempts integer NOT NULL DEFAULT 0 CHECK(dispatch_attempts>=0),dispatched_at timestamptz,PRIMARY KEY(tenant_id,event_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id),CHECK((dispatch_state='dispatching' AND dispatch_owner IS NOT NULL AND dispatch_lease_expires_at IS NOT NULL) OR dispatch_state<>'dispatching'))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.dlq_items (tenant_id text NOT NULL,dlq_item_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,terminal_reason text NOT NULL CHECK(terminal_reason IN ('max_attempts','non_retryable')),error_code text NOT NULL,attempt_count integer NOT NULL CHECK(attempt_count>0),lease_epoch bigint NOT NULL CHECK(lease_epoch>0),replay_count integer NOT NULL DEFAULT 0 CHECK(replay_count>=0),created_at timestamptz NOT NULL DEFAULT clock_timestamp(),PRIMARY KEY(tenant_id,dlq_item_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id)")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL,action text NOT NULL,resource_type text NOT NULL,resource_id text NOT NULL,operation_id text NOT NULL,PRIMARY KEY(issuer,kid,nonce))")
-        for table in ("sessions","jobs","receipts","transitions","outbox","dlq_items","nonce_ledger","worker_assignments","claim_nonce_ledger"):
+        for table in ("sessions","jobs","receipts","transitions","outbox","dlq_items","nonce_ledger","worker_assignments","claim_nonce_ledger","outbox_dispatchers"):
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} ENABLE ROW LEVEL SECURITY")
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} FORCE ROW LEVEL SECURITY")
 
@@ -67,13 +70,17 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE POLICY nonce_verifier_access ON {SCHEMA}.nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY transitions_verifier_insert ON {SCHEMA}.transitions FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY outbox_verifier_insert ON {SCHEMA}.outbox FOR INSERT TO {VERIFIER} WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY outbox_verifier_read ON {SCHEMA}.outbox FOR SELECT TO {VERIFIER} USING(true)")
+        cls.admin.execute(f"CREATE POLICY outbox_verifier_update ON {SCHEMA}.outbox FOR UPDATE TO {VERIFIER} USING(true) WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY outbox_dispatcher_verifier_read ON {SCHEMA}.outbox_dispatchers FOR SELECT TO {VERIFIER} USING(true)")
         cls.admin.execute(f"CREATE POLICY dlq_verifier_insert ON {SCHEMA}.dlq_items FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY assignments_verifier_read ON {SCHEMA}.worker_assignments FOR SELECT TO {VERIFIER} USING(true)")
         cls.admin.execute(f"CREATE POLICY claim_nonce_verifier_access ON {SCHEMA}.claim_nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs,{SCHEMA}.receipts TO {VERIFIER}")
         cls.admin.execute(f"GRANT UPDATE(status,lease_expires_at,owner,available_at,attempt_count,last_error_code,epoch) ON {SCHEMA}.jobs TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.nonce_ledger TO {VERIFIER}")
-        cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.worker_assignments TO {VERIFIER}")
+        cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.worker_assignments,{SCHEMA}.outbox_dispatchers TO {VERIFIER}")
+        cls.admin.execute(f"GRANT SELECT,UPDATE(dispatch_state,dispatch_owner,dispatch_epoch,dispatch_lease_expires_at,dispatch_attempts,dispatched_at) ON {SCHEMA}.outbox TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT,UPDATE ON {SCHEMA}.claim_nonce_ledger TO {VERIFIER}")
         cls.admin.execute(f"GRANT INSERT ON {SCHEMA}.transitions,{SCHEMA}.outbox,{SCHEMA}.dlq_items TO {VERIFIER}")
 
@@ -538,6 +545,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             "('tenant-a','job-claim-restricted','session-a','restricted',NULL,1,'queued',NULL,0,5)"
         )
         cls.admin.execute(f"INSERT INTO {SCHEMA}.worker_assignments VALUES ('assignment-a','worker-a',true,ARRAY['generic'])")
+        cls.admin.execute(f"INSERT INTO {SCHEMA}.outbox_dispatchers VALUES ('dispatcher-a',true)")
         cls.admin.execute(
             f"INSERT INTO {SCHEMA}.jobs (tenant_id,job_id,session_id,owner,epoch,status,lease_expires_at) VALUES "
             "('tenant-a','job-a','session-a','worker-a',7,'running',clock_timestamp()+interval '5 minutes'),"
@@ -551,6 +559,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"REVOKE USAGE ON SCHEMA pgsodium FROM {VERIFIER}")
         cls.admin.execute(f"REVOKE EXECUTE ON FUNCTION pgsodium.crypto_sign_verify_detached(bytea,bytea,bytea) FROM {VERIFIER}")
         cls.admin.execute(f"DROP ROLE IF EXISTS {LOGIN}")
+        cls.admin.execute(f"DROP ROLE IF EXISTS {DISPATCHER}")
         cls.admin.execute(f"DROP ROLE IF EXISTS {RUNTIME}")
         cls.admin.execute(f"DROP ROLE IF EXISTS {VERIFIER}")
         cls.admin.close()
