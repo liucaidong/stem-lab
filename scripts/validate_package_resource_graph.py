@@ -19,7 +19,11 @@ def validate_graph(graph):
  identities={}
  for n in nodes:
   rid=n["resource_id"]
-  if rid in by_id: raise GraphError("DUPLICATE_RESOURCE_NODE",rid)
+  if rid in by_id:
+   previous=by_id[rid]
+   if (previous["resource_type"],previous["version"])==(n["resource_type"],n["version"]) and previous["digest"]!=n["digest"]:
+    raise GraphError("CONFLICTING_RESOURCE_IDENTITY",rid)
+   raise GraphError("DUPLICATE_RESOURCE_NODE",rid)
   by_id[rid]=n
   identity=(n["resource_type"],rid,n["version"])
   old=identities.get(identity)
