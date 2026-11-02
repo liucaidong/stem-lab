@@ -50,6 +50,12 @@ class TenantRlsTrustBoundaryPostgresTests(unittest.TestCase):
         )
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {ROLE}")
         cls.admin.execute(f"GRANT SELECT,INSERT,UPDATE,DELETE ON {SCHEMA}.tenant_rows TO {ROLE}")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.jobs(tenant_id text NOT NULL,job_id text NOT NULL,status text NOT NULL,lease_owner text NOT NULL,lease_epoch bigint NOT NULL,PRIMARY KEY(tenant_id,job_id))")
+        cls.admin.execute(f"INSERT INTO {SCHEMA}.jobs VALUES ('tenant-a','job-a','running','worker-a',7),('tenant-b','job-b','running','worker-b',11)")
+        cls.admin.execute(f"ALTER TABLE {SCHEMA}.jobs ENABLE ROW LEVEL SECURITY")
+        cls.admin.execute(f"ALTER TABLE {SCHEMA}.jobs FORCE ROW LEVEL SECURITY")
+        cls.admin.execute(f"CREATE POLICY job_tenant_scope ON {SCHEMA}.jobs USING(tenant_id=current_setting('app.tenant_id',true)) WITH CHECK(tenant_id=current_setting('app.tenant_id',true))")
+        cls.admin.execute(f"GRANT SELECT,UPDATE ON {SCHEMA}.jobs TO {ROLE}")
 
     @classmethod
     def tearDownClass(cls):
@@ -97,6 +103,24 @@ class TenantRlsTrustBoundaryPostgresTests(unittest.TestCase):
                 pass
             with conn.transaction():
                 self.assertEqual(conn.execute("SELECT count(*) FROM tenant_rows").fetchone()[0], 0)
+
+    def test_cross_tenant_job_claim_and_completion_are_filtered(self):
+        with self.connect() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.tenant_id','tenant-a',true)")
+                self.assertEqual(conn.execute("SELECT job_id FROM jobs ORDER BY job_id").fetchall(),[("job-a",)])
+                result=conn.execute("UPDATE jobs SET status='succeeded' WHERE tenant_id='tenant-a' AND job_id='job-b'")
+                self.assertEqual(result.rowcount,0)
+                self.assertEqual(conn.execute("SELECT status FROM jobs WHERE job_id='job-a'").fetchone(),("running",))
+
+    def test_job_completion_requires_current_owner_and_fencing_epoch(self):
+        with self.connect() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.tenant_id','tenant-a',true)")
+                stale=conn.execute("UPDATE jobs SET status='succeeded' WHERE tenant_id='tenant-a' AND job_id='job-a' AND lease_owner='worker-a' AND lease_epoch=6")
+                self.assertEqual(stale.rowcount,0)
+                current=conn.execute("UPDATE jobs SET status='succeeded' WHERE tenant_id='tenant-a' AND job_id='job-a' AND lease_owner='worker-a' AND lease_epoch=7")
+                self.assertEqual(current.rowcount,1)
 
     def test_concurrent_tenant_transactions_do_not_cross_read(self):
         barrier = threading.Barrier(2)
