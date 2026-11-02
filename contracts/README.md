@@ -173,3 +173,10 @@ R03.47 [Run #193](https://github.com/liucaidong/stem-lab/actions/runs/4142862013
 
 
 R03.49 [Run #204](https://github.com/liucaidong/stem-lab/actions/runs/41429361691)通过状态机、revision/sequence、验证证据门禁、终态原因、幂等重放/冲突和10项拒绝案例。该Harness仅验证契约，不代表生产持久化、Worker、Broker或Quarantine Service已实现。
+
+
+## PostgreSQL Package Ingestion Persistence Harness (R03.50)
+
+- `scripts/test_package_ingestion_postgres.py`在独立PostgreSQL测试Schema验证Session、Transition、Idempotency Receipt和Outbox事务。
+- 覆盖原子提交/回滚、幂等重放/冲突、revision竞态、tenant RLS和append-only Transition Ledger。
+- 只验证PostgreSQL CI Harness，不是生产迁移或Broker集成；GUC tenant context仍不是独立安全边界。详见 [R03.50](../docs/architecture/R03.50-postgresql-ingestion-transaction-rls-and-outbox-integration.md)。
