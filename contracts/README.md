@@ -183,3 +183,11 @@ R03.49 [Run #204](https://github.com/liucaidong/stem-lab/actions/runs/4142936169
 
 
 R03.50 [Run #212](https://github.com/liucaidong/stem-lab/actions/runs/41430210617)通过8项PostgreSQL测试：状态/Receipt/Outbox原子事务、幂等重放/冲突、stale revision、Outbox故障回滚、RLS、append-only ledger和并发revision竞争。测试发现并修复了Receipt FK锁与Session FOR UPDATE的死锁顺序。生产迁移和Broker relay未实现。
+
+
+## Package Ingestion Worker Lease / Fencing / Retry (R03.51)
+
+- `sql/package-ingestion-worker/R03.51-ingestion-worker.sql` adds tenant-scoped Job and DLQ reference DDL on top of the R03.50 Session schema.
+- `scripts/test_package_ingestion_worker_postgres.py` is a disposable PostgreSQL integration harness for concurrent claims, lease expiry/reclaim, epoch fencing, renewal, completion rollback, retry/DLQ, duplicate completion and tenant RLS.
+- The SQL is not a production migration. The harness is not a production Worker, scheduler, broker relay or replay service.
+- See `docs/architecture/R03.51-ingestion-worker-lease-fencing-retry.md` and the R03.51 verification report.
