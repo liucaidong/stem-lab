@@ -111,3 +111,13 @@
 - 审计发现Package Projection、信任链、Tenant隔离、真实Broker、生产Runtime/Solver/Renderer等仍未闭环；
 - 结果为CONDITIONAL_NOT_READY，不代表产品或生产环境Ready；
 - 详见[R03.44](../docs/architecture/R03.44-engineering-integration-audit.md)。
+
+
+## Package Resource Catalog Snapshot & Projection Builder
+
+- `package-resource-catalog-snapshot.schema.v1alpha1.json`定义不可变资源目录快照：资源身份、存储、URI、独立Canonical Path、MIME、大小、License和传递依赖。
+- `contracts/examples/package-projection-builder.fixtures.v1alpha1.json`提供Manifest + Catalog + Model Expression引用的集成Fixture。
+- `scripts/validate_package_projection_builder.py`是验证型参考实现，检查直接引用映射、Expression依赖、闭包、确定性排序和拒绝条件。
+- Builder不下载资源、不验证真实内容字节、不签名、不做License法律判断；生产集成未实现。
+- 根节点原始Manifest Digest与最终Canonical Package Digest分离，根节点不进入Canonical Projection资源列表，避免自引用。
+- 设计边界见 [R03.45](../docs/architecture/R03.45-contract-integration-and-projection-builder-design.md)；AUD-001仍OPEN，DEC-27/28/29仍OPEN。
