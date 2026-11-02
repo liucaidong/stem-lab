@@ -387,3 +387,6 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - Benchmark harness now supports explicit smoke and controlled profiles, repetitions, concurrency overrides and environment manifests.
 - Controlled profile has not yet been run; it requires an isolated operator-provisioned host. The current workload is still a protected RLS row read, not the full Store operation mix.
 - No production runtime/driver/pool selected; DEC-03 and DEC-14 remain OPEN.
+
+
+- Controlled benchmark harness verification: CI Run #333 SUCCESS. Run #332 failed on an intermediate Python/Node token-handoff mismatch and is retained in the audit trail; the subsequent synchronized commit passed.
