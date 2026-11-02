@@ -2,6 +2,7 @@
 """Repeatable draft contract checks; this is not a production runtime implementation."""
 from __future__ import annotations
 
+import copy
 import json
 import math
 from pathlib import Path
@@ -30,8 +31,12 @@ def require(condition: bool, message: str) -> None:
 def validate_schema_and_fixtures() -> None:
     package_schema = load_json("contracts/experiment-package.schema.v1alpha1.json")
     event_schema = load_json("contracts/runtime-event-envelope.schema.v1.json")
+    model_schema = load_json("contracts/scientific-model.schema.v1alpha1.json")
+    observation_schema = load_json("contracts/observation.schema.v1alpha1.json")
     jsonschema.Draft202012Validator.check_schema(package_schema)
     jsonschema.Draft202012Validator.check_schema(event_schema)
+    jsonschema.Draft202012Validator.check_schema(model_schema)
+    jsonschema.Draft202012Validator.check_schema(observation_schema)
 
     package_validator = jsonschema.Draft202012Validator(
         package_schema, format_checker=jsonschema.FormatChecker()
@@ -55,7 +60,28 @@ def validate_schema_and_fixtures() -> None:
     event = load_json("contracts/examples/runtime-event.valid.json")
     require(not list(event_validator.iter_errors(event)),
             "Runtime Event positive fixture must validate")
-    print("PASS: Draft 2020-12 meta-schema checks and JSON fixtures")
+    model_validator = jsonschema.Draft202012Validator(
+        model_schema, format_checker=jsonschema.FormatChecker()
+    )
+    model_fixture = load_json("contracts/examples/scientific-model.dc-series.valid.json")
+    require(not list(model_validator.iter_errors(model_fixture)),
+            "Scientific Model positive fixture must validate")
+
+    observation_validator = jsonschema.Draft202012Validator(
+        observation_schema, format_checker=jsonschema.FormatChecker()
+    )
+    observation = load_json("contracts/examples/observation.valid.json")
+    require(not list(observation_validator.iter_errors(observation)),
+            "Observation positive fixture must validate")
+    invalid_observation = copy.deepcopy(observation)
+    invalid_observation["data"]["valueRef"] = {
+        "uri": "https://assets.example.invalid/data.bin",
+        "digest": "sha256:" + "a" * 64,
+        "sizeBytes": 1
+    }
+    require(bool(list(observation_validator.iter_errors(invalid_observation))),
+            "Observation with both scalar value and valueRef must be rejected")
+    print("PASS: Draft 2020-12 meta-schema checks and Package/Event/Model/Observation fixtures")
 
 
 def validate_openapi_yaml() -> None:
