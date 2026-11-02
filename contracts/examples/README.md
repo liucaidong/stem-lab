@@ -6,9 +6,9 @@ These fixtures are synthetic and contain no real user or tenant data.
 |---|---|---|
 | experiment-package.valid.json | PASS against experiment-package.schema.v1alpha1.json | Valid Package structure |
 | experiment-package.invalid.json | FAIL | Missing required model digest and unsupported runtime mode |
-| runtime-event.valid.json | Envelope + SessionStarted payload validation target | SessionStarted fixture |
-| runtime-event.execution-succeeded.valid.json | Envelope + ExecutionSucceeded payload validation target | ExecutionSucceeded fixture |
-| runtime-event.observation-recorded.valid.json | Envelope + ObservationRecorded payload validation target | ObservationRecorded fixture |
+| runtime-event.valid.json | Local Envelope + SessionStarted payload check PASS; CI pending | SessionStarted fixture |
+| runtime-event.execution-succeeded.valid.json | Local Envelope + ExecutionSucceeded payload check PASS; CI pending | ExecutionSucceeded fixture |
+| runtime-event.observation-recorded.valid.json | Local Envelope + ObservationRecorded payload check PASS; CI pending | ObservationRecorded fixture |
 | dc-circuit.reference-cases.json | Automated arithmetic checks in validate_contracts.py; expert review pending | Synthetic DC series-circuit reference cases |
 | rc-circuit.reference-cases.json | Analytic reference values; Runtime ODE validation only; expert review pending | RC charging samples at 0, 1, 2 and 5 seconds |
 | scientific-model.dc-series.valid.json | Local Draft 2020-12 validation PASS; CI run pending | Synthetic ideal DC ScientificModel |
