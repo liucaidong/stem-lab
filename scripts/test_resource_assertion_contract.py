@@ -93,18 +93,29 @@ def main() -> None:
 
     invalid_cases = []
     for field, value in [
-        ("tenant_id", "tenant-b"), ("job_id", "job-2"),
-        ("resource_id", "job-2"),
-        ("session_id", "session-2"), ("owner", "worker-2"),
-        ("epoch", 8), ("operation_id", "op-other"),
-        ("aud", "other-store"), ("action", "worker.job.delete"),
-        ("nonce", "short"),
+        ("tenant_id", ""), ("job_id", ""), ("resource_type", "tenant"),
+        ("resource_id", ""), ("session_id", ""), ("owner", ""),
+        ("epoch", 0), ("operation_id", ""), ("aud", ""),
+        ("action", "worker.job.delete"), ("nonce", "short"),
     ]:
         case = copy.deepcopy(claims)
         case[field] = value
         invalid_cases.append(case)
     for case in invalid_cases:
-        assert list(assertion_validator.iter_errors(case)), "schema must reject invalid claim"
+        assert list(assertion_validator.iter_errors(case)), "schema must reject malformed claim"
+
+    assert "Job action must be rooted at the exact Job" in semantic_errors(
+        {**claims, "resource_id": "job-2"}
+    )
+    assert "Job action must be rooted at the exact Job" in semantic_errors(
+        {**claims, "job_id": "job-2"}
+    )
+    assert "DLQ replay must be rooted at a DLQ item" in semantic_errors({
+        **claims, "action": "worker.dlq.replay", "resource_type": "job",
+    })
+    assert "Outbox dispatch must be rooted at an Outbox event" in semantic_errors({
+        **claims, "action": "worker.outbox.dispatch",
+    })
 
     unknown_claim = copy.deepcopy(claims)
     unknown_claim["tenant_role"] = "admin"
