@@ -43,7 +43,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"GRANT {RUNTIME} TO {LOGIN}")
         cls.admin.execute(f"CREATE ROLE {DISPATCHER} LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD '{DISPATCHER_PASSWORD}'")
         cls.admin.execute(f"CREATE ROLE {REPLAY} LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD '{REPLAY_PASSWORD}'")
-        cls.admin.execute(f"CREATE SCHEMA {SCHEMA} AUTHORIZATION {VERIFIER}")
+        cls.admin.execute(f"CREATE SCHEMA {SCHEMA}")
+        cls.admin.execute(f"GRANT USAGE,CREATE ON SCHEMA {SCHEMA} TO {VERIFIER}")
         cls.public_key, cls.private_key = cls.admin.execute(
             "SELECT public,secret FROM pgsodium.crypto_sign_new_keypair()"
         ).fetchone()
@@ -772,6 +773,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             "current_setting('app.resource_assertion',true),j.tenant_id,j.job_id,j.session_id,"
             "'worker.job.complete','job',current_setting('app.resource_job_id',true),current_setting('app.resource_operation_id',true))))"
         )
+        cls.admin.execute(f"REVOKE CREATE ON SCHEMA {SCHEMA} FROM {VERIFIER}")
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.authorize_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.claim_next_v1(text,integer) TO {RUNTIME}")
