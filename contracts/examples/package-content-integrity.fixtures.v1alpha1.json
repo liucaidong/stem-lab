@@ -151,7 +151,7 @@
         "path": "expressions/ohms-law.json"
       }
     ],
-    "snapshot_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    "snapshot_digest": "sha256:5be5336626a5367c50b540fc7f5fe363770da676dac1181a5a7442aca7ed8674",
     "snapshot_digest_profile": "rfc8785-jcs-candidate-v1"
   }
 }
