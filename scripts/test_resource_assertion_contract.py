@@ -61,6 +61,19 @@ def semantic_errors(claims: dict, *, max_lifetime: int = 120) -> list[str]:
             errors.append("assertion lifetime exceeds configured maximum")
     if claims.get("v") != 2:
         errors.append("unsupported assertion version")
+    action = claims.get("action")
+    resource_type, resource_id = claims.get("resource_type"), claims.get("resource_id")
+    if action in {
+        "worker.job.renew", "worker.job.complete", "worker.job.fail",
+        "worker.job.retry", "worker.job.dead_letter",
+    } and (resource_type, resource_id) != ("job", claims.get("job_id")):
+        errors.append("Job action must be rooted at the exact Job")
+    elif action == "worker.dlq.replay" and resource_type != "dlq_item":
+        errors.append("DLQ replay must be rooted at a DLQ item")
+    elif action == "worker.outbox.dispatch" and resource_type != "outbox_event":
+        errors.append("Outbox dispatch must be rooted at an Outbox event")
+    elif action == "worker.receipt.reconcile" and resource_type != "receipt":
+        errors.append("Receipt reconciliation must be rooted at a Receipt")
     return errors
 
 
@@ -101,6 +114,12 @@ def main() -> None:
     assert "assertion lifetime exceeds configured maximum" in semantic_errors(
         {**claims, "exp": claims["iat"] + 121}
     )
+    assert "Job action must be rooted at the exact Job" in semantic_errors(
+        {**claims, "resource_id": "job-2"}
+    )
+    assert "Outbox dispatch must be rooted at an Outbox event" in semantic_errors({
+        **claims, "action": "worker.outbox.dispatch",
+    })
 
     lease = {
         "tenant_id": "tenant-a", "job_id": "job-1", "session_id": "session-1",
