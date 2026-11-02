@@ -34,6 +34,9 @@
 | [R02.4 产品功能树与Capability Map](docs/product/R02.4-product-capability-map.md) | L0-L2能力地图、角色矩阵、能力与技术模块映射 | v0.1 |
 | [R02.5 教学MVP范围与发布门禁](docs/product/R02.5-mvp-scope-acceptance-and-release-gates.md) | DC Circuit教学MVP、E2E验收、指标和发布门禁 | v0.1 |
 | [R02.6 需求追踪与产品审计](docs/product/R02.6-requirements-traceability-and-audit.md) | 需求—用户价值—能力—架构—验收追踪及R02审计 | v0.1；有条件通过 |
+| [R02.7 用户研究执行手册](docs/product/R02.7-user-research-interview-guide.md) | 教师/学生/作者/管理员/采购者访谈、观察任务与记录模板 | v0.1；计划未执行 |
+| [R02.8 DC Circuit教学设计](docs/product/R02.8-dc-circuit-learning-design.md) | 学习目标、科学模型、实验序列、仪器语义、误概念和Rubric | v0.1；待学科签核 |
+| [R02.9 研究与科学设计补充审计](docs/product/R02.9-research-and-science-design-audit.md) | 新增研究/学科文档审计、证据缺口和产品冻结条件 | v0.1；有条件通过 |
 | [R02.1–R02.12 平台架构设计系列](docs/architecture/R02.1-R02.12-platform-architecture-series.md) | 总体架构、Model、Runtime、Package、Renderer、Authoring、Data、Learning、AI、Plugin和Infrastructure | v1.0设计基线 |
 
 ### R03 — 技术方案与架构
