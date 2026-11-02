@@ -180,3 +180,6 @@ R03.49 [Run #204](https://github.com/liucaidong/stem-lab/actions/runs/4142936169
 - `scripts/test_package_ingestion_postgres.py`在独立PostgreSQL测试Schema验证Session、Transition、Idempotency Receipt和Outbox事务。
 - 覆盖原子提交/回滚、幂等重放/冲突、revision竞态、tenant RLS和append-only Transition Ledger。
 - 只验证PostgreSQL CI Harness，不是生产迁移或Broker集成；GUC tenant context仍不是独立安全边界。详见 [R03.50](../docs/architecture/R03.50-postgresql-ingestion-transaction-rls-and-outbox-integration.md)。
+
+
+R03.50 [Run #212](https://github.com/liucaidong/stem-lab/actions/runs/41430210617)通过8项PostgreSQL测试：状态/Receipt/Outbox原子事务、幂等重放/冲突、stale revision、Outbox故障回滚、RLS、append-only ledger和并发revision竞争。测试发现并修复了Receipt FK锁与Session FOR UPDATE的死锁顺序。生产迁移和Broker relay未实现。
