@@ -66,7 +66,7 @@
 | [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、机器可验证工件和工程准入Gate | v0.1；未达Implementation-Ready |
 | [R03.20 技术决策登记册](docs/architecture/R03.20-technical-decision-register.md) | 已接受原则、选型候选、产品/合规待决策项和ADR模板 | v0.1；待评审 |
 | [R03.21 工程准入WBS](docs/architecture/R03.21-engineering-readiness-wbs.md) | 产品决策、科学验证、契约、Spike、安全和解冻审计工作分解 | v0.1；尚未执行 |
-| [R03.22 机器可读契约草案审阅](docs/architecture/R03.22-machine-readable-contract-review.md) | 契约草案审阅、局部机器验证结果与剩余缺口 | v0.2；Draft，局部验证 |\n| [R03.23 契约验证执行报告](docs/architecture/R03.23-contract-validation-execution-report.md) | Draft 2020-12 Schema元验证、正负样例及OpenAPI YAML解析执行记录 | v0.1；局部验证通过，契约未冻结 |
+| [R03.22 机器可读契约草案审阅](docs/architecture/R03.22-machine-readable-contract-review.md) | 契约草案审阅、局部机器验证结果与剩余缺口 | v0.2；Draft，局部验证 |\n| [R03.23 契约验证执行报告](docs/architecture/R03.23-contract-validation-execution-report.md) | Draft 2020-12 Schema元验证、正负样例及OpenAPI YAML解析执行记录 | v0.1；局部验证通过，契约未冻结 |\n| [R03.24 Scientific Model验证计划](docs/architecture/R03.24-scientific-model-verification-plan.md) | DC教学模型不变量、RC解析参考解、Solver收敛/单位/科学签核验收协议 | v0.1；验证计划，专家签核待完成 |
 
 ### Contracts — 机器可读契约草案
 
@@ -107,4 +107,4 @@
 
 ### 自动化验证工具\n\n- [契约验证脚本](scripts/validate_contracts.py)\n- [验证依赖锁定](requirements-contract-validation.txt)\n- [GitHub Actions契约验证工作流](.github/workflows/contract-validation.yml)\n\n## 版本记录
 
-- 2026-11-02：补齐R01.8、R02.1–R02.14、R03.6–R03.23、机器可读契约草案、局部契约验证报告和工程准入审计。
+- 2026-11-02：补齐R01.8、R02.1–R02.14、R03.6–R03.24、机器可读契约、自动验证脚本/工作流、DC/RC参考算例和科学验证计划。
