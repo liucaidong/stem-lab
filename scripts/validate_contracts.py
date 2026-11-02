@@ -66,6 +66,16 @@ def validate_schema_and_fixtures() -> None:
     model_fixture = load_json("contracts/examples/scientific-model.dc-series.valid.json")
     require(not list(model_validator.iter_errors(model_fixture)),
             "Scientific Model positive fixture must validate")
+    require(not scientific_model_semantic_errors(model_fixture),
+            "Scientific Model semantic references and parameter ranges must validate")
+    invalid_model = copy.deepcopy(model_fixture)
+    invalid_model["spec"]["equations"][0]["inputs"][0] = "unknown-variable"
+    require(bool(scientific_model_semantic_errors(invalid_model)),
+            "Scientific Model with unknown equation reference must be rejected")
+    invalid_range_model = copy.deepcopy(model_fixture)
+    invalid_range_model["spec"]["parameters"][0]["maximum"] = -1
+    require(bool(scientific_model_semantic_errors(invalid_range_model)),
+            "Scientific Model with inverted parameter range must be rejected")
 
     observation_validator = jsonschema.Draft202012Validator(
         observation_schema, format_checker=jsonschema.FormatChecker()
@@ -81,7 +91,44 @@ def validate_schema_and_fixtures() -> None:
     }
     require(bool(list(observation_validator.iter_errors(invalid_observation))),
             "Observation with both scalar value and valueRef must be rejected")
-    print("PASS: Draft 2020-12 meta-schema checks and Package/Event/Model/Observation fixtures")
+    print("PASS: Draft 2020-12 meta-schema checks, fixtures, and Model reference/range semantics")
+
+
+def scientific_model_semantic_errors(model: dict[str, Any]) -> list[str]:
+    spec = model["spec"]
+    parameters = spec["parameters"]
+    variables = spec["variables"]
+    parameter_ids = [item["id"] for item in parameters]
+    variable_ids = [item["id"] for item in variables]
+    all_ids = parameter_ids + variable_ids
+    errors: list[str] = []
+    if len(all_ids) != len(set(all_ids)):
+        errors.append("parameter/variable IDs must be globally unique")
+    known_ids = set(all_ids)
+
+    for parameter in parameters:
+        minimum = parameter.get("minimum")
+        maximum = parameter.get("maximum")
+        default = parameter["defaultValue"]
+        if minimum is not None and maximum is not None and minimum > maximum:
+            errors.append(f"{parameter['id']}: minimum exceeds maximum")
+        if minimum is not None and default < minimum:
+            errors.append(f"{parameter['id']}: defaultValue is below minimum")
+        if maximum is not None and default > maximum:
+            errors.append(f"{parameter['id']}: defaultValue is above maximum")
+
+    for equation in spec["equations"]:
+        for reference in equation["inputs"] + equation["outputs"]:
+            if reference not in known_ids:
+                errors.append(f"{equation['id']}: unknown equation reference {reference}")
+    for constraint in spec["constraints"]:
+        for reference in constraint["targetIds"]:
+            if reference not in known_ids:
+                errors.append(f"{constraint['id']}: unknown constraint target {reference}")
+    for initial in spec["initialConditions"]:
+        if initial["variableId"] not in variable_ids:
+            errors.append(f"unknown initial-condition variable {initial['variableId']}")
+    return errors
 
 
 def validate_openapi_yaml() -> None:
