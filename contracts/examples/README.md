@@ -29,3 +29,9 @@ Additional test suites must cover semantic references, digest verification, Pack
 
 - `package-resource-graph.fixtures.v1alpha1.json`覆盖Package根、资源节点、依赖边、根可达闭包及外部/受限资源策略。
 - 由`scripts/validate_package_resource_graph.py`执行静态图检查；不访问网络或读取外部资源。
+
+
+## Canonical Manifest Fixtures
+
+- package-canonical-manifest.fixtures.v1alpha1.json包含资源和依赖闭包的规范化Projection，以及路径、重复项、大小写和Unicode负向案例。
+- JCS与Deterministic CBOR仅作为比较候选，不代表已选型。
