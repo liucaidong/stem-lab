@@ -66,13 +66,9 @@ def apply_transition(conn, tenant, session_id, expected_revision, to_state,
         if row is None:
             raise KeyError("session not found")
         current_state, current_revision = row
-        if current_revision != expected_revision:
-            raise RevisionConflict()
-        if to_state not in ALLOWED[current_state]:
-            raise ValueError("illegal transition")
-        # Lock the session before inserting the receipt. The receipt's composite
-        # FK takes a KEY SHARE lock on the session row; inserting it before
-        # FOR UPDATE can deadlock two concurrent commands upgrading row locks.
+        # Re-check after obtaining the session lock: a concurrent request with
+        # the same idempotency key may have committed while this command waited.
+        # Locking before receipt insertion avoids FK KEY SHARE / FOR UPDATE deadlocks.
         prior = conn.execute(
             """SELECT request_digest,response_json FROM receipts
                WHERE tenant_id=%s AND session_id=%s AND operation='transition' AND idempotency_key=%s""",
@@ -82,6 +78,10 @@ def apply_transition(conn, tenant, session_id, expected_revision, to_state,
             if prior[0] != request_digest:
                 raise IdempotencyConflict()
             return {"outcome": "REPLAY_EXISTING_RECEIPT", "receipt": prior[1]}
+        if current_revision != expected_revision:
+            raise RevisionConflict()
+        if to_state not in ALLOWED[current_state]:
+            raise ValueError("illegal transition")
         conn.execute(
             """INSERT INTO receipts
                (tenant_id,session_id,operation,idempotency_key,request_digest,response_json)
