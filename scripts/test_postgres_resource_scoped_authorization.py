@@ -519,8 +519,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           ON CONFLICT(issuer,kid,nonce) DO NOTHING
           RETURNING true INTO inserted;
           IF NOT coalesce(inserted,false) THEN
-            SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
-             WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+            SELECT nl.transaction_id,nl.token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger nl
+             WHERE nl.issuer=c->>'iss' AND nl.kid=c->>'kid' AND nl.nonce=c->>'nonce';
             IF ledger_tx=tx AND ledger_token=token AND state='dispatching'
                AND current_owner=c->>'sub' AND current_epoch=(c->>'epoch')::bigint+1
                AND current_expiry>clock_timestamp() THEN
@@ -590,8 +590,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           ON CONFLICT(issuer,kid,nonce) DO NOTHING
           RETURNING true INTO inserted;
           IF NOT coalesce(inserted,false) THEN
-            SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
-             WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+            SELECT nl.transaction_id,nl.token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger nl
+             WHERE nl.issuer=c->>'iss' AND nl.kid=c->>'kid' AND nl.nonce=c->>'nonce';
             RETURN ledger_tx=tx AND ledger_token=token AND state='dispatched'
                    AND current_owner=c->>'sub' AND current_epoch=(c->>'epoch')::bigint;
           END IF;
@@ -662,8 +662,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           RETURNING true INTO inserted;
           target_job:='replay:'||(c->>'operation_id');
           IF NOT coalesce(inserted,false) THEN
-            SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
-             WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+            SELECT nl.transaction_id,nl.token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger nl
+             WHERE nl.issuer=c->>'iss' AND nl.kid=c->>'kid' AND nl.nonce=c->>'nonce';
             IF ledger_tx=tx AND ledger_token=token THEN
               RETURN QUERY SELECT j.job_id,j.tenant_id,j.session_id,j.epoch
                 FROM {SCHEMA}.jobs j
