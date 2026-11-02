@@ -16,6 +16,7 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[1]
 ASSERTION_PATH = ROOT / "contracts/worker-resource-assertion.schema.v2alpha1.json"
 LEASE_PATH = ROOT / "contracts/worker-job-lease.schema.v2alpha1.json"
+FIXTURE_PATH = ROOT / "contracts/examples/worker-resource-assertion.v2alpha1.valid.json"
 
 ACTIONS = {
     "worker.job.renew",
@@ -34,16 +35,7 @@ def load(path: Path) -> dict:
 
 
 def valid_claims() -> dict:
-    return {
-        "v": 2, "iss": "stemlab-test-issuer", "kid": "test-key-1",
-        "tenant_id": "tenant-a", "sub": "worker-1", "aud": "stemlab-store",
-        "action": "worker.job.complete", "job_id": "job-1",
-        "resource_type": "job", "resource_id": "job-1",
-        "session_id": "session-1", "owner": "worker-1", "epoch": 7,
-        "operation_id": "op-01JTEST000000000000000000",
-        "iat": 1_800_000_000, "exp": 1_800_000_060,
-        "nonce": "0123456789abcdef0123456789abcdef",
-    }
+    return load(FIXTURE_PATH)
 
 
 def semantic_errors(claims: dict, *, max_lifetime: int = 120) -> list[str]:
