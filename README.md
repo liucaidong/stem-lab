@@ -63,7 +63,7 @@
 | [R03.16 API与事件契约样例](docs/architecture/R03.16-api-event-contract-examples.md) | Session/Command/Observation API、事件信封和错误样例 | v0.1样例 |
 | [R03.17 Package Manifest样例](docs/architecture/R03.17-package-manifest-example-and-schema-gate.md) | YAML样例、Schema规则、发布校验和正式Schema门禁 | v0.1样例 |
 | [R03.18 技术验证与Spike矩阵](docs/architecture/R03.18-technical-validation-and-spike-matrix.md) | 技术Spike、自动化测试、故障注入、数值验证和证据模板 | v0.1；尚未执行 |
-| [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、机器可验证工件和工程准入Gate | v0.1；未达Implementation-Ready |
+| [R03.19 技术就绪度复审](docs/architecture/R03.19-technical-readiness-review.md) | R03覆盖复审、局部验证证据和工程准入Gate | v0.2；未达Implementation-Ready |
 | [R03.20 技术决策登记册](docs/architecture/R03.20-technical-decision-register.md) | 已接受原则、选型候选、产品/合规待决策项和ADR模板 | v0.1；待评审 |
 | [R03.21 工程准入WBS](docs/architecture/R03.21-engineering-readiness-wbs.md) | 产品决策、科学验证、契约、Spike、安全和解冻审计工作分解 | v0.1；尚未执行 |
 | [R03.22 机器可读契约草案审阅](docs/architecture/R03.22-machine-readable-contract-review.md) | 契约草案审阅、局部机器验证结果与剩余缺口 | v0.2；Draft，局部验证 |
@@ -77,8 +77,8 @@
 | [Contracts目录说明](contracts/README.md) | 契约草案使用约束与正式冻结要求 | Draft |
 | [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；JSON语法已解析 |
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件信封结构 | Draft；JSON语法已解析 |
-| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API骨架 | Draft；尚未执行YAML/OpenAPI校验 |
-| [Contract Test Fixtures](contracts/examples/README.md) | Package正/负样例与Runtime Event样例 | 已保存；验证器尚未执行 |
+| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API骨架 | Draft；YAML解析通过，OpenAPI规范验证未执行 |
+| [Contract Test Fixtures](contracts/examples/README.md) | Package正/负样例、Runtime Event及DC/RC参考算例 | 局部本地验证通过；CI运行待确认 |
 | [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；自动算术检查已纳入脚本，科学签核待完成 |
 | [RC Circuit参考算例JSON](contracts/examples/rc-circuit.reference-cases.json) | RC充电一阶ODE解析参考解；仅作Runtime技术验证 | Draft；非教学MVP，专家签核待完成 |
 
