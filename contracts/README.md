@@ -9,7 +9,7 @@
 | events/registry.v1.json与events/*.payload.schema.v1.json | 事件类型与Payload Schema映射 | Draft；仅覆盖三种代表事件，Consumer测试待完成 |
 | scientific-model.schema.v1alpha1.json | ScientificModel结构契约 | Draft；Schema、引用/范围/单位绑定语义正负断言通过Run #41/#42 CI；量纲体系待完成 |
 | observation.schema.v1alpha1.json | Observation元数据与数据载荷契约 | Draft；Schema与Package/Model/Quantity绑定语义正负断言通过Run #41/#42 CI；量纲体系待完成 |
-| openapi.v1.draft.yaml | Session/Command/Observation API契约 | Draft v0.3；增加Observation size/time约束及API安全/幂等/分页语义断言，Run #43待验证 |
+| openapi.v1.draft.yaml | Session/Command/Observation API契约 | Draft v0.3；Observation size/time约束及API静态语义断言通过Run #49 |
 
 ## 使用约束
 
@@ -26,7 +26,7 @@
 - `requirements-contract-validation.txt`：声明直接依赖。
 - `requirements-contract-validation.lock.txt`：固定Run #42验证过的直接/传递依赖版本；目前未使用hash校验。
 - `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。
-- OpenAPI YAML解析与OpenAPI 3.1规范验证是两项不同检查。正式验证器已固定并接入脚本；[openapi-spec-validator 0.9.0官方PyPI页面](https://pypi.org/project/openapi-spec-validator/)说明其支持OpenAPI 3.1/3.2。Run #41/#42均成功：[Run #41](https://github.com/liucaidong/stem-lab/actions/runs/41392312080)、[Run #42](https://github.com/liucaidong/stem-lab/actions/runs/41392380372)。
+- OpenAPI YAML解析与OpenAPI 3.1规范验证是两项不同检查。正式验证器已固定并接入脚本；[openapi-spec-validator 0.9.0官方PyPI页面](https://pypi.org/project/openapi-spec-validator/)说明其支持OpenAPI 3.1/3.2。Run #41/#42/#49均成功：[Run #41](https://github.com/liucaidong/stem-lab/actions/runs/41392312080)、[Run #42](https://github.com/liucaidong/stem-lab/actions/runs/41392380372)、[Run #49](https://github.com/liucaidong/stem-lab/actions/runs/41392793514)。
 
 ## 下一步
 
