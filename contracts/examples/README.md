@@ -35,3 +35,9 @@ Additional test suites must cover semantic references, digest verification, Pack
 
 - package-canonical-manifest.fixtures.v1alpha1.json包含资源和依赖闭包的规范化Projection，以及路径、重复项、大小写和Unicode负向案例。
 - JCS与Deterministic CBOR仅作为比较候选，不代表已选型。
+
+
+## Package Governance Fixtures
+
+- package-governance.fixtures.v1alpha1.json包含合成信任注册表、Package subject、Provenance、License记录及11个负向策略案例。
+- Fixture中的签名字符串仅用于结构和信任策略检查，不是有效密码学签名。
