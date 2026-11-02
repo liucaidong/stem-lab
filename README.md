@@ -78,7 +78,7 @@
 | 文件 | 内容 | 状态 |
 |---|---|---|
 | [Contracts目录说明](contracts/README.md) | 契约草案使用约束与正式冻结要求 | Draft |
-| [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；JSON语法已解析 |
+| [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；Draft 2020-12元检查及正/负样例通过，CI待确认 |
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件通用信封结构 | Draft；元Schema与正样例已验证 |
 | [Runtime Event Payload Registry](contracts/events/README.md) | SessionStarted/ExecutionSucceeded/ObservationRecorded三种事件Payload Schema | Draft；脚本已接入，CI运行待确认 |
 | [Scientific Model Schema](contracts/scientific-model.schema.v1alpha1.json) | 模型参数、变量、方程引用、约束和求解器需求 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入 |
