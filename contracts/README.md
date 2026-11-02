@@ -6,6 +6,8 @@
 |---|---|---|
 | experiment-package.schema.v1alpha1.json | ExperimentPackage Manifest结构约束 | Draft；需正/负样例与兼容测试 |
 | runtime-event-envelope.schema.v1.json | Runtime领域事件信封 | Draft；需事件类型Schema和Consumer测试 |
+| scientific-model.schema.v1alpha1.json | ScientificModel结构契约 | Draft；元Schema/语义验证待执行 |
+| observation.schema.v1alpha1.json | Observation元数据与数据载荷契约 | Draft；元Schema/语义验证待执行 |
 | openapi.v1.draft.yaml | Session/Command/Observation API骨架 | Draft；需完整响应、错误、安全和Contract Test |
 
 ## 使用约束
