@@ -8,7 +8,8 @@
     "expression_id",
     "ast_version",
     "root",
-    "expected_type"
+    "expected_type",
+    "language_id"
   ],
   "properties": {
     "expression_id": {
@@ -39,6 +40,9 @@
           "maximum": 4096
         }
       }
+    },
+    "language_id": {
+      "const": "stemlab-expression-ast/v1"
     }
   },
   "$defs": {
