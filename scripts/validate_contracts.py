@@ -79,6 +79,19 @@ def validate_schema_and_fixtures() -> None:
         )
         require(not list(payload_validator.iter_errors(event_fixture["payload"])),
                 "Event payload fixture must validate against its type schema")
+        invalid_payload = copy.deepcopy(event_fixture["payload"])
+        if event_definition["event_type"] == "SessionStarted":
+            invalid_payload.pop("fencing_token", None)
+        elif event_definition["event_type"] == "ExecutionSucceeded":
+            invalid_payload["output_digest"] = "not-a-sha256-digest"
+        elif event_definition["event_type"] == "ObservationRecorded":
+            invalid_payload["data"]["value_ref"] = {
+                "uri": "https://assets.example.invalid/data.bin",
+                "digest": "sha256:" + "a" * 64,
+                "size_bytes": 1
+            }
+        require(bool(list(payload_validator.iter_errors(invalid_payload))),
+                "Invalid typed Event payload must be rejected")
     model_validator = jsonschema.Draft202012Validator(
         model_schema, format_checker=jsonschema.FormatChecker()
     )
