@@ -14,6 +14,8 @@
     "aud",
     "action",
     "job_id",
+    "resource_type",
+    "resource_id",
     "session_id",
     "owner",
     "epoch",
@@ -101,6 +103,19 @@
       "minLength": 16,
       "maxLength": 256,
       "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "resource_type": {
+      "enum": [
+        "job",
+        "dlq_item",
+        "outbox_event",
+        "receipt"
+      ]
+    },
+    "resource_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
     }
   },
   "allOf": [
