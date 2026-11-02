@@ -884,6 +884,12 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             (max_replays,),
         )
 
+    @classmethod
+    def replay_once(cls, token):
+        with cls.replay_connection() as conn:
+            with conn.transaction():
+                return conn.execute(f"SELECT * FROM {SCHEMA}.replay_dlq_v2(%s)",(token,)).fetchall()
+
     def issue_replay(self, **overrides):
         base={"action":"worker.dlq.replay","aud":"stemlab-dlq-replay",
               "resource_type":"dlq_item","resource_id":"op-a:dlq",
