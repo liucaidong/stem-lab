@@ -417,6 +417,12 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
         cls.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-a','session-a',4),('tenant-a','session-b',9),('tenant-b','session-x',1)")
         cls.admin.execute(
+            f"INSERT INTO {SCHEMA}.jobs (tenant_id,job_id,session_id,job_type,owner,epoch,status,lease_expires_at,attempt_count,maximum_attempts) VALUES "
+            "('tenant-b','job-claim-b','session-x','generic',NULL,1,'queued',NULL,0,5),"
+            "('tenant-a','job-claim-restricted','session-a','restricted',NULL,1,'queued',NULL,0,5)"
+        )
+        cls.admin.execute(f"INSERT INTO {SCHEMA}.worker_assignments VALUES ('assignment-a','worker-a',true,ARRAY['generic'])")
+        cls.admin.execute(
             f"INSERT INTO {SCHEMA}.jobs (tenant_id,job_id,session_id,owner,epoch,status,lease_expires_at) VALUES "
             "('tenant-a','job-a','session-a','worker-a',7,'running',clock_timestamp()+interval '5 minutes'),"
             "('tenant-a','job-b','session-b','worker-b',2,'running',clock_timestamp()+interval '5 minutes'),"
@@ -435,6 +441,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
     def setUp(self):
         self.admin.execute(f"UPDATE {SCHEMA}.jobs SET owner='worker-a',epoch=7,status='running',lease_expires_at=clock_timestamp()+interval '5 minutes',job_type='generic',available_at=clock_timestamp(),attempt_count=1,maximum_attempts=5,last_error_code=NULL WHERE tenant_id='tenant-a' AND job_id='job-a'")
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-b'")
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET status='queued',owner=NULL,lease_expires_at=NULL,epoch=1,available_at=clock_timestamp(),attempt_count=0 WHERE job_id='job-claim-restricted'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.receipts WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a'")
