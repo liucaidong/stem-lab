@@ -60,6 +60,10 @@ class PostgreSQLTenantEd25519VerifierTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.admin = psycopg.connect(DSN, autocommit=True)
         cls.admin.execute("CREATE EXTENSION pgsodium")
+        # Load the extension in this migration/admin backend so its custom
+        # GUCs are registered before pgsodium's DDL event trigger runs.
+        cls.admin.execute("LOAD 'pgsodium'")
+        cls.admin.execute("SET pgsodium.enable_event_trigger = 'off'")
 
         cls.admin.execute(
             f"CREATE ROLE {VERIFIER_ROLE} NOLOGIN NOSUPERUSER NOCREATEDB "
