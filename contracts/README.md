@@ -79,3 +79,11 @@
 - commands目录定义Command Payload Schema与Registry；
 - API安全语义验证器测试JWT Claims、资源授权、幂等与Cursor HMAC；
 - 真实JWT验签、JWKS、API Middleware和分布式Rate Limit仍未实现。
+
+
+## Runtime Execution Contract
+
+- runtime-execution-contract.schema.v1alpha1.json定义Execution、Worker Lease、Quota、Clock、Checkpoint与Replay策略；
+- 静态验证不执行Worker/Runtime/Solver；
+- Simulation Time与Wall-clock Time分离；
+- 设计细节见[R03.41](../docs/architecture/R03.41-simulation-runtime-engineering-contract.md)。
