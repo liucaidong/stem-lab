@@ -130,3 +130,14 @@
 ## 版本记录
 
 - 2026-11-02：补齐R01.8、R02.1–R02.14、R03.6–R03.27、机器可读契约、自动验证脚本/工作流、DC/RC参考算例和科学验证计划。
+
+
+### R03.33 — Scientific Expression AST 与 Quantity Type System
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.33架构设计](docs/architecture/R03.33-scientific-expression-ast-and-quantity-type-system.md) | AST节点、Quantity/Unit/Dimension/Kind、推导规则、安全边界与错误语义 | v0.1设计草案；DEC-08/09/10/17保持OPEN |
+| [Expression AST JSON Schema](contracts/scientific-expression-ast.schema.v1alpha1.json) | 版本化声明式AST结构 | Draft 2020-12；等待CI |
+| [Expression AST Fixtures](contracts/examples/scientific-expression.fixtures.v1alpha1.json) | DC/RC有效表达式和负向语义案例 | Draft；等待CI |
+| [静态表达式验证器](scripts/validate_expression_ast.py) | Schema与静态类型/量纲推导，不执行表达式 | Draft；等待CI |
+
