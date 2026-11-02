@@ -22,11 +22,11 @@
 
 ## 自动化验证
 
-- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Unit Registry/量纲检查、Registry驱动Runtime Event Envelope/Payload、Model/Observation样例及单位绑定语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
+- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Unit Registry/量纲检查、Package本地Asset真实SHA-256/size和路径安全负向检查、Registry驱动Runtime Event Envelope/Payload、Model/Observation样例及单位绑定语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
 - `requirements-contract-validation.txt`：声明直接依赖。
 - `requirements-contract-validation.lock.txt`：固定Run #42验证过的直接/传递依赖版本；目前未使用hash校验。
 - `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。
-- OpenAPI YAML解析与OpenAPI 3.1规范验证是两项不同检查。正式验证器已固定并接入脚本；[openapi-spec-validator 0.9.0官方PyPI页面](https://pypi.org/project/openapi-spec-validator/)说明其支持OpenAPI 3.1/3.2。Run #41/#42/#49/#53均成功：[Run #41](https://github.com/liucaidong/stem-lab/actions/runs/41392312080)、[Run #42](https://github.com/liucaidong/stem-lab/actions/runs/41392380372)、[Run #49](https://github.com/liucaidong/stem-lab/actions/runs/41392793514)、[Run #53](https://github.com/liucaidong/stem-lab/actions/runs/41393149650)。
+- OpenAPI YAML解析与OpenAPI 3.1规范验证是两项不同检查。正式验证器已固定并接入脚本；[openapi-spec-validator 0.9.0官方PyPI页面](https://pypi.org/project/openapi-spec-validator/)说明其支持OpenAPI 3.1/3.2。Run #41/#42/#49/#53/#60均成功：[Run #41](https://github.com/liucaidong/stem-lab/actions/runs/41392312080)、[Run #42](https://github.com/liucaidong/stem-lab/actions/runs/41392380372)、[Run #49](https://github.com/liucaidong/stem-lab/actions/runs/41392793514)、[Run #53](https://github.com/liucaidong/stem-lab/actions/runs/41393149650)、[Run #60](https://github.com/liucaidong/stem-lab/actions/runs/41393457492)。
 
 ## 下一步
 
