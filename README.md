@@ -217,3 +217,13 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [Command Payload Registry](contracts/commands/registry.v1alpha1.json) | command_type/schema_version到Payload Schema映射 | Draft；等待CI |
 | [API Semantics Validator](scripts/validate_api_operational_semantics.py) | JWT Claim/授权/幂等/Cursor HMAC和命令Schema静态测试 | Draft；等待CI；不验JWT签名 |
 
+
+
+### R03.41 — Simulation Runtime Engineering Contract
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.41架构设计](docs/architecture/R03.41-simulation-runtime-engineering-contract.md) | Execution Lifecycle、Lease/Epoch/Fencing、Quota、Cancellation、Checkpoint、Recovery与双时钟 | v0.1契约草案 |
+| [Runtime Execution Schema](contracts/runtime-execution-contract.schema.v1alpha1.json) | Worker执行控制与资源/时钟契约 | Draft；等待CI |
+| [Runtime Execution Validator](scripts/validate_runtime_execution_contract.py) | 租约、时钟、Quota、Checkpoint和Replay静态规则 | Draft；等待CI；未运行Worker |
+
