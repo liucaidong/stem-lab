@@ -300,7 +300,7 @@ def main():
     expect("DUPLICATE_CATALOG_IDENTITY", lambda m, c: c["resources"].append(copy.deepcopy(c["resources"][0])))
     expect("TRANSITIVE_DEPENDENCY_MISSING", lambda m, c: c["resources"][0]["dependencies"][0]["identity"].update(resource_id="missing-expression"))
     expect("DEPENDENCY_CYCLE", lambda m, c: c["resources"][-1]["dependencies"].append({"identity":copy.deepcopy(c["resources"][0]["identity"]),"relation":"requires"}))
-    expect("MODEL_EXPRESSION_REF_MISMATCH", lambda m, c: m["spec"]["model"].update(id="other-model"))
+    expect("MODEL_EXPRESSION_REF_MISMATCH", lambda m, c: c["resources"][0]["dependencies"].clear())
     try:
         build_projection(manifest, catalog, None, model_docs)
     except ProjectionError as exc:
