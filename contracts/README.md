@@ -5,7 +5,8 @@
 | 文件 | 用途 | 状态 |
 |---|---|---|
 | experiment-package.schema.v1alpha1.json | ExperimentPackage Manifest结构约束 | Draft；需正/负样例与兼容测试 |
-| runtime-event-envelope.schema.v1.json | Runtime领域事件信封 | Draft；需事件类型Schema和Consumer测试 |
+| runtime-event-envelope.schema.v1.json | Runtime领域事件通用信封 | Draft；三种代表事件Payload已另行定义 |
+| events/registry.v1.json与events/*.payload.schema.v1.json | 事件类型与Payload Schema映射 | Draft；仅覆盖三种代表事件，Consumer测试待完成 |
 | scientific-model.schema.v1alpha1.json | ScientificModel结构契约 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入，完整语义待执行 |
 | observation.schema.v1alpha1.json | Observation元数据与数据载荷契约 | Draft；本地元Schema/Fixture复核通过，语义验证待执行 |
 | openapi.v1.draft.yaml | Session/Command/Observation API骨架 | Draft；需完整响应、错误、安全和Contract Test |
@@ -21,7 +22,7 @@
 
 ## 自动化验证
 
-- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Runtime Event/Model/Observation样例、Model基础引用/范围语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
+- `scripts/validate_contracts.py`：执行Draft 2020-12 Schema元验证、Package正/负样例、Registry驱动Runtime Event Envelope/Payload、Model/Observation样例、Model基础引用/范围语义检查、OpenAPI YAML基础结构检查，以及DC/RC参考算例检查。
 - `requirements-contract-validation.txt`：固定验证依赖版本。
 - `.github/workflows/contract-validation.yml`：相关契约文件变更时触发GitHub Actions。
 - OpenAPI YAML基础解析不等于OpenAPI 3.1规范验证；该正式验证器尚未纳入。CI执行结果需以GitHub Actions运行记录为准。
