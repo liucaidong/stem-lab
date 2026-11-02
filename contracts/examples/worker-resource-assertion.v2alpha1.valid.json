@@ -1,0 +1,19 @@
+{
+  "v": 2,
+  "iss": "stemlab-test-issuer",
+  "kid": "test-key-1",
+  "tenant_id": "tenant-a",
+  "sub": "worker-1",
+  "aud": "stemlab-store",
+  "action": "worker.job.complete",
+  "job_id": "job-1",
+  "resource_type": "job",
+  "resource_id": "job-1",
+  "session_id": "session-1",
+  "owner": "worker-1",
+  "epoch": 7,
+  "operation_id": "op-01JTEST000000000000000000",
+  "iat": 1800000000,
+  "exp": 1800000060,
+  "nonce": "0123456789abcdef0123456789abcdef"
+}
