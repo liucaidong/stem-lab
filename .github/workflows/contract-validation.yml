@@ -110,6 +110,9 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_package_ingestion_worker_postgres.py
 
+      - name: Test adapter-neutral Worker Runtime lifecycle and supervision reference
+        run: python scripts/test_worker_runtime.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 

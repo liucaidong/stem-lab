@@ -201,3 +201,11 @@ R03.50 [Run #212](https://github.com/liucaidong/stem-lab/actions/runs/4143021061
 - PostgreSQL lease/fencing tests are in `scripts/test_package_ingestion_worker_postgres.py`.
 
 R03.51 PostgreSQL reference evidence: [GitHub Actions Run #41440101768](https://github.com/liucaidong/stem-lab/actions/runs/41440101768) SUCCESS; 20/20 Worker lease/fencing/retry tests passed. This is not production Worker readiness.
+
+
+## Worker Runtime Lifecycle & Supervision Reference (R03.52.1)
+
+- `runtime/worker_runtime.py` implements an adapter-neutral single-slot orchestration core: claim, handler dispatch, lease heartbeat, fail-closed lease loss, completion/failure requests, and graceful drain.
+- `scripts/test_worker_runtime.py` verifies lifecycle semantics with a fake Store. CI execution does not verify PostgreSQL adapter behavior or production process supervision.
+- A Store adapter must independently fence every write by tenant, job, owner, epoch and database-clock lease expiry. It must use bounded network/statement timeouts.
+- Python is not selected as the production Worker runtime; DEC-03 remains OPEN. DEC-04/05/13/19/30 remain OPEN. See `docs/architecture/R03.52.1-worker-runtime-lifecycle-supervision.md`.

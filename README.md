@@ -257,3 +257,15 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | [机器可读审计报告](contracts/engineering-integration-audit.v1alpha1.json) | 14项检查、12项风险与工程就绪度 | Draft；等待CI |
 | [Integration Audit Validator](scripts/validate_integration_audit.py) | 关键Schema/版本/资源类型/状态机/CI覆盖一致性检查 | Draft；等待CI |
 
+
+
+### R03.52.1 — Worker Runtime Lifecycle & Supervision Reference
+
+| Asset | Purpose | Status |
+|---|---|---|
+| [Runtime orchestration core](runtime/worker_runtime.py) | Adapter-neutral claim/dispatch/heartbeat/fenced-completion lifecycle | Executable reference; no production Store adapter |
+| [Lifecycle tests](scripts/test_worker_runtime.py) | Idle, success, safe failure, heartbeat loss, shutdown drain and invalid configuration | CI unit tests; fake Store only |
+| [Lifecycle design](docs/architecture/R03.52.1-worker-runtime-lifecycle-supervision.md) | Runtime responsibilities, invariants, shutdown and evidence boundaries | v0.1 reference |
+| [Protocol sequences](docs/architecture/R03.52.1-worker-runtime-lifecycle-sequences.md) | Normal execution, heartbeat loss and graceful shutdown | Design diagram |
+
+R03.52.1 does not select Python as the production Worker runtime (DEC-03 OPEN), nor a DB/migration adapter (DEC-04), broker (DEC-05/30), tenant trust boundary (DEC-19), or observability stack (DEC-13). No production readiness claim.
