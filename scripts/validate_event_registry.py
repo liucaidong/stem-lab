@@ -28,7 +28,7 @@ def validate(reg):
   if e["lifecycle"]=="active" and any(x in e for x in ("deprecated_at","sunset_at")): raise RegistryError("INVALID_LIFECYCLE_METADATA",e["event_type"])
   if e["lifecycle"]=="deprecated":
    if "deprecated_at" not in e or "sunset_at" not in e: raise RegistryError("INVALID_LIFECYCLE_METADATA",e["event_type"])
-   if e["replacement_event"]==e["event_type"]: raise RegistryError("INVALID_LIFECYCLE_METADATA",e["event_type"])
+   if e.get("replacement_event")==e["event_type"]: raise RegistryError("INVALID_LIFECYCLE_METADATA",e["event_type"])
   if e["replay_policy"] not in ("allowed","forbidden","requires-approval"): raise RegistryError("INVALID_REPLAY_POLICY",e["event_type"])
   if e["poison_policy"]["dlq_required"] and e["poison_policy"]["max_attempts"]<1: raise RegistryError("INVALID_POISON_POLICY",e["event_type"])
  return True
