@@ -77,7 +77,8 @@
 |---|---|---|
 | [Contracts目录说明](contracts/README.md) | 契约草案使用约束与正式冻结要求 | Draft |
 | [Experiment Package JSON Schema](contracts/experiment-package.schema.v1alpha1.json) | Package Manifest结构约束 | Draft；JSON语法已解析 |
-| [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件信封结构 | Draft；元Schema与正样例已验证 |
+| [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件通用信封结构 | Draft；元Schema与正样例已验证 |
+| [Runtime Event Payload Registry](contracts/events/README.md) | SessionStarted/ExecutionSucceeded/ObservationRecorded三种事件Payload Schema | Draft；脚本已接入，CI运行待确认 |
 | [Scientific Model Schema](contracts/scientific-model.schema.v1alpha1.json) | 模型参数、变量、方程引用、约束和求解器需求 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入 |
 | [Observation Schema](contracts/observation.schema.v1alpha1.json) | 观测来源、单位、仿真时间、质量和载荷引用 | Draft；元Schema验证待执行 |
 | [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.2；扩展后重新解析及OpenAPI规范验证待执行 |
@@ -119,4 +120,4 @@
 
 ## 版本记录
 
-- 2026-11-02：补齐R01.8、R02.1–R02.14、R03.6–R03.25、机器可读契约、自动验证脚本/工作流、DC/RC参考算例和科学验证计划。
+- 2026-11-02：补齐R01.8、R02.1–R02.14、R03.6–R03.26、机器可读契约、自动验证脚本/工作流、DC/RC参考算例和科学验证计划。
