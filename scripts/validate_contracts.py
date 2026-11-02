@@ -10,7 +10,7 @@ from typing import Any
 
 import jsonschema
 import yaml
-from openapi_spec_validator import validate as validate_openapi
+from openapi_spec_validator import OpenAPIV31SpecValidator, validate as validate_openapi
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -43,9 +43,18 @@ def validate_schema_and_fixtures() -> None:
         package_schema, format_checker=jsonschema.FormatChecker()
     )
     valid_package = load_json("contracts/examples/experiment-package.valid.json")
+    model_fixture = load_json("contracts/examples/scientific-model.dc-series.valid.json")
     invalid_package = load_json("contracts/examples/experiment-package.invalid.json")
     require(not list(package_validator.iter_errors(valid_package)),
             "Package positive fixture must validate")
+    invalid_grade_band = copy.deepcopy(valid_package)
+    invalid_grade_band["metadata"]["gradeBand"] = {"min": 12, "max": 6}
+    require(bool(package_semantic_errors(invalid_grade_band, model_fixture)),
+            "Package with inverted gradeBand must be rejected")
+    invalid_model_reference = copy.deepcopy(valid_package)
+    invalid_model_reference["spec"]["model"]["id"] = "unknown-model"
+    require(bool(package_semantic_errors(invalid_model_reference, model_fixture)),
+            "Package with unresolved model reference must be rejected")
     invalid_errors = list(package_validator.iter_errors(invalid_package))
     require(bool(invalid_errors), "Package negative fixture must be rejected")
     error_paths = {"/" + "/".join(str(part) for part in error.absolute_path)
@@ -101,7 +110,6 @@ def validate_schema_and_fixtures() -> None:
     model_validator = jsonschema.Draft202012Validator(
         model_schema, format_checker=jsonschema.FormatChecker()
     )
-    model_fixture = load_json("contracts/examples/scientific-model.dc-series.valid.json")
     require(not list(model_validator.iter_errors(model_fixture)),
             "Scientific Model positive fixture must validate")
     require(not scientific_model_semantic_errors(model_fixture),
@@ -121,6 +129,20 @@ def validate_schema_and_fixtures() -> None:
     observation = load_json("contracts/examples/observation.valid.json")
     require(not list(observation_validator.iter_errors(observation)),
             "Observation positive fixture must validate")
+    require(not observation_semantic_errors(observation, model_fixture, valid_package),
+            "Observation references and unit must match the pinned Package and Model")
+    invalid_quantity = copy.deepcopy(observation)
+    invalid_quantity["metadata"]["quantityId"] = "unknown-quantity"
+    require(bool(observation_semantic_errors(invalid_quantity, model_fixture, valid_package)),
+            "Observation with unknown quantity must be rejected")
+    invalid_unit = copy.deepcopy(observation)
+    invalid_unit["metadata"]["unit"] = "V"
+    require(bool(observation_semantic_errors(invalid_unit, model_fixture, valid_package)),
+            "Observation unit inconsistent with Model quantity must be rejected")
+    invalid_model_version = copy.deepcopy(observation)
+    invalid_model_version["metadata"]["modelVersion"] = "9.9.9"
+    require(bool(observation_semantic_errors(invalid_model_version, model_fixture, valid_package)),
+            "Observation with unpinned Model version must be rejected")
     invalid_observation = copy.deepcopy(observation)
     invalid_observation["data"]["valueRef"] = {
         "uri": "https://assets.example.invalid/data.bin",
@@ -129,7 +151,49 @@ def validate_schema_and_fixtures() -> None:
     }
     require(bool(list(observation_validator.iter_errors(invalid_observation))),
             "Observation with both scalar value and valueRef must be rejected")
-    print("PASS: Draft 2020-12 meta-schema checks, typed Event payloads, fixtures, and Model reference/range semantics")
+    print("PASS: Draft 2020-12 meta-schema checks, typed Event payloads, Package/Model/Observation semantics, and negative fixtures")
+
+
+def package_semantic_errors(
+    package: dict[str, Any], model: dict[str, Any] | None = None
+) -> list[str]:
+    errors: list[str] = []
+    grade_band = package["metadata"].get("gradeBand", {})
+    minimum = grade_band.get("min")
+    maximum = grade_band.get("max")
+    if minimum is not None and maximum is not None and minimum > maximum:
+        errors.append("gradeBand.min must not exceed gradeBand.max")
+    if model is not None:
+        model_ref = package["spec"]["model"]
+        if model_ref["id"] != model["metadata"]["id"]:
+            errors.append("Package model ID does not match resolved Model")
+        if model_ref["version"] != model["metadata"]["version"]:
+            errors.append("Package model version does not match resolved Model")
+    return errors
+
+
+def observation_semantic_errors(
+    observation: dict[str, Any],
+    model: dict[str, Any],
+    package: dict[str, Any],
+) -> list[str]:
+    metadata = observation["metadata"]
+    errors: list[str] = []
+    if metadata["packageId"] != package["metadata"]["id"]:
+        errors.append("Observation package ID does not match pinned Package")
+    if metadata["packageVersion"] != package["metadata"]["version"]:
+        errors.append("Observation package version does not match pinned Package")
+    if metadata["modelId"] != model["metadata"]["id"]:
+        errors.append("Observation Model ID does not match resolved Model")
+    if metadata["modelVersion"] != model["metadata"]["version"]:
+        errors.append("Observation Model version does not match resolved Model")
+    variables = {item["id"]: item for item in model["spec"]["variables"]}
+    quantity = variables.get(metadata["quantityId"])
+    if quantity is None:
+        errors.append("Observation quantityId does not exist in Model variables")
+    elif quantity["unit"] != metadata["unit"]:
+        errors.append("Observation unit does not match Model variable unit")
+    return errors
 
 
 def scientific_model_semantic_errors(model: dict[str, Any]) -> list[str]:
@@ -195,7 +259,7 @@ def validate_openapi_yaml() -> None:
                     f"{method} {path} must define responses")
     require(operation_count == 4,
             f"Expected 4 draft operations, found {operation_count}")
-    validate_openapi(document)
+    validate_openapi(document, cls=OpenAPIV31SpecValidator)
     print("PASS: OpenAPI 3.1 specification validation and structural assertions")
 
 
@@ -291,6 +355,8 @@ def validate_rc_reference_cases() -> None:
     require(parameters["source_voltage"]["unit"] == "V", "RC source unit must be V")
     require(parameters["resistance"]["unit"] == "ohm", "RC resistance unit must be ohm")
     require(parameters["capacitance"]["unit"] == "F", "RC capacitance unit must be F")
+    require(all(math.isfinite(value) for value in (source, resistance, capacitance, tau)),
+            "RC parameters and time constant must be finite")
     require(source > 0 and resistance > 0 and capacitance > 0,
             "RC parameters must be positive")
 
@@ -299,11 +365,16 @@ def validate_rc_reference_cases() -> None:
             "RC reference cases must contain multiple time samples")
     previous_vc = -math.inf
     previous_current = math.inf
+    previous_time = -math.inf
     for case in cases:
         case_id = case["case_id"]
         time_value = float(case["time"]["value"])
-        require(case["time"]["unit"] == "s" and time_value >= 0,
-                f"{case_id}: time must be non-negative seconds")
+        require(case["time"]["unit"] == "s" and math.isfinite(time_value)
+                and time_value >= 0,
+                f"{case_id}: time must be finite non-negative seconds")
+        require(time_value > previous_time,
+                f"{case_id}: RC sample times must be strictly increasing")
+        previous_time = time_value
         decay = math.exp(-time_value / tau)
         expected_values = {
             "capacitor_voltage": source * (1.0 - decay),
