@@ -631,7 +631,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
             JOIN {SCHEMA}.dlq_replay_principals p
               ON p.tenant_id=d.tenant_id AND p.dlq_item_id=d.dlq_item_id
             JOIN {SCHEMA}.jobs j
-              ON j.tenant_id=d.tenant_id AND j.job_id=d.job_id AND j.session_id=d.session_id
+              ON j.tenant_id=d.tenant_id AND j.job_id=d.job_id AND j.session_id=d.session_id AND j.status='dead_lettered'
            WHERE d.tenant_id=c->>'tenant_id' AND d.dlq_item_id=c->>'resource_id'
              AND d.job_id=c->>'job_id' AND d.session_id=c->>'session_id'
              AND d.lease_epoch=(c->>'epoch')::bigint
@@ -648,7 +648,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                  c->>'resource_type',c->>'resource_id',c->>'operation_id')
           ON CONFLICT(issuer,kid,nonce) DO NOTHING
           RETURNING true INTO inserted;
-          target_job:='replay:'||c->>'operation_id';
+          target_job:='replay:'||(c->>'operation_id');
           IF NOT coalesce(inserted,false) THEN
             SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
              WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
@@ -867,6 +867,32 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         return conn
 
     @classmethod
+    def replay_connection(cls):
+        dsn=make_conninfo(DSN,user=REPLAY,password=REPLAY_PASSWORD)
+        return psycopg.connect(dsn,autocommit=True)
+
+    def create_dlq_fixture(self, *, max_replays=1):
+        token=self.issue(action="worker.job.dead_letter")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.dead_letter_v2(%s,'POISON_PAYLOAD','non_retryable')",(token,)).fetchone()[0])
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.dlq_replay_principals VALUES ('tenant-a','op-a:dlq','replay-bot',true,%s)",
+            (max_replays,),
+        )
+
+    def issue_replay(self, **overrides):
+        base={"action":"worker.dlq.replay","aud":"stemlab-dlq-replay",
+              "resource_type":"dlq_item","resource_id":"op-a:dlq",
+              "owner":"replay-bot","sub":"replay-bot","epoch":7,
+              "operation_id":"replay-op-1"}
+        base.update(overrides)
+        return self.issue(**base)
+
+    @classmethod
     def dispatcher_connection(cls):
         dsn=make_conninfo(DSN,user=DISPATCHER,password=DISPATCHER_PASSWORD)
         return psycopg.connect(dsn,autocommit=True)
@@ -933,6 +959,60 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         ids=[r[0][1] for r in results if r]
         self.assertEqual(len(ids),2)
         self.assertEqual(len(set(ids)),2)
+
+    def test_dlq_replay_creates_new_job_and_is_idempotent_within_transaction(self):
+        self.create_dlq_fixture(max_replays=1)
+        token=self.issue_replay()
+        with self.replay_connection() as conn:
+            with conn.transaction():
+                first=conn.execute(f"SELECT * FROM {SCHEMA}.replay_dlq_v2(%s)",(token,)).fetchall()
+                second=conn.execute(f"SELECT * FROM {SCHEMA}.replay_dlq_v2(%s)",(token,)).fetchall()
+                self.assertEqual(first,second)
+                self.assertEqual(first,[("replay:replay-op-1","tenant-a","session-a",1)])
+        job=self.admin.execute(
+            f"SELECT status,owner,epoch,lease_expires_at,attempt_count,maximum_attempts,job_type FROM {SCHEMA}.jobs WHERE job_id='replay:replay-op-1'"
+        ).fetchone()
+        self.assertEqual(job,("queued",None,1,None,0,5,"generic"))
+        self.assertEqual(self.admin.execute(f"SELECT replay_count FROM {SCHEMA}.dlq_items WHERE dlq_item_id='op-a:dlq'").fetchone()[0],1)
+        self.assertEqual(self.admin.execute(f"SELECT to_state FROM {SCHEMA}.transitions WHERE operation_id='replay-op-1'").fetchone()[0],"queued")
+        self.assertEqual(self.admin.execute(f"SELECT event_type FROM {SCHEMA}.outbox WHERE operation_id='replay-op-1'").fetchone()[0],"job.replayed")
+        self.assertEqual(self.replay_once(token),[])
+
+    def test_dlq_replay_grant_and_replay_limit_are_enforced(self):
+        self.create_dlq_fixture(max_replays=1)
+        wrong_principal=self.issue_replay(owner="intruder",sub="intruder")
+        self.assertEqual(self.replay_once(wrong_principal),[])
+        token=self.issue_replay()
+        self.assertEqual(len(self.replay_once(token)),1)
+        fresh_nonce=self.issue_replay()
+        self.assertEqual(self.replay_once(fresh_nonce),[])
+        self.assertEqual(self.admin.execute(f"SELECT replay_count FROM {SCHEMA}.dlq_items WHERE dlq_item_id='op-a:dlq'").fetchone()[0],1)
+
+    def test_dlq_replay_wrong_item_is_denied(self):
+        self.create_dlq_fixture(max_replays=1)
+        wrong=self.issue_replay(resource_id="other-dlq-item")
+        self.assertEqual(self.replay_once(wrong),[])
+
+    def test_dlq_replay_failure_rolls_back_counter_job_events_and_nonce(self):
+        self.create_dlq_fixture(max_replays=2)
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.jobs(tenant_id,job_id,session_id,job_type,owner,epoch,status,lease_expires_at,available_at,attempt_count,maximum_attempts) "
+            "VALUES ('tenant-a','replay:replay-op-2','session-a','generic',NULL,1,'queued',NULL,clock_timestamp(),0,5)"
+        )
+        token=self.issue_replay(operation_id="replay-op-2")
+        self.assertEqual(self.replay_once(token),[])
+        self.assertEqual(self.admin.execute(f"SELECT replay_count FROM {SCHEMA}.dlq_items WHERE dlq_item_id='op-a:dlq'").fetchone()[0],0)
+        self.assertIsNone(self.admin.execute(f"SELECT 1 FROM {SCHEMA}.transitions WHERE operation_id='replay-op-2'").fetchone())
+        self.admin.execute(f"DELETE FROM {SCHEMA}.jobs WHERE job_id='replay:replay-op-2'")
+        self.assertEqual(len(self.replay_once(token)),1)
+
+    def test_replay_principal_has_no_direct_table_or_verifier_privileges(self):
+        with self.replay_connection() as conn:
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SELECT * FROM {SCHEMA}.dlq_items")
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SET ROLE {VERIFIER}")
+            self.assertEqual(conn.execute("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone(),(False,False))
 
     def test_outbox_dispatch_and_ack_are_exact_event_scoped(self):
         self.admin.execute(
