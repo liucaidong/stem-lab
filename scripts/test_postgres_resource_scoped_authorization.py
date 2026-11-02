@@ -48,12 +48,13 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute("GRANT EXECUTE ON FUNCTION pgsodium.crypto_sign_verify_detached(bytea,bytea,bytea) TO " + VERIFIER)
 
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.sessions (tenant_id text NOT NULL,session_id text NOT NULL,revision bigint NOT NULL,PRIMARY KEY(tenant_id,session_id))")
-        cls.admin.execute(f"CREATE TABLE {SCHEMA}.jobs (tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL CHECK(epoch>0),status text NOT NULL CHECK(status IN ('running','succeeded','failed')),lease_expires_at timestamptz NOT NULL,PRIMARY KEY(tenant_id,job_id),UNIQUE(tenant_id,job_id,session_id),FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.jobs (tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,job_type text NOT NULL DEFAULT 'generic',owner text,epoch bigint NOT NULL CHECK(epoch>0),status text NOT NULL CHECK(status IN ('queued','running','retry','succeeded','failed','dead_lettered')),lease_expires_at timestamptz,available_at timestamptz NOT NULL DEFAULT clock_timestamp(),attempt_count integer NOT NULL DEFAULT 1 CHECK(attempt_count>=0),maximum_attempts integer NOT NULL DEFAULT 5 CHECK(maximum_attempts BETWEEN 1 AND 100),last_error_code text,PRIMARY KEY(tenant_id,job_id),UNIQUE(tenant_id,job_id,session_id),FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id),CHECK(status<>'running' OR (owner IS NOT NULL AND lease_expires_at IS NOT NULL)))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.receipts (tenant_id text NOT NULL,operation_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,request_digest text NOT NULL,outcome text NOT NULL,PRIMARY KEY(tenant_id,operation_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.transitions (tenant_id text NOT NULL,transition_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,from_state text NOT NULL,to_state text NOT NULL,PRIMARY KEY(tenant_id,transition_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.outbox (tenant_id text NOT NULL,event_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,operation_id text NOT NULL,event_type text NOT NULL,PRIMARY KEY(tenant_id,event_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id))")
+        cls.admin.execute(f"CREATE TABLE {SCHEMA}.dlq_items (tenant_id text NOT NULL,dlq_item_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,terminal_reason text NOT NULL CHECK(terminal_reason IN ('max_attempts','non_retryable')),error_code text NOT NULL,attempt_count integer NOT NULL CHECK(attempt_count>0),lease_epoch bigint NOT NULL CHECK(lease_epoch>0),replay_count integer NOT NULL DEFAULT 0 CHECK(replay_count>=0),created_at timestamptz NOT NULL DEFAULT clock_timestamp(),PRIMARY KEY(tenant_id,dlq_item_id),FOREIGN KEY(tenant_id,job_id,session_id) REFERENCES {SCHEMA}.jobs(tenant_id,job_id,session_id)")
         cls.admin.execute(f"CREATE TABLE {SCHEMA}.nonce_ledger (issuer text NOT NULL,kid text NOT NULL,nonce text NOT NULL,token text NOT NULL,transaction_id xid8 NOT NULL,tenant_id text NOT NULL,job_id text NOT NULL,session_id text NOT NULL,owner text NOT NULL,epoch bigint NOT NULL,action text NOT NULL,resource_type text NOT NULL,resource_id text NOT NULL,operation_id text NOT NULL,PRIMARY KEY(issuer,kid,nonce))")
-        for table in ("sessions","jobs","receipts","transitions","outbox","nonce_ledger"):
+        for table in ("sessions","jobs","receipts","transitions","outbox","dlq_items","nonce_ledger"):
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} ENABLE ROW LEVEL SECURITY")
             cls.admin.execute(f"ALTER TABLE {SCHEMA}.{table} FORCE ROW LEVEL SECURITY")
 
@@ -62,9 +63,13 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE POLICY jobs_verifier_update ON {SCHEMA}.jobs FOR UPDATE TO {VERIFIER} USING(true) WITH CHECK(true)")
         cls.admin.execute(f"CREATE POLICY receipts_verifier_read ON {SCHEMA}.receipts FOR SELECT TO {VERIFIER} USING(true)")
         cls.admin.execute(f"CREATE POLICY nonce_verifier_access ON {SCHEMA}.nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY transitions_verifier_insert ON {SCHEMA}.transitions FOR INSERT TO {VERIFIER} WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY outbox_verifier_insert ON {SCHEMA}.outbox FOR INSERT TO {VERIFIER} WITH CHECK(true)")
+        cls.admin.execute(f"CREATE POLICY dlq_verifier_insert ON {SCHEMA}.dlq_items FOR INSERT TO {VERIFIER} WITH CHECK(true)")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs,{SCHEMA}.receipts TO {VERIFIER}")
-        cls.admin.execute(f"GRANT UPDATE(lease_expires_at) ON {SCHEMA}.jobs TO {VERIFIER}")
+        cls.admin.execute(f"GRANT UPDATE(status,lease_expires_at,owner,available_at,attempt_count,last_error_code,epoch) ON {SCHEMA}.jobs TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.nonce_ledger TO {VERIFIER}")
+        cls.admin.execute(f"GRANT INSERT ON {SCHEMA}.transitions,{SCHEMA}.outbox,{SCHEMA}.dlq_items TO {VERIFIER}")
 
         verify_sql = f"""
         CREATE FUNCTION {SCHEMA}.verify_v2(token text) RETURNS jsonb
@@ -139,7 +144,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              OR c->>'operation_id' IS DISTINCT FROM current_setting('app.resource_operation_id',true) THEN
             RETURN false;
           END IF;
-          IF c->>'action' IN ('worker.job.complete','worker.job.renew') THEN
+          IF c->>'action' IN ('worker.job.complete','worker.job.renew','worker.job.fail') THEN
             SELECT owner,epoch,lease_expires_at,status INTO po,pe,px,ps
               FROM {SCHEMA}.jobs
              WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id' AND session_id=c->>'session_id';
@@ -177,9 +182,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         DECLARE c jsonb; renewed_until timestamptz;
         BEGIN
           IF lease_seconds NOT BETWEEN 5 AND 3600 THEN RETURN NULL; END IF;
-          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN NULL; END IF;
           c:={SCHEMA}.verify_v2(token);
           IF c IS NULL OR c->>'action'<>'worker.job.renew' THEN RETURN NULL; END IF;
+          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN NULL; END IF;
           UPDATE {SCHEMA}.jobs
              SET lease_expires_at=clock_timestamp()+make_interval(secs=>lease_seconds)
            WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id'
@@ -195,6 +200,40 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(renew_sql)
         cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.renew_v2(text,integer) OWNER TO {VERIFIER}")
         cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.renew_v2(text,integer) FROM PUBLIC")
+
+        fail_sql = f"""
+        CREATE FUNCTION {SCHEMA}.fail_v2(token text)
+        RETURNS boolean
+        LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,{SCHEMA}
+        AS $fail$
+        DECLARE c jsonb;
+        BEGIN
+          c:={SCHEMA}.verify_v2(token);
+          IF c IS NULL OR c->>'action'<>'worker.job.fail' THEN RETURN false; END IF;
+          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN false; END IF;
+          UPDATE {SCHEMA}.jobs
+             SET status='failed'
+           WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id'
+             AND session_id=c->>'session_id' AND owner=c->>'owner'
+             AND epoch=(c->>'epoch')::bigint AND status='running'
+             AND lease_expires_at>clock_timestamp();
+          IF NOT FOUND THEN RAISE EXCEPTION 'lease fence changed during failure transition'; END IF;
+          INSERT INTO {SCHEMA}.transitions
+            (tenant_id,transition_id,job_id,session_id,operation_id,from_state,to_state)
+          VALUES(c->>'tenant_id',(c->>'operation_id')||':failed',c->>'job_id',
+                 c->>'session_id',c->>'operation_id','running','failed');
+          INSERT INTO {SCHEMA}.outbox
+            (tenant_id,event_id,job_id,session_id,operation_id,event_type)
+          VALUES(c->>'tenant_id',(c->>'operation_id')||':job.failed',c->>'job_id',
+                 c->>'session_id',c->>'operation_id','job.failed');
+          RETURN true;
+        EXCEPTION WHEN OTHERS THEN RETURN false;
+        END $fail$
+        """
+        cls.admin.execute(fail_sql)
+        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.fail_v2(text) OWNER TO {VERIFIER}")
+        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.fail_v2(text) FROM PUBLIC")
+
 
 
         allows_sql = f"""
@@ -270,6 +309,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.authorize_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.renew_v2(text,integer) TO {RUNTIME}")
+        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.fail_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT UPDATE(status) ON {SCHEMA}.jobs TO {RUNTIME}")
@@ -278,7 +318,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
         cls.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-a','session-a',4),('tenant-a','session-b',9),('tenant-b','session-x',1)")
         cls.admin.execute(
-            f"INSERT INTO {SCHEMA}.jobs VALUES "
+            f"INSERT INTO {SCHEMA}.jobs (tenant_id,job_id,session_id,owner,epoch,status,lease_expires_at) VALUES "
             "('tenant-a','job-a','session-a','worker-a',7,'running',clock_timestamp()+interval '5 minutes'),"
             "('tenant-a','job-b','session-b','worker-b',2,'running',clock_timestamp()+interval '5 minutes'),"
             "('tenant-b','job-x','session-x','worker-x',1,'running',clock_timestamp()+interval '5 minutes')"
@@ -295,10 +335,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.close()
 
     def setUp(self):
-        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET owner='worker-a',epoch=7,status='running',lease_expires_at=clock_timestamp()+interval '5 minutes' WHERE tenant_id='tenant-a' AND job_id='job-a'")
+        self.admin.execute(f"UPDATE {SCHEMA}.jobs SET owner='worker-a',epoch=7,status='running',lease_expires_at=clock_timestamp()+interval '5 minutes',job_type='generic',available_at=clock_timestamp(),attempt_count=1,maximum_attempts=5,last_error_code=NULL WHERE tenant_id='tenant-a' AND job_id='job-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.receipts WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a'")
+        self.admin.execute(f"DELETE FROM {SCHEMA}.dlq_items WHERE tenant_id='tenant-a'")
         self.admin.execute(f"DELETE FROM {SCHEMA}.nonce_ledger")
 
     @classmethod
@@ -466,6 +507,55 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         for change in cases:
             with self.subTest(change=change):
                 self.assertFalse(self.authorize_once(self.issue(**change)))
+
+    def test_fail_action_transitions_only_the_fenced_job(self):
+        token=self.issue(action="worker.job.fail")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"failed")
+        self.assertEqual(self.admin.execute(f"SELECT to_state FROM {SCHEMA}.transitions WHERE tenant_id='tenant-a' AND operation_id='op-a'").fetchone()[0],"failed")
+        self.assertEqual(self.admin.execute(f"SELECT event_type FROM {SCHEMA}.outbox WHERE tenant_id='tenant-a' AND operation_id='op-a'").fetchone()[0],"job.failed")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+
+    def test_fail_rolls_back_nonce_job_transition_and_outbox_together(self):
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','op-a:job.failed','job-a','session-a','op-a','preexisting')"
+        )
+        token=self.issue(action="worker.job.fail")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE job_id='job-a'").fetchone()[0],"running")
+        self.assertIsNone(self.admin.execute(f"SELECT 1 FROM {SCHEMA}.transitions WHERE operation_id='op-a'").fetchone())
+        self.admin.execute(f"DELETE FROM {SCHEMA}.outbox WHERE event_id='op-a:job.failed'")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+
+    def test_wrong_action_is_rejected_before_nonce_consumption(self):
+        token=self.issue(action="worker.job.complete")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.authorize_v2(%s)",(token,)).fetchone()[0])
 
     def test_renew_uses_database_clock_and_consumes_nonce(self):
         token=self.issue(action="worker.job.renew")
