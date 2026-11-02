@@ -73,6 +73,7 @@
 | [R03.26 Runtime Event Payload契约审阅](docs/architecture/R03.26-runtime-event-payload-contract-review.md) | 三种代表事件Payload Schema、Registry、Fixture和Consumer测试缺口 | v0.1；Schema/Fixture与CI Run #41/#42通过，Consumer测试待完成 |
 | [R03.27 PostgreSQL物理模型与RLS草案](docs/architecture/R03.27-postgresql-physical-data-model-and-rls-draft.md) | 物理表分组、复合租户约束、RLS上下文、事务与测试矩阵 | v0.1；候选设计，数据库Spike未执行 |
 | [R03.28 OpenAPI安全/幂等/分页审阅](docs/architecture/R03.28-openapi-security-idempotency-pagination-review.md) | JWT与资源授权、幂等、ETag、Cursor、错误模型与限流缺口 | v0.1；OpenAPI 0.3；规范验证及API语义断言Run #49通过 |
+| [R03.29 单位与量纲契约草案](docs/architecture/R03.29-unit-dimension-contract-draft.md) | SI核心单位Registry、量纲向量、Model/Observation语义和DC/RC映射 | v0.1；Draft，CI待验证，DEC-08仍OPEN |
 
 ### Contracts — 机器可读契约草案
 
@@ -83,7 +84,9 @@
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件通用信封结构 | Draft；元Schema与正样例已验证 |
 | [Runtime Event Payload Registry](contracts/events/README.md) | SessionStarted/ExecutionSucceeded/ObservationRecorded三种事件Payload Schema | Draft；脚本已接入，CI Run #41/#42通过 |
 | [Scientific Model Schema](contracts/scientific-model.schema.v1alpha1.json) | 模型参数、变量、方程引用、约束和求解器需求 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入 |
-| [Observation Schema](contracts/observation.schema.v1alpha1.json) | 观测来源、单位、仿真时间、质量和载荷引用 | Draft；本地元Schema/Fixture复核通过，完整语义待完成 |
+| [Observation Schema](contracts/observation.schema.v1alpha1.json) | 观测来源、单位、仿真时间、质量和载荷引用 | Draft；Schema与Package/Model/Quantity绑定语义正负断言通过Run #41/#42/#49 CI；量纲体系待完成 |
+| [Unit Registry Schema](contracts/units/unit-registry.schema.v1.json) | 单位登记结构、四维量纲向量、SI比例/偏移 | Draft；待Run #50 CI验证 |
+| [SI Core Unit Registry](contracts/units/si-unit-registry.v1.json) | V/A/ohm/W/F/s/dimensionless核心单位 | Draft；待Run #50 CI验证
 | [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.3；OpenAPI 3.1规范验证与API语义断言Run #49通过 |
 | [Contract Test Fixtures](contracts/examples/README.md) | Package/Event/Model/Observation样例及DC/RC参考算例 | CI Run #41/#42通过；全量版本锁定依赖回归完成 |
 | [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；自动算术检查已纳入脚本，科学签核待完成 |
