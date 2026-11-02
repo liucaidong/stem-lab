@@ -41,6 +41,7 @@
 | [R02.11 内容供给与质量治理](docs/product/R02.11-content-supply-and-quality-governance.md) | 内容生产生命周期、学科/教学/技术审核、许可和撤回 | v0.1设计草案 |
 | [R02.12 试点与客户运营](docs/product/R02.12-pilot-rollout-and-customer-operations.md) | 试点阶段、入驻培训、客户成功、支持分级和退出流程 | v0.1设计草案 |
 | [R02.13 产品战略与试点审计](docs/product/R02.13-product-strategy-and-pilot-audit.md) | R02全链路覆盖、一致性、产品冻结阻断项和阶段决策 | v0.1；有条件通过 |
+| [R02.14 DC Circuit参考算例](docs/product/R02.14-dc-circuit-reference-cases.md) | 理想串联电路计算样例、边界输入、I-V图语义和专家签核清单 | v0.1；未签核草案 |
 | [R02.1–R02.12 平台架构设计系列](docs/architecture/R02.1-R02.12-platform-architecture-series.md) | 总体架构、Model、Runtime、Package、Renderer、Authoring、Data、Learning、AI、Plugin和Infrastructure | v1.0设计基线 |
 
 ### R03 — 技术方案与架构
@@ -76,6 +77,7 @@
 | [Runtime Event Envelope Schema](contracts/runtime-event-envelope.schema.v1.json) | Runtime事件信封结构 | Draft；JSON语法已解析 |
 | [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API骨架 | Draft；尚未执行YAML/OpenAPI校验 |
 | [Contract Test Fixtures](contracts/examples/README.md) | Package正/负样例与Runtime Event样例 | 已保存；验证器尚未执行 |
+| [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；仅JSON语法待检 |
 
 ## 核心产品与架构决策
 
