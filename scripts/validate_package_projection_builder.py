@@ -104,6 +104,7 @@ def build_projection(manifest, catalog, source_manifest_digest, model_documents)
     edges = set()
     queue = []
     direct = []
+    direct_keys = set()
     spec = manifest["spec"]
     role_refs = [
         ("model", spec["model"]), ("scene", spec["scene"]),
@@ -131,6 +132,10 @@ def build_projection(manifest, catalog, source_manifest_digest, model_documents)
                 raise ProjectionError("RESOURCE_REF_NOT_FOUND", str(key))
             if entry["identity"]["digest"] != ref["digest"]:
                 raise ProjectionError("RESOURCE_DIGEST_MISMATCH", str(key))
+        direct_key = identity_key(entry["identity"])
+        if direct_key in direct_keys:
+            raise ProjectionError("DUPLICATE_DIRECT_REFERENCE", str(direct_key))
+        direct_keys.add(direct_key)
         direct.append(entry)
 
     # Validate Model expression references against the same pinned catalog.
@@ -140,14 +145,15 @@ def build_projection(manifest, catalog, source_manifest_digest, model_documents)
     model_doc = model_documents.get(model_ref["id"])
     if model_doc is None:
         raise ProjectionError("MODEL_EXPRESSION_REF_MISMATCH", "model document unavailable")
+    model_spec = model_doc.get("spec", model_doc)
     declared_exprs = []
-    for equation in model_doc.get("equations", []):
+    for equation in model_spec.get("equations", []):
         if "expressionRef" in equation:
             declared_exprs.append(equation["expressionRef"])
-    for constraint in model_doc.get("constraints", []):
+    for constraint in model_spec.get("constraints", []):
         if "expressionRef" in constraint:
             declared_exprs.append(constraint["expressionRef"])
-    declared_exprs.extend(model_doc.get("validationCases", []))
+    declared_exprs.extend(model_spec.get("validationCases", []))
     for ref in declared_exprs:
         key = ("expression", ref["id"], ref["version"])
         entry = entries.get(key)
@@ -250,6 +256,12 @@ def build_projection(manifest, catalog, source_manifest_digest, model_documents)
             "resource_id": node["resource_id"].split(":", 1)[-1],
             "version": node["version"], "digest": node["digest"]
         })
+    canonical_paths = [row["path"] for row in resource_rows]
+    if len(canonical_paths) != len(set(canonical_paths)):
+        raise ProjectionError("DUPLICATE_CANONICAL_PATH", "resource paths must be unique")
+    folded_paths = [path.casefold() for path in canonical_paths]
+    if len(folded_paths) != len(set(folded_paths)):
+        raise ProjectionError("CANONICAL_PATH_CASE_COLLISION", "case-folded resource paths must be unique")
     projection = {
         "projection_version": "1alpha1",
         "package": {"api_version": manifest["apiVersion"], "package_id": package["id"],
@@ -301,6 +313,9 @@ def main():
     expect("TRANSITIVE_DEPENDENCY_MISSING", lambda m, c: c["resources"][1]["dependencies"].append({"identity":{"resource_type":"dataset","resource_id":"missing-dataset","version":"1.0.0","digest":"sha256:"+"7"*64},"relation":"requires"}))
     expect("DEPENDENCY_CYCLE", lambda m, c: c["resources"][-1]["dependencies"].append({"identity":copy.deepcopy(c["resources"][0]["identity"]),"relation":"requires"}))
     expect("MODEL_EXPRESSION_REF_MISMATCH", lambda m, c: c["resources"][0]["dependencies"].clear())
+    expect("DUPLICATE_DIRECT_REFERENCE", lambda m, c: m["spec"]["instruments"].append(copy.deepcopy(m["spec"]["instruments"][0])))
+    expect("DUPLICATE_CANONICAL_PATH", lambda m, c: c["resources"][1].update(path=c["resources"][0]["path"]))
+    expect("CANONICAL_PATH_CASE_COLLISION", lambda m, c: c["resources"][1].update(path=c["resources"][0]["path"].upper()))
     try:
         build_projection(manifest, catalog, None, model_docs)
     except ProjectionError as exc:
@@ -309,7 +324,7 @@ def main():
     else:
         raise SystemExit("missing source digest was accepted")
 
-    print("PASS: Manifest + Catalog projection reference builder; Graph/Projection schemas; transitive closure; Model Expression binding; permutation invariance; 8 rejection cases")
+    print("PASS: Manifest + Catalog projection reference builder; Graph/Projection schemas; transitive closure; Model Expression binding; permutation invariance; 11 rejection cases")
     print("REFERENCE VALIDATOR ONLY: no production package ingestion, content-byte verification, network, signature or license enforcement")
 
 if __name__ == "__main__":
