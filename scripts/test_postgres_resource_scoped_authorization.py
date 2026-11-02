@@ -168,23 +168,28 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 ledger_tx xid8; ledger_token text;
         BEGIN
           c:={SCHEMA}.verify_v2(token);
-          IF c IS NULL OR c->>'aud'<>'{AUDIENCE}'
-             OR c->>'job_id' IS DISTINCT FROM current_setting('app.resource_job_id',true)
-             OR c->>'operation_id' IS DISTINCT FROM current_setting('app.resource_operation_id',true) THEN
-            RETURN false;
-          END IF;
+          IF c IS NULL THEN RAISE LOG 'authorize_v2 reject: verifier returned null'; RETURN false; END IF;
+          IF c->>'aud'<>'{AUDIENCE}' THEN RAISE LOG 'authorize_v2 reject: audience mismatch'; RETURN false; END IF;
+          IF c->>'job_id' IS DISTINCT FROM current_setting('app.resource_job_id',true) THEN
+            RAISE LOG 'authorize_v2 reject: job GUC mismatch'; RETURN false; END IF;
+          IF c->>'operation_id' IS DISTINCT FROM current_setting('app.resource_operation_id',true) THEN
+            RAISE LOG 'authorize_v2 reject: operation GUC mismatch'; RETURN false; END IF;
           IF c->>'action' IN ('worker.job.complete','worker.job.renew','worker.job.fail','worker.job.retry','worker.job.dead_letter') THEN
             SELECT owner,epoch,lease_expires_at,status INTO po,pe,px,ps
               FROM {SCHEMA}.jobs
              WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id' AND session_id=c->>'session_id';
             IF NOT FOUND OR po IS DISTINCT FROM c->>'owner' OR pe IS DISTINCT FROM (c->>'epoch')::bigint
-               OR ps IS DISTINCT FROM 'running' OR px IS NULL OR px<=clock_timestamp() THEN RETURN false; END IF;
+               OR ps IS DISTINCT FROM 'running' OR px IS NULL OR px<=clock_timestamp() THEN
+              RAISE LOG 'authorize_v2 reject: job fence found=%, owner=%, epoch=%, status=%, expiry=%',FOUND,po,pe,ps,px;
+              RETURN false;
+            END IF;
           ELSIF c->>'action'='worker.receipt.reconcile' THEN
             PERFORM 1 FROM {SCHEMA}.receipts
              WHERE tenant_id=c->>'tenant_id' AND operation_id=c->>'operation_id'
                AND job_id=c->>'job_id' AND session_id=c->>'session_id';
-            IF NOT FOUND THEN RETURN false; END IF;
+            IF NOT FOUND THEN RAISE LOG 'authorize_v2 reject: receipt missing'; RETURN false; END IF;
           ELSE
+            RAISE LOG 'authorize_v2 reject: unsupported action %',c->>'action';
             RETURN false;
           END IF;
           tx:=pg_current_xact_id();
@@ -195,8 +200,12 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
           ON CONFLICT(issuer,kid,nonce) DO NOTHING;
           SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
            WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
-          RETURN FOUND AND ledger_tx=tx AND ledger_token=token;
-        EXCEPTION WHEN OTHERS THEN RETURN false;
+          IF FOUND AND ledger_tx=tx AND ledger_token=token THEN RETURN true; END IF;
+          RAISE LOG 'authorize_v2 reject: nonce transaction/token mismatch';
+          RETURN false;
+        EXCEPTION WHEN OTHERS THEN
+          RAISE LOG 'authorize_v2 exception: %',SQLERRM;
+          RETURN false;
         END $authorize$
         """
         cls.admin.execute(authorize_sql)
