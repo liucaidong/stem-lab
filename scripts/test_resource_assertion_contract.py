@@ -16,6 +16,8 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[1]
 ASSERTION_PATH = ROOT / "contracts/worker-resource-assertion.schema.v2alpha1.json"
 LEASE_PATH = ROOT / "contracts/worker-job-lease.schema.v2alpha1.json"
+CLAIM_PATH = ROOT / "contracts/worker-claim-assignment.schema.v1alpha1.json"
+CLAIM_FIXTURE_PATH = ROOT / "contracts/examples/worker-claim-assignment.v1alpha1.valid.json"
 FIXTURE_PATH = ROOT / "contracts/examples/worker-resource-assertion.v2alpha1.valid.json"
 
 ACTIONS = {
@@ -72,9 +74,12 @@ def semantic_errors(claims: dict, *, max_lifetime: int = 120) -> list[str]:
 
 def main() -> None:
     assertion_schema, lease_schema = load(ASSERTION_PATH), load(LEASE_PATH)
+    claim_schema = load(CLAIM_PATH)
     jsonschema.Draft202012Validator.check_schema(assertion_schema)
     jsonschema.Draft202012Validator.check_schema(lease_schema)
+    jsonschema.Draft202012Validator.check_schema(claim_schema)
     assertion_validator = jsonschema.Draft202012Validator(assertion_schema)
+    claim_validator = jsonschema.Draft202012Validator(claim_schema)
     lease_validator = jsonschema.Draft202012Validator(
         lease_schema, format_checker=jsonschema.FormatChecker()
     )
@@ -120,6 +125,13 @@ def main() -> None:
         {**claims, "exp": claims["iat"] + 121}
     )
 
+    claim_fixture = load(CLAIM_FIXTURE_PATH)
+    assert not list(claim_validator.iter_errors(claim_fixture))
+    for forbidden in ("tenant_id", "job_id"):
+        forbidden_claim = copy.deepcopy(claim_fixture)
+        forbidden_claim[forbidden] = "must-not-be-caller-selected"
+        assert list(claim_validator.iter_errors(forbidden_claim)), f"claim must not accept {forbidden}"
+
     lease = {
         "tenant_id": "tenant-a", "job_id": "job-1", "session_id": "session-1",
         "owner": "worker-1", "epoch": 7,
@@ -131,8 +143,7 @@ def main() -> None:
         case.pop(field)
         assert list(lease_validator.iter_errors(case)), f"lease missing {field} must fail"
 
-    print("PASS: v2alpha1 closed assertion claims, Job/Session/Owner/Epoch/Operation binding, "
-          "action allowlist, time semantics, nonce shape, and versioned JobLease schema")
+    print("PASS: v2alpha1 resource assertion, v2alpha1 JobLease, and tenant-neutral v1alpha1 Claim assignment schemas")
 
 
 if __name__ == "__main__":
