@@ -151,3 +151,6 @@ R03.46 Run #187进一步通过真实Package Projection Builder输出到JCS/CBOR�
 - `scripts/validate_package_content_integrity.py`校验源Manifest精确字节Digest/size/身份、资源bytes Digest/size、路径、Catalog依赖引用和Snapshot Digest。
 - Catalog Snapshot Digest使用显式字段投影、排序和domain separation；当前JCS仅为candidate profile，不代表DEC-27决策。
 - 不含生产文件摄取、对象存储、外部URL解析、归档解压、SSRF防护、签名或License Enforcement。详见 [R03.47](../docs/architecture/R03.47-resource-content-integrity-and-catalog-snapshot-pinning.md)。
+
+
+R03.47 [Run #193](https://github.com/liucaidong/stem-lab/actions/runs/41428620138)通过：精确Source Manifest字节校验、两个嵌入资源Fixture字节校验、Catalog Snapshot JCS candidate pin、顺序不变性及8项拒绝案例。仍是Fixture-only harness，不是生产摄取/对象存储/外部资源解析。
