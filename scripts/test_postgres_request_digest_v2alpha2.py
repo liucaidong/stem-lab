@@ -11,6 +11,8 @@ SQL=(ROOT/"sql/request-digest-v2alpha2.sql").read_text().replace("__SCHEMA__",SC
 def main() -> None:
     conn=psycopg.connect(DSN,autocommit=True)
     try:
+        encoding=conn.execute('SHOW server_encoding').fetchone()[0]
+        assert encoding.upper()=='UTF8', f'PostgreSQL database encoding must be UTF8, got {encoding}'
         for statement in SQL.split("\n\n"):
             if statement.strip(): conn.execute(statement)
         envelope=VECTOR["envelope"]
@@ -24,6 +26,15 @@ def main() -> None:
         call=f"SELECT {SCHEMA}.assert_request_digest_v2alpha2(%s::jsonb,%s::jsonb)"
         result=conn.execute(call,(json.dumps(claim,ensure_ascii=False),json.dumps(args,ensure_ascii=False))).fetchone()[0]
         assert result is True, "PostgreSQL digest differs from Python golden vector"
+        unicode_vector=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.unicode.golden.json").read_text())
+        unicode_envelope=unicode_vector["envelope"]
+        unicode_claim=dict(unicode_envelope); unicode_claim.pop("operation_arguments")
+        unicode_claim.update({"v":2,"iss":"test-issuer","kid":"test-key","sub":"worker-a",
+            "aud":"stemlab-worker-store","owner":"worker-a","epoch":7,
+            "request_digest":unicode_vector["request_digest"],"iat":1800000000,"exp":1800000060,
+            "nonce":"abcdef0123456789abcdef0123456789"})
+        unicode_result=conn.execute(call,(json.dumps(unicode_claim,ensure_ascii=False),json.dumps(unicode_envelope["operation_arguments"],ensure_ascii=False))).fetchone()[0]
+        assert unicode_result is True, "PostgreSQL Unicode golden vector differs from Python"
         changed=dict(args); changed["result_ref"]="artifact:tampered"
         result=conn.execute(call,(json.dumps(claim,ensure_ascii=False),json.dumps(changed,ensure_ascii=False))).fetchone()[0]
         assert result is False, "PostgreSQL accepted tampered business argument"
@@ -40,6 +51,7 @@ def main() -> None:
             else: raise AssertionError(f"PostgreSQL accepted invalid arguments: {bad_args!r}")
         print("PostgreSQL Request Digest v2alpha2 golden vector: PASS")
         print("PostgreSQL tampered-argument rejection: PASS")
+        print("PostgreSQL Unicode golden vector: PASS")
         print("PostgreSQL object-key order invariance: PASS")
         print("PostgreSQL invalid-argument rejection: PASS")
     finally:

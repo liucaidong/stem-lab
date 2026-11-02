@@ -1,0 +1,11 @@
+{
+ "vector_id":"complete-unicode-001",
+ "envelope":{
+  "contract_version":"2alpha2","action":"worker.job.complete","tenant_id":"租户-A",
+  "job_id":"job-1","session_id":"session-1","resource_type":"job","resource_id":"job-1",
+  "operation_id":"op-02","idempotency_key":"idem-02",
+  "operation_arguments":{"expected_session_revision":8,"result_ref":"artifact:é"}
+ },
+ "canonical_bytes_base64url":"U1RFTUxBQi1SRVFVRVNULURJR0VTVAB2MmFscGhhMgBTAAAABzJhbHBoYTJTAAAAE3dvcmtlci5qb2IuY29tcGxldGVTAAAACOenn-aIty1BUwAAAAVqb2ItMVMAAAAJc2Vzc2lvbi0xUwAAAANqb2JTAAAABWpvYi0xUwAAAAVvcC0wMlMAAAAHaWRlbS0wMkoAAABGTwAAAAIAAAAZZXhwZWN0ZWRfc2Vzc2lvbl9yZXZpc2lvbkkAAAABOAAAAApyZXN1bHRfcmVmUwAAAAthcnRpZmFjdDrDqQ",
+ "request_digest":"sha256:243aea0dffa48a1e50d345366f70121460f1ca42e108595b97e428bbe68bce51"
+}

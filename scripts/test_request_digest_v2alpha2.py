@@ -5,6 +5,7 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from runtime.request_digest_v2alpha2 import RequestEncodingError, canonical_request_bytes, canonical_bytes_base64url, parse_json_strict, request_digest
 VECTOR=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.golden.json").read_text())
+UNICODE_VECTOR=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.unicode.golden.json").read_text())
 SCHEMA=json.loads((ROOT/"contracts/worker-resource-assertion.schema.v2alpha2.json").read_text())
 VALID_ASSERTION=json.loads((ROOT/"contracts/examples/worker-resource-assertion.v2alpha2.valid.json").read_text())
 INVALID_ASSERTIONS=json.loads((ROOT/"contracts/examples/worker-resource-assertion.v2alpha2.invalid.json").read_text())
@@ -20,12 +21,19 @@ class RequestDigestTests(unittest.TestCase):
         e=VECTOR["envelope"]
         self.assertEqual(canonical_bytes_base64url(e),VECTOR["canonical_bytes_base64url"])
         self.assertEqual(request_digest(e),VECTOR["request_digest"])
+    def test_unicode_golden_vector(self):
+        e=UNICODE_VECTOR['envelope']
+        self.assertEqual(canonical_bytes_base64url(e),UNICODE_VECTOR['canonical_bytes_base64url'])
+        self.assertEqual(request_digest(e),UNICODE_VECTOR['request_digest'])
     def test_object_key_order_is_independent(self):
         e=dict(VECTOR["envelope"]); e["operation_arguments"]={"result_ref":"artifact:abc","expected_session_revision":7}
         self.assertEqual(canonical_request_bytes(e),canonical_request_bytes(VECTOR["envelope"]))
     def test_array_order_is_significant(self):
         from runtime.request_digest_v2alpha2 import _value
         self.assertNotEqual(_value(["a","b"]),_value(["b","a"]))
+    def test_unpaired_surrogate_rejected(self):
+        from runtime.request_digest_v2alpha2 import _value
+        with self.assertRaises(RequestEncodingError): _value('\ud800')
     def test_duplicate_json_key_rejected(self):
         with self.assertRaises(RequestEncodingError): parse_json_strict('{"a":1,"a":2}')
     def test_float_and_nonfinite_rejected(self):
