@@ -41,3 +41,6 @@ jobs:
 
       - name: Validate Package Resource Graph and dependency closure
         run: python scripts/validate_package_resource_graph.py
+
+      - name: Validate canonical manifest serialization candidates
+        run: python scripts/validate_package_canonical_manifest.py
