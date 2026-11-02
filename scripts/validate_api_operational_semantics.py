@@ -69,7 +69,7 @@ def main():
   except SemanticError as e: actual=e.code
   if actual!=case["error"]: raise SystemExit(case["case_id"]+": expected "+case["error"]+", got "+actual)
  auth=f["security_cases"]["authorization"]
- try: authorize(**{k:auth["valid"][k] for k in ("tenant_id","resource_tenant_id","actor_roles","required_role")})
+ try: authorize(auth["valid"]["tenant_id"],auth["valid"]["resource_tenant_id"],auth["valid"]["actor_roles"],auth["valid"]["required_role"])
  except SemanticError as e: raise SystemExit("valid authorization rejected "+e.code)
  for case in auth["invalid"]:
   try: authorize(case["tenant_id"],case["resource_tenant_id"],case["actor_roles"],case["required_role"]); actual="ACCEPTED"
