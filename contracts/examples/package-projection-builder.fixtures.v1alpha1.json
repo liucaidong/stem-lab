@@ -114,7 +114,8 @@
             },
             "relation": "requires"
           }
-        ]
+        ],
+        "path": "models/dc-model.json"
       },
       {
         "identity": {
@@ -128,7 +129,8 @@
         "media_type": "application/json",
         "size_bytes": 1024,
         "license_id": "internal",
-        "dependencies": []
+        "dependencies": [],
+        "path": "scenes/dc-scene.json"
       },
       {
         "identity": {
@@ -142,7 +144,8 @@
         "media_type": "application/json",
         "size_bytes": 512,
         "license_id": "internal",
-        "dependencies": []
+        "dependencies": [],
+        "path": "instruments/voltmeter.json"
       },
       {
         "identity": {
@@ -156,7 +159,8 @@
         "media_type": "application/json",
         "size_bytes": 768,
         "license_id": "internal",
-        "dependencies": []
+        "dependencies": [],
+        "path": "workflows/dc-workflow.json"
       },
       {
         "identity": {
@@ -170,7 +174,8 @@
         "media_type": "application/json",
         "size_bytes": 384,
         "license_id": "internal",
-        "dependencies": []
+        "dependencies": [],
+        "path": "rubrics/science.json"
       },
       {
         "identity": {
@@ -184,7 +189,8 @@
         "media_type": "image/svg+xml",
         "size_bytes": 256,
         "license_id": "CC-BY-4.0",
-        "dependencies": []
+        "dependencies": [],
+        "path": "assets/diagram.svg"
       },
       {
         "identity": {
@@ -198,7 +204,8 @@
         "media_type": "application/json",
         "size_bytes": 256,
         "license_id": "internal",
-        "dependencies": []
+        "dependencies": [],
+        "path": "expressions/ohms-law.json"
       }
     ]
   }
