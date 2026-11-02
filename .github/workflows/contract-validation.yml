@@ -60,6 +60,14 @@ jobs:
       - name: Validate canonical manifest serialization candidates
         run: python scripts/validate_package_canonical_manifest.py
 
+      - name: Set up Node.js for independent canonicalization vectors
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify canonicalization golden vectors independently in Node.js
+        run: node scripts/verify_package_canonicalization_golden_vectors.mjs
+
       - name: Validate Package signature, provenance, and license governance
         run: python scripts/validate_package_governance.py
 
