@@ -243,8 +243,8 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         BEGIN
           c:={SCHEMA}.verify_v2(token);
           IF c IS NULL OR c->>'action'<>'worker.job.retry'
-             OR delay_seconds NOT BETWEEN 1 AND 86400
-             OR error_code !~ '^[A-Z][A-Z0-9_]{0,63}
+             OR delay_seconds IS NULL OR delay_seconds NOT BETWEEN 1 AND 86400
+             OR error_code IS NULL OR error_code !~ '^[A-Z][A-Z0-9_]{0,63}
 
 
 
@@ -713,7 +713,7 @@ if __name__=="__main__":
         RETURNS boolean
         LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,{SCHEMA}
         AS $dead$
-        DECLARE c jsonb; current_attempt integer;
+        DECLARE c jsonb; current_attempt integer; max_attempts integer;
         BEGIN
           c:={SCHEMA}.verify_v2(token);
           IF c IS NULL OR c->>'action'<>'worker.job.dead_letter'
@@ -1155,12 +1155,12 @@ if __name__=="__main__":
 
              OR terminal_reason NOT IN ('max_attempts','non_retryable') THEN RETURN false; END IF;
           IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN false; END IF;
-          SELECT attempt_count INTO current_attempt FROM {SCHEMA}.jobs
+          SELECT attempt_count,maximum_attempts INTO current_attempt,max_attempts FROM {SCHEMA}.jobs
            WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id'
              AND session_id=c->>'session_id' AND owner=c->>'owner'
              AND epoch=(c->>'epoch')::bigint AND status='running'
              AND lease_expires_at>clock_timestamp();
-          IF NOT FOUND OR (terminal_reason='max_attempts' AND current_attempt < 5) THEN
+          IF NOT FOUND OR (terminal_reason='max_attempts' AND current_attempt < max_attempts) THEN
             RAISE EXCEPTION 'dead-letter predicate rejected';
           END IF;
           UPDATE {SCHEMA}.jobs
