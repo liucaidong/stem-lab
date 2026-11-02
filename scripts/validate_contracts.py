@@ -527,6 +527,56 @@ def close(actual: float, expected: float, label: str) -> None:
             f"{label}: expected {expected}, got {actual}")
 
 
+def dc_input_semantic_errors(source, resistors, units_by_id):
+    errors = []
+    try:
+        voltage = float(source["value"])
+    except (KeyError, TypeError, ValueError):
+        errors.append("source voltage must be numeric")
+        voltage = math.nan
+    source_unit = units_by_id.get(source.get("unit"))
+    if source_unit is None or "electric-potential" not in source_unit["quantity_kinds"]:
+        errors.append("source voltage unit must be electric-potential")
+    if not math.isfinite(voltage) or voltage < 0:
+        errors.append("source voltage must be finite and non-negative")
+    if not isinstance(resistors, list) or not resistors:
+        errors.append("at least one resistor is required")
+        return errors
+    ids = [item.get("id") for item in resistors]
+    if any(not isinstance(item, str) or not item for item in ids):
+        errors.append("resistor IDs must be non-empty strings")
+    if len(ids) != len(set(ids)):
+        errors.append("resistor IDs must be unique")
+    values = []
+    for resistor in resistors:
+        unit = units_by_id.get(resistor.get("unit"))
+        if unit is None or "electric-resistance" not in unit["quantity_kinds"]:
+            errors.append("resistance unit must be electric-resistance")
+        try:
+            resistance = float(resistor["value"])
+        except (KeyError, TypeError, ValueError):
+            errors.append("resistance must be numeric")
+            continue
+        if not math.isfinite(resistance) or resistance <= 0:
+            errors.append("resistance must be finite and positive")
+        values.append(resistance)
+    if values and all(math.isfinite(value) and value > 0 for value in values):
+        try:
+            equivalent = math.fsum(values)
+        except OverflowError:
+            errors.append("equivalent resistance overflow")
+            return errors
+        if not math.isfinite(equivalent):
+            errors.append("equivalent resistance overflow")
+        elif math.isfinite(voltage) and voltage >= 0:
+            current = voltage / equivalent
+            if not math.isfinite(current):
+                errors.append("calculated current overflow")
+            elif not math.isfinite(voltage * current):
+                errors.append("calculated source power overflow")
+    return errors
+
+
 def validate_dc_reference_cases() -> None:
     unit_registry = load_json("contracts/units/si-unit-registry.v1.json")
     units_by_id = {item["unit_id"]: item for item in unit_registry["units"]}
@@ -540,6 +590,62 @@ def validate_dc_reference_cases() -> None:
     cases = document.get("cases")
     require(isinstance(cases, list) and len(cases) >= 1,
             "DC reference cases must be a non-empty list")
+    require(not dc_input_semantic_errors(
+        cases[0]["source_voltage"], cases[0]["resistors"], units_by_id
+    ), "DC positive input must pass semantic validation")
+    invalid_cases = []
+    zero_resistance = copy.deepcopy(cases[0])
+    zero_resistance["resistors"][0]["value"] = 0
+    invalid_cases.append((zero_resistance, "zero resistance"))
+    negative_resistance = copy.deepcopy(cases[0])
+    negative_resistance["resistors"][0]["value"] = -1
+    invalid_cases.append((negative_resistance, "negative resistance"))
+    negative_source = copy.deepcopy(cases[0])
+    negative_source["source_voltage"]["value"] = -1
+    invalid_cases.append((negative_source, "negative source voltage"))
+    empty_topology = copy.deepcopy(cases[0])
+    empty_topology["resistors"] = []
+    invalid_cases.append((empty_topology, "empty topology"))
+    duplicate_ids = copy.deepcopy(cases[0])
+    duplicate_ids["resistors"][1]["id"] = duplicate_ids["resistors"][0]["id"]
+    invalid_cases.append((duplicate_ids, "duplicate resistor IDs"))
+    incompatible_unit = copy.deepcopy(cases[0])
+    incompatible_unit["resistors"][0]["unit"] = "V"
+    invalid_cases.append((incompatible_unit, "incompatible resistance unit"))
+    for invalid_case, label in invalid_cases:
+        require(bool(dc_input_semantic_errors(
+            invalid_case["source_voltage"], invalid_case["resistors"], units_by_id
+        )), f"DC {label} must be rejected")
+    nan_source = copy.deepcopy(cases[0])
+    nan_source["source_voltage"]["value"] = float("nan")
+    require(bool(dc_input_semantic_errors(
+        nan_source["source_voltage"], nan_source["resistors"], units_by_id
+    )), "DC NaN source voltage must be rejected")
+    infinite_resistance = copy.deepcopy(cases[0])
+    infinite_resistance["resistors"][0]["value"] = float("inf")
+    require(bool(dc_input_semantic_errors(
+        infinite_resistance["source_voltage"], infinite_resistance["resistors"], units_by_id
+    )), "DC infinite resistance must be rejected")
+    resistance_overflow = copy.deepcopy(cases[0])
+    resistance_overflow["resistors"] = [
+        {"id": "R-overflow-a", "value": 1e308, "unit": "ohm"},
+        {"id": "R-overflow-b", "value": 1e308, "unit": "ohm"}
+    ]
+    require(bool(dc_input_semantic_errors(
+        resistance_overflow["source_voltage"], resistance_overflow["resistors"], units_by_id
+    )), "DC equivalent resistance overflow must be rejected")
+    current_overflow = copy.deepcopy(cases[0])
+    current_overflow["source_voltage"]["value"] = 1e308
+    current_overflow["resistors"] = [{"id": "R-tiny", "value": 1e-308, "unit": "ohm"}]
+    require(bool(dc_input_semantic_errors(
+        current_overflow["source_voltage"], current_overflow["resistors"], units_by_id
+    )), "DC calculated current overflow must be rejected")
+    power_overflow = copy.deepcopy(cases[0])
+    power_overflow["source_voltage"]["value"] = 1e308
+    power_overflow["resistors"] = [{"id": "R-one", "value": 1, "unit": "ohm"}]
+    require(bool(dc_input_semantic_errors(
+        power_overflow["source_voltage"], power_overflow["resistors"], units_by_id
+    )), "DC calculated power overflow must be rejected")
 
     for case in cases:
         case_id = case["case_id"]
@@ -563,8 +669,10 @@ def validate_dc_reference_cases() -> None:
                     f"{case_id}: resistance must be finite and positive")
             resistance_values.append(resistance)
 
-        equivalent = sum(resistance_values)
+        equivalent = math.fsum(resistance_values)
+        require(math.isfinite(equivalent), f'{case_id}: equivalent resistance overflow')
         current = voltage / equivalent
+        require(math.isfinite(current), f'{case_id}: current overflow')
         expected = case["expected"]
         close(float(expected["equivalent_resistance"]["value"]), equivalent,
               f"{case_id} equivalent resistance")
@@ -590,6 +698,7 @@ def validate_dc_reference_cases() -> None:
         close(drop_sum, voltage, f"{case_id} KVL")
 
         source_power = voltage * current
+        require(math.isfinite(source_power), f'{case_id}: source power overflow')
         resistor_power = sum(current * current * resistance
                              for resistance in resistance_values)
         close(float(expected["source_power"]["value"]), source_power,
@@ -598,7 +707,7 @@ def validate_dc_reference_cases() -> None:
                               f"{case_id} source power", units_by_id)
         close(source_power, resistor_power, f"{case_id} power balance")
 
-    print(f"PASS: DC reference arithmetic, Ohm's law, KVL and power balance ({len(cases)} cases)")
+    print(f"PASS: DC positive/negative input semantics, numeric bounds, Ohm's law, KVL and power balance ({len(cases)} cases)")
 
 
 def validate_rc_reference_cases() -> None:
