@@ -346,3 +346,11 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [Cryptographic verifier options and deployment decision](docs/architecture/R03.52.7.1.1-cryptographic-verifier-options.md)
 - Current result: pgcrypto HMAC is a passing reference spike; Ed25519 asymmetric verification is preferred. pgsodium is the leading database-side candidate where supported; a DB-exclusive trusted gateway is the fallback candidate for managed providers without the extension.
 - Production algorithm/provider remains NOT_SELECTED pending DEC-14 deployment topology and DEC-03 runtime constraints.
+
+
+### R03.52.7.1.2 — PostgreSQL Ed25519 Verifier Spike
+
+- [PostgreSQL 17.11 + pgsodium 3.1.11 build](scripts/docker/pgsodium-postgres17.Dockerfile)
+- [Ed25519 verifier adversarial harness](scripts/test_postgres_tenant_ed25519_verifier.py)
+- Contract validation adds an isolated `tenant-ed25519-verifier` job. The issuer private key remains in the test process; PostgreSQL stores only public keys.
+- CI result: pending at time of this README update. Production provider compatibility and named security review remain open.
