@@ -778,7 +778,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT UPDATE(status) ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions TO {RUNTIME}")
-        cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.receipts,{SCHEMA}.transitions,{SCHEMA}.outbox TO {RUNTIME}")
+        cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.receipts,{SCHEMA}.transitions TO {RUNTIME}")
+        cls.admin.execute(f"GRANT SELECT(tenant_id,event_id,job_id,session_id,operation_id,event_type,payload) ON {SCHEMA}.outbox TO {RUNTIME}")
+        cls.admin.execute(f"GRANT INSERT(tenant_id,event_id,job_id,session_id,operation_id,event_type,payload) ON {SCHEMA}.outbox TO {RUNTIME}")
 
         cls.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-a','session-a',4),('tenant-a','session-b',9),('tenant-b','session-x',1)")
         cls.admin.execute(
@@ -1449,6 +1451,14 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
 
     def test_signed_operation_id_must_match_transaction_scope(self):
         self.assertFalse(self.authorize_once(self.issue(operation_id="other-operation")))
+
+    def test_runtime_cannot_forge_outbox_dispatch_state(self):
+        with self.runtime_connection() as conn:
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(
+                    f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type,dispatch_state) "
+                    "VALUES ('tenant-a','forged-event','job-a','session-a','forged-op','forged','dispatched')"
+                )
 
     def test_runtime_cannot_read_keys_or_nonce_ledger_or_assume_verifier(self):
         with self.runtime_connection() as conn:
