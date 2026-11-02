@@ -330,4 +330,12 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [Architecture Decision Proposal (DEC-04 / DEC-19)](docs/architecture/R03.52.6-architecture-decision-proposal.md)
 - [Verification Report](docs/architecture/R03.52.6-verification-report.md)
 - Reference verifier: runtime/tenant_context.py; tests: scripts/test_tenant_context.py and scripts/test_tenant_rls_trust_boundary_postgres.py.
-- The GUC spoof test is an expected vulnerability reproduction, not evidence of secure tenant isolation. DEC-04/19 remain OPEN; Product Code Freeze ACTIVE; P3.17 OUT OF SCOPE; production_ready=false.
+- DEC-04/19 target architecture ACCEPTED; production implementation gates remain OPEN. Product Code Freeze ACTIVE; P3.17 OUT OF SCOPE; production_ready=false.
+
+
+### R03.52.7.1 — PostgreSQL Database-Side Tenant Assertion Verifier Spike
+
+- [Verifier spike design and security boundary](docs/architecture/R03.52.7.1-database-tenant-assertion-verifier-spike.md)
+- [PostgreSQL adversarial verifier test](scripts/test_postgres_tenant_assertion_verifier.py)
+- The spike verifies HMAC assertions inside a SECURITY DEFINER function called by RLS. The test key is ephemeral and shared with the fixture issuer; production issuer, key custody, replay consumption, asymmetric verification and Store integration are not implemented.
+- CI evidence is pending; no production security claim is made.
