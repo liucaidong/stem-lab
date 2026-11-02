@@ -160,7 +160,7 @@ paths:
         - in: query
           name: cursor
           required: false
-          description: Opaque continuation cursor returned by the previous page.
+          description: Opaque server-issued continuation cursor. Snapshot binding, integrity protection, and expiry semantics are specified in R03.28 and remain open ADR decisions.
           schema:
             type: string
             minLength: 1
@@ -329,7 +329,7 @@ components:
         value_ref:
           type: object
           additionalProperties: false
-          required: [uri, digest]
+          required: [uri, digest, size_bytes]
           properties:
             uri:
               type: string
@@ -342,6 +342,7 @@ components:
           minLength: 1
         simulation_time:
           type: number
+          minimum: 0
         simulation_time_unit:
           type: string
           minLength: 1
