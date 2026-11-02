@@ -1,0 +1,226 @@
+-- Disposable conformance helper for Request Digest v2alpha2.
+-- Replace __SCHEMA__ with a unique schema before executing this file.
+CREATE SCHEMA IF NOT EXISTS __SCHEMA__;
+
+CREATE OR REPLACE FUNCTION __SCHEMA__.encode_typed_value_v2alpha2(p_value jsonb, p_depth integer DEFAULT 0)
+RETURNS bytea
+LANGUAGE plpgsql
+IMMUTABLE
+STRICT
+SET search_path = pg_catalog
+AS $fn$
+DECLARE
+  kind text;
+  raw bytea;
+  result bytea;
+  item record;
+  item_count integer;
+  n numeric;
+BEGIN
+  IF p_depth > 32 THEN RAISE EXCEPTION 'request digest nesting depth exceeded'; END IF;
+  kind := pg_catalog.jsonb_typeof(p_value);
+
+  IF kind = 'null' THEN RETURN decode('4e','hex'); END IF;
+  IF kind = 'boolean' THEN
+    IF p_value = 'true'::jsonb THEN RETURN decode('54','hex'); END IF;
+    RETURN decode('46','hex');
+  END IF;
+  IF kind = 'number' THEN
+    n := (p_value::text)::numeric;
+    IF pg_catalog.scale(n) <> 0 OR n < -9223372036854775808 OR n > 9223372036854775807 THEN
+      RAISE EXCEPTION 'request digest integer must be signed int64';
+    END IF;
+    raw := pg_catalog.convert_to(pg_catalog.trunc(n)::text, 'UTF8');
+    IF pg_catalog.octet_length(raw) > 2147483647 THEN RAISE EXCEPTION 'integer encoding too long'; END IF;
+    RETURN decode('49','hex') || pg_catalog.int4send(pg_catalog.octet_length(raw)) || raw;
+  END IF;
+  IF kind = 'string' THEN
+    raw := pg_catalog.convert_to(p_value #>> '{}', 'UTF8');
+    IF pg_catalog.octet_length(raw) > 2147483647 THEN RAISE EXCEPTION 'string encoding too long'; END IF;
+    RETURN decode('53','hex') || pg_catalog.int4send(pg_catalog.octet_length(raw)) || raw;
+  END IF;
+  IF kind = 'array' THEN
+    item_count := pg_catalog.jsonb_array_length(p_value);
+    IF item_count > 4096 THEN RAISE EXCEPTION 'request digest array too large'; END IF;
+    result := decode('41','hex') || pg_catalog.int4send(item_count);
+    FOR item IN
+      SELECT value FROM pg_catalog.jsonb_array_elements(p_value) WITH ORDINALITY AS a(value, ord)
+      ORDER BY ord
+    LOOP
+      result := result || __SCHEMA__.encode_typed_value_v2alpha2(item.value, p_depth + 1);
+    END LOOP;
+    RETURN result;
+  END IF;
+  IF kind = 'object' THEN
+    item_count := pg_catalog.jsonb_object_length(p_value);
+    IF item_count > 4096 THEN RAISE EXCEPTION 'request digest object too large'; END IF;
+    result := decode('4f','hex') || pg_catalog.int4send(item_count);
+    FOR item IN
+      SELECT key, value FROM pg_catalog.jsonb_each(p_value)
+      ORDER BY pg_catalog.convert_to(key, 'UTF8')
+    LOOP
+      raw := pg_catalog.convert_to(item.key, 'UTF8');
+      IF pg_catalog.octet_length(raw) > 2147483647 THEN RAISE EXCEPTION 'object key too long'; END IF;
+      result := result || pg_catalog.int4send(pg_catalog.octet_length(raw)) || raw
+                       || __SCHEMA__.encode_typed_value_v2alpha2(item.value, p_depth + 1);
+    END LOOP;
+    RETURN result;
+  END IF;
+  RAISE EXCEPTION 'unsupported JSON value type for request digest';
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION __SCHEMA__.request_digest_v2alpha2(p_envelope jsonb)
+RETURNS text
+LANGUAGE plpgsql
+IMMUTABLE
+STRICT
+SET search_path = pg_catalog
+AS $fn$
+DECLARE
+  required_fields text[] := ARRAY[
+    'contract_version','action','tenant_id','job_id','session_id','resource_type',
+    'resource_id','operation_id','idempotency_key','operation_arguments'
+  ];
+  field_name text;
+  field_value text;
+  action_name text;
+  resource_name text;
+  args jsonb;
+  expected_args text[];
+  raw bytea;
+  canonical bytea;
+  encoded_args bytea;
+BEGIN
+  IF pg_catalog.jsonb_typeof(p_envelope) IS DISTINCT FROM 'object'
+     OR NOT (p_envelope ?& required_fields)
+     OR (p_envelope - required_fields) <> '{}'::jsonb THEN
+    RAISE EXCEPTION 'request envelope fields missing or unknown';
+  END IF;
+
+  action_name := p_envelope->>'action';
+  resource_name := p_envelope->>'resource_type';
+  IF p_envelope->>'contract_version' <> '2alpha2' THEN RAISE EXCEPTION 'unsupported request contract version'; END IF;
+
+  expected_args := CASE action_name
+    WHEN 'worker.job.renew' THEN ARRAY['lease_seconds']
+    WHEN 'worker.job.complete' THEN ARRAY['expected_session_revision','result_ref']
+    WHEN 'worker.job.fail' THEN ARRAY['error_code','retryable','retry_delay_micros','safe_message']
+    WHEN 'worker.job.retry' THEN ARRAY['delay_seconds','error_code']
+    WHEN 'worker.job.dead_letter' THEN ARRAY['error_code','terminal_reason']
+    WHEN 'worker.dlq.replay' THEN ARRAY[]::text[]
+    WHEN 'worker.outbox.dispatch' THEN ARRAY['lease_seconds']
+    WHEN 'worker.receipt.reconcile' THEN ARRAY[]::text[]
+    WHEN 'worker.outbox.ack' THEN ARRAY[]::text[]
+    ELSE NULL
+  END;
+  IF expected_args IS NULL THEN RAISE EXCEPTION 'unsupported request action'; END IF;
+
+  IF resource_name <> CASE
+    WHEN action_name LIKE 'worker.job.%' THEN 'job'
+    WHEN action_name = 'worker.dlq.replay' THEN 'dlq_item'
+    WHEN action_name IN ('worker.outbox.dispatch','worker.outbox.ack') THEN 'outbox_event'
+    WHEN action_name = 'worker.receipt.reconcile' THEN 'receipt'
+  END THEN RAISE EXCEPTION 'action/resource type mismatch'; END IF;
+  IF action_name LIKE 'worker.job.%' AND p_envelope->>'resource_id' <> p_envelope->>'job_id' THEN
+    RAISE EXCEPTION 'Job resource id mismatch';
+  END IF;
+  IF action_name = 'worker.receipt.reconcile' AND p_envelope->>'resource_id' <> p_envelope->>'operation_id' THEN
+    RAISE EXCEPTION 'Receipt resource id mismatch';
+  END IF;
+
+  FOREACH field_name IN ARRAY required_fields[1:9] LOOP
+    IF pg_catalog.jsonb_typeof(p_envelope->field_name) IS DISTINCT FROM 'string' THEN
+      RAISE EXCEPTION 'request envelope identity field must be string: %', field_name;
+    END IF;
+    field_value := p_envelope->>field_name;
+    IF field_value = '' OR pg_catalog.length(field_value) > 256
+       OR field_value ~ '[[:cntrl:]]' THEN
+      RAISE EXCEPTION 'invalid request envelope identity field: %', field_name;
+    END IF;
+  END LOOP;
+
+  args := p_envelope->'operation_arguments';
+  IF pg_catalog.jsonb_typeof(args) IS DISTINCT FROM 'object'
+     OR pg_catalog.jsonb_object_length(args) <> pg_catalog.cardinality(expected_args)
+     OR (pg_catalog.cardinality(expected_args) > 0 AND NOT (args ?& expected_args)) THEN
+    RAISE EXCEPTION 'operation arguments missing or unknown for action %', action_name;
+  END IF;
+
+  IF action_name IN ('worker.job.renew','worker.outbox.dispatch') THEN
+    IF pg_catalog.jsonb_typeof(args->'lease_seconds') <> 'number'
+       OR pg_catalog.scale((args->>'lease_seconds')::numeric) <> 0
+       OR (args->>'lease_seconds')::numeric NOT BETWEEN 5 AND 3600 THEN RAISE EXCEPTION 'invalid lease_seconds'; END IF;
+  ELSIF action_name = 'worker.job.complete' THEN
+    IF pg_catalog.jsonb_typeof(args->'expected_session_revision') <> 'number'
+       OR pg_catalog.scale((args->>'expected_session_revision')::numeric) <> 0
+       OR (args->>'expected_session_revision')::numeric < 0
+       OR pg_catalog.jsonb_typeof(args->'result_ref') <> 'string'
+       OR args->>'result_ref' = '' THEN RAISE EXCEPTION 'invalid complete arguments'; END IF;
+  ELSIF action_name = 'worker.job.fail' THEN
+    IF pg_catalog.jsonb_typeof(args->'error_code') <> 'string'
+       OR args->>'error_code' !~ '^[A-Z][A-Z0-9_]{0,63}$'
+       OR pg_catalog.jsonb_typeof(args->'retryable') <> 'boolean'
+       OR pg_catalog.jsonb_typeof(args->'retry_delay_micros') <> 'number'
+       OR pg_catalog.scale((args->>'retry_delay_micros')::numeric) <> 0
+       OR (args->>'retry_delay_micros')::numeric < 0
+       OR pg_catalog.jsonb_typeof(args->'safe_message') <> 'string' THEN RAISE EXCEPTION 'invalid fail arguments'; END IF;
+  ELSIF action_name = 'worker.job.retry' THEN
+    IF pg_catalog.jsonb_typeof(args->'delay_seconds') <> 'number'
+       OR pg_catalog.scale((args->>'delay_seconds')::numeric) <> 0
+       OR (args->>'delay_seconds')::numeric NOT BETWEEN 1 AND 86400
+       OR pg_catalog.jsonb_typeof(args->'error_code') <> 'string'
+       OR args->>'error_code' !~ '^[A-Z][A-Z0-9_]{0,63}$' THEN RAISE EXCEPTION 'invalid retry arguments'; END IF;
+  ELSIF action_name = 'worker.job.dead_letter' THEN
+    IF pg_catalog.jsonb_typeof(args->'error_code') <> 'string'
+       OR args->>'error_code' !~ '^[A-Z][A-Z0-9_]{0,63}$'
+       OR pg_catalog.jsonb_typeof(args->'terminal_reason') <> 'string'
+       OR args->>'terminal_reason' NOT IN ('max_attempts','non_retryable') THEN RAISE EXCEPTION 'invalid dead-letter arguments'; END IF;
+  END IF;
+
+  canonical := decode('5354454d4c41422d524551554553542d444947455354007632616c7068613200','hex');
+  FOREACH field_name IN ARRAY required_fields[1:9] LOOP
+    field_value := p_envelope->>field_name;
+    raw := pg_catalog.convert_to(field_value,'UTF8');
+    IF pg_catalog.octet_length(raw) > 2147483647 THEN RAISE EXCEPTION 'request field too long'; END IF;
+    canonical := canonical || decode('53','hex') || pg_catalog.int4send(pg_catalog.octet_length(raw)) || raw;
+  END LOOP;
+  encoded_args := __SCHEMA__.encode_typed_value_v2alpha2(args,0);
+  canonical := canonical || decode('4a','hex') || pg_catalog.int4send(pg_catalog.octet_length(encoded_args)) || encoded_args;
+  RETURN 'sha256:' || pg_catalog.encode(pg_catalog.sha256(canonical),'hex');
+END
+$fn$;
+
+CREATE OR REPLACE FUNCTION __SCHEMA__.assert_request_digest_v2alpha2(p_claim jsonb, p_operation_arguments jsonb)
+RETURNS boolean
+LANGUAGE plpgsql
+IMMUTABLE
+STRICT
+SET search_path = pg_catalog
+AS $fn$
+DECLARE
+  envelope jsonb;
+  calculated text;
+BEGIN
+  IF pg_catalog.jsonb_typeof(p_claim) IS DISTINCT FROM 'object'
+     OR p_claim->>'contract_version' <> '2alpha2'
+     OR pg_catalog.jsonb_typeof(p_claim->'request_digest') IS DISTINCT FROM 'string'
+     OR p_claim->>'request_digest' !~ '^sha256:[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'invalid v2alpha2 digest claim';
+  END IF;
+  envelope := pg_catalog.jsonb_build_object(
+    'contract_version',p_claim->'contract_version',
+    'action',p_claim->'action',
+    'tenant_id',p_claim->'tenant_id',
+    'job_id',p_claim->'job_id',
+    'session_id',p_claim->'session_id',
+    'resource_type',p_claim->'resource_type',
+    'resource_id',p_claim->'resource_id',
+    'operation_id',p_claim->'operation_id',
+    'idempotency_key',p_claim->'idempotency_key',
+    'operation_arguments',p_operation_arguments
+  );
+  calculated := __SCHEMA__.request_digest_v2alpha2(envelope);
+  RETURN calculated = p_claim->>'request_digest';
+END
+$fn$;

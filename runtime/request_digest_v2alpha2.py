@@ -27,7 +27,7 @@ ID_RE = re.compile(r"^[^\x00-\x1f\x7f]{1,256}$")
 class RequestEncodingError(ValueError): pass
 
 def _u32(n: int) -> bytes:
-    if not 0 <= n <= 0xffffffff: raise RequestEncodingError("length/count out of range")
+    if not 0 <= n <= 0x7fffffff: raise RequestEncodingError("length/count out of range")
     return struct.pack(">I", n)
 
 def _lp(raw: bytes) -> bytes: return _u32(len(raw)) + raw
