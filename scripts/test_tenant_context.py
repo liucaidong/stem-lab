@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from runtime.tenant_context import TenantContextError, verify_tenant_assertion
+from runtime.tenant_context import (TenantContextError, verify_tenant_assertion,\n                                    assert_job_tenant_binding)
 
 KEY = b"reference-only-test-key-material-32-bytes-minimum!!"
 
@@ -76,6 +76,18 @@ class TenantContextTests(unittest.TestCase):
             self.verify(token(exp=1300))
         with self.assertRaises(TenantContextError):
             self.verify(token(extra="not-allowed"))
+
+    def test_persisted_job_tenant_and_resource_binding(self):
+        context = self.verify()
+        assert_job_tenant_binding(context, persisted_tenant_id="tenant-a",
+                                  job_id="job-1", payload_tenant_id="tenant-a")
+        with self.assertRaises(TenantContextError):
+            assert_job_tenant_binding(context, persisted_tenant_id="tenant-b", job_id="job-1")
+        with self.assertRaises(TenantContextError):
+            assert_job_tenant_binding(context, persisted_tenant_id="tenant-a", job_id="job-2")
+        with self.assertRaises(TenantContextError):
+            assert_job_tenant_binding(context, persisted_tenant_id="tenant-a",
+                                      job_id="job-1", payload_tenant_id="tenant-b")
 
     def test_malformed_and_weak_key_are_rejected(self):
         with self.assertRaises(TenantContextError):
