@@ -4,7 +4,7 @@
 
 ## 当前项目状态
 
-- 文档阶段：R01竞品研究、R02产品定义、R03技术架构基线已形成第一轮可审阅文档。
+- 文档阶段：R01竞品研究、R02产品定义、R03技术架构及跨文档审计已形成第一轮可审阅文档。
 - 审计结论：**条件通过（文档基线）**，不是代码审计或生产就绪结论。
 - 代码策略：P3.17及新代码实现继续冻结，直至用户明确解除冻结并按阻断项逐项关闭。
 - 唯一目标仓库：liucaidong/stem-lab；默认分支main。
@@ -27,6 +27,11 @@
 |---|---|---|
 | [R02 产品需求基线](docs/product/R02-product-requirements-baseline.md) | 愿景、角色、旅程、信息架构、功能清单、MVP和验收 | v1.0草案 |
 | [R02.1 产品愿景与定位](docs/product/R02.1-product-vision-positioning.md) | 愿景、定位、价值主张、战略边界、成功指标与待决策事项 | v0.1；草案 |
+| [R02.2 用户角色与用户旅程](docs/product/R02.2-personas-jtbd-user-journeys.md) | Personas、JTBD、学生/教师/作者/管理员旅程与研究计划 | v0.1；待访谈验证 |
+| [R02.3 产品需求规格说明书](docs/product/R02.3-product-requirements-specification.md) | FR需求、业务规则、异常流程、质量属性和验收基线 | v0.1；PRD草案 |
+| [R02.4 产品功能树与Capability Map](docs/product/R02.4-product-capability-map.md) | L0-L2能力地图、角色矩阵、能力与技术模块映射 | v0.1 |
+| [R02.5 教学MVP范围与发布门禁](docs/product/R02.5-mvp-scope-acceptance-and-release-gates.md) | DC Circuit教学MVP、E2E验收、质量指标与发布门禁 | v0.1 |
+| [R02.6 需求追踪与产品审计](docs/product/R02.6-requirements-traceability-and-audit.md) | 需求—用户价值—能力—架构—验收追踪及R02审计 | v0.1；有条件通过 |
 | [R02.1–R02.12 平台架构设计系列](docs/architecture/R02.1-R02.12-platform-architecture-series.md) | 总体架构、科学模型、Runtime、Package、Renderer、Authoring、Data、Learning、AI、Plugin、Infrastructure、MVP蓝图 | v1.0设计基线 |
 
 ### R03 — 技术方案与架构
@@ -34,6 +39,7 @@
 |---|---|---|
 | [R03 技术架构基线](docs/architecture/R03-technical-architecture-baseline.md) | 模块边界、领域模型、Package、API、Runtime、Worker、安全、部署 | v1.0设计基线 |
 | [R03.5 跨文档审计与ADR](docs/architecture/R03.5-cross-document-audit-and-adr.md) | 一致性审计、架构决策、阻断项和开发门槛 | v0.1 |
+| [R03.6 产品—技术架构一致性审计](docs/architecture/R03.6-product-architecture-consistency-audit.md) | R02/R03追踪、架构歧义、技术冻结清单和Implementation-Ready门槛 | v0.1；未达Implementation-Ready |
 
 ## 核心产品与架构决策
 
