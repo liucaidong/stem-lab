@@ -63,7 +63,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"CREATE POLICY receipts_verifier_read ON {SCHEMA}.receipts FOR SELECT TO {VERIFIER} USING(true)")
         cls.admin.execute(f"CREATE POLICY nonce_verifier_access ON {SCHEMA}.nonce_ledger FOR ALL TO {VERIFIER} USING(true) WITH CHECK(true)")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.sessions,{SCHEMA}.jobs,{SCHEMA}.receipts TO {VERIFIER}")
-        cls.admin.execute(f"GRANT UPDATE(lease_expires_at) ON {SCHEMA}.jobs TO {VERIFIER}")
+        cls.admin.execute(f"GRANT UPDATE(status,lease_expires_at) ON {SCHEMA}.jobs TO {VERIFIER}")
         cls.admin.execute(f"GRANT SELECT,INSERT ON {SCHEMA}.nonce_ledger TO {VERIFIER}")
 
         verify_sql = f"""
@@ -139,7 +139,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
              OR c->>'operation_id' IS DISTINCT FROM current_setting('app.resource_operation_id',true) THEN
             RETURN false;
           END IF;
-          IF c->>'action' IN ('worker.job.complete','worker.job.renew') THEN
+          IF c->>'action' IN ('worker.job.complete','worker.job.renew','worker.job.fail') THEN
             SELECT owner,epoch,lease_expires_at,status INTO po,pe,px,ps
               FROM {SCHEMA}.jobs
              WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id' AND session_id=c->>'session_id';
@@ -195,6 +195,32 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(renew_sql)
         cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.renew_v2(text,integer) OWNER TO {VERIFIER}")
         cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.renew_v2(text,integer) FROM PUBLIC")
+
+        fail_sql = f"""
+        CREATE FUNCTION {SCHEMA}.fail_v2(token text)
+        RETURNS boolean
+        LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,{SCHEMA}
+        AS $fail$
+        DECLARE c jsonb;
+        BEGIN
+          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN false; END IF;
+          c:={SCHEMA}.verify_v2(token);
+          IF c IS NULL OR c->>'action'<>'worker.job.fail' THEN RETURN false; END IF;
+          UPDATE {SCHEMA}.jobs
+             SET status='failed'
+           WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id'
+             AND session_id=c->>'session_id' AND owner=c->>'owner'
+             AND epoch=(c->>'epoch')::bigint AND status='running'
+             AND lease_expires_at>clock_timestamp();
+          IF NOT FOUND THEN RAISE EXCEPTION 'lease fence changed during failure transition'; END IF;
+          RETURN true;
+        EXCEPTION WHEN OTHERS THEN RETURN false;
+        END $fail$
+        """
+        cls.admin.execute(fail_sql)
+        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.fail_v2(text) OWNER TO {VERIFIER}")
+        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.fail_v2(text) FROM PUBLIC")
+
 
 
         allows_sql = f"""
@@ -270,6 +296,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.authorize_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.renew_v2(text,integer) TO {RUNTIME}")
+        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.fail_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT SELECT ON {SCHEMA}.jobs TO {RUNTIME}")
         cls.admin.execute(f"GRANT UPDATE(status) ON {SCHEMA}.jobs TO {RUNTIME}")
@@ -466,6 +493,22 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         for change in cases:
             with self.subTest(change=change):
                 self.assertFalse(self.authorize_once(self.issue(**change)))
+
+    def test_fail_action_transitions_only_the_fenced_job(self):
+        token=self.issue(action="worker.job.fail")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
+        self.assertEqual(self.admin.execute(f"SELECT status FROM {SCHEMA}.jobs WHERE tenant_id='tenant-a' AND job_id='job-a'").fetchone()[0],"failed")
+        with self.runtime_connection() as conn:
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion',%s,true)",(token,))
+                conn.execute("SELECT set_config('app.resource_job_id','job-a',true)")
+                conn.execute("SELECT set_config('app.resource_operation_id','op-a',true)")
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.fail_v2(%s)",(token,)).fetchone()[0])
 
     def test_renew_uses_database_clock_and_consumes_nonce(self):
         token=self.issue(action="worker.job.renew")
