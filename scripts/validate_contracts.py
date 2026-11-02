@@ -260,7 +260,77 @@ def validate_openapi_yaml() -> None:
     require(operation_count == 4,
             f"Expected 4 draft operations, found {operation_count}")
     validate_openapi(document, cls=OpenAPIV31SpecValidator)
-    print("PASS: OpenAPI 3.1 specification validation and structural assertions")
+    validate_openapi_semantics(document)
+    print("PASS: OpenAPI 3.1 specification and API security/idempotency/pagination semantics")
+
+
+def validate_openapi_semantics(document: dict[str, Any]) -> None:
+    require({"bearerAuth": []} in document.get("security", []),
+            "All API operations must inherit bearerAuth security")
+    components = document["components"]
+    schemas = components["schemas"]
+    for schema_name in ("CreateSessionRequest", "RuntimeCommandRequest"):
+        properties = schemas[schema_name].get("properties", {})
+        require("tenant_id" not in properties and "actor_id" not in properties,
+                f"{schema_name} must not accept client-supplied tenant/actor identity")
+
+    paths = document["paths"]
+    create_session = paths["/sessions"]["post"]
+    submit_command = paths["/sessions/{session_id}/commands"]["post"]
+    for operation_name, operation in (
+        ("createSession", create_session),
+        ("submitRuntimeCommand", submit_command),
+    ):
+        header_names = {
+            item.get("name")
+            for item in operation.get("parameters", [])
+            if item.get("in") == "header"
+        }
+        require("Idempotency-Key" in header_names,
+                f"{operation_name} must require Idempotency-Key")
+    command_headers = {
+        item.get("name")
+        for item in submit_command.get("parameters", [])
+        if item.get("in") == "header"
+    }
+    require("If-Match" in command_headers,
+            "submitRuntimeCommand must require If-Match")
+    for path, path_item in paths.items():
+        for method, operation in path_item.items():
+            if method.lower() not in {
+                "get", "post", "put", "patch", "delete", "options", "head", "trace"
+            }:
+                continue
+            require("401" in operation["responses"],
+                    f"{method.upper()} {path} must declare 401")
+    observation_list = paths["/sessions/{session_id}/observations"]["get"]
+    limit = next(
+        (item for item in observation_list.get("parameters", [])
+         if item.get("name") == "limit" and item.get("in") == "query"),
+        None,
+    )
+    require(limit is not None, "Observation listing must define limit")
+    limit_schema = limit["schema"]
+    require(limit_schema.get("minimum") == 1
+            and limit_schema.get("maximum") == 500
+            and limit_schema.get("default") == 100,
+            "Observation limit must remain bounded to 1..500 with default 100")
+    observation_schema = schemas["Observation"]
+    require(observation_schema["properties"]["simulation_time"].get("minimum") == 0,
+            "Observation simulation_time must be non-negative")
+    value_ref = observation_schema["properties"]["value_ref"]
+    require("size_bytes" in value_ref.get("required", [])
+            and value_ref["properties"]["size_bytes"].get("type") == "integer"
+            and value_ref["properties"]["size_bytes"].get("minimum") == 0,
+            "Observation value_ref must require non-negative size_bytes")
+    require("error" in schemas["ErrorEnvelope"].get("required", [])
+            and "code" in schemas["Error"].get("required", [])
+            and "correlation_id" in schemas["Error"].get("required", []),
+            "Error responses must use a machine-readable correlated ErrorEnvelope")
+    retry_after = components["responses"]["TooManyRequests"].get("headers", {}).get("Retry-After")
+    require(retry_after is not None,
+            "429 TooManyRequests must expose Retry-After")
+    print("PASS: API security, identity boundary, idempotency, optimistic concurrency, pagination bounds, and error semantics")
 
 
 def close(actual: float, expected: float, label: str) -> None:
