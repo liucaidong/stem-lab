@@ -457,6 +457,142 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.claim_next_v1(text,integer) OWNER TO {VERIFIER}")
         cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.claim_next_v1(text,integer) FROM PUBLIC")
 
+
+        dispatch_sql = f"""
+        CREATE FUNCTION {SCHEMA}.dispatch_outbox_v2(token text, lease_seconds integer)
+        RETURNS TABLE(claimed_event_id text,event_type text,event_payload jsonb,
+                      claimed_dispatch_epoch bigint,claimed_lease_expires_at timestamptz)
+        LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,{SCHEMA}
+        AS $dispatch$
+        DECLARE c jsonb; tx xid8; ledger_tx xid8; ledger_token text; inserted boolean;
+                state text; current_owner text; current_epoch bigint; current_expiry timestamptz;
+                op text; event_kind text; body jsonb; new_epoch bigint; new_expiry timestamptz;
+        BEGIN
+          c:={SCHEMA}.verify_v2(token);
+          IF c IS NULL OR c->>'aud'<>'stemlab-outbox-dispatch'
+             OR c->>'action'<>'worker.outbox.dispatch'
+             OR c->>'resource_type'<>'outbox_event'
+             OR c->>'owner' IS DISTINCT FROM c->>'sub'
+             OR lease_seconds IS NULL OR lease_seconds NOT BETWEEN 5 AND 3600 THEN RETURN; END IF;
+          IF NOT EXISTS(SELECT 1 FROM {SCHEMA}.outbox_dispatchers
+                        WHERE dispatcher_id=c->>'sub' AND enabled) THEN RETURN; END IF;
+          SELECT dispatch_state,dispatch_owner,dispatch_epoch,dispatch_lease_expires_at,
+                 operation_id,event_type,payload
+            INTO state,current_owner,current_epoch,current_expiry,op,event_kind,body
+            FROM {SCHEMA}.outbox
+           WHERE tenant_id=c->>'tenant_id' AND event_id=c->>'resource_id'
+             AND job_id=c->>'job_id' AND session_id=c->>'session_id'
+             AND operation_id=c->>'operation_id'
+           FOR UPDATE;
+          IF NOT FOUND THEN RETURN; END IF;
+          tx:=pg_current_xact_id();
+          inserted:=false;
+          INSERT INTO {SCHEMA}.nonce_ledger
+            (issuer,kid,nonce,token,transaction_id,tenant_id,job_id,session_id,owner,epoch,
+             action,resource_type,resource_id,operation_id)
+          VALUES(c->>'iss',c->>'kid',c->>'nonce',token,tx,c->>'tenant_id',c->>'job_id',
+                 c->>'session_id',c->>'owner',(c->>'epoch')::bigint,c->>'action',
+                 c->>'resource_type',c->>'resource_id',c->>'operation_id')
+          ON CONFLICT(issuer,kid,nonce) DO NOTHING
+          RETURNING true INTO inserted;
+          IF NOT coalesce(inserted,false) THEN
+            SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
+             WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+            IF ledger_tx=tx AND ledger_token=token AND state='dispatching'
+               AND current_owner=c->>'sub' AND current_epoch=(c->>'epoch')::bigint+1
+               AND current_expiry>clock_timestamp() THEN
+              claimed_event_id:=c->>'resource_id'; event_type:=event_kind; event_payload:=body;
+              claimed_dispatch_epoch:=current_epoch; claimed_lease_expires_at:=current_expiry;
+              RETURN NEXT;
+            END IF;
+            RETURN;
+          END IF;
+          IF current_epoch<>(c->>'epoch')::bigint
+             OR NOT(state='pending' OR (state='dispatching' AND current_expiry<=clock_timestamp())) THEN
+            RAISE EXCEPTION 'Outbox dispatch state or epoch fence rejected';
+          END IF;
+          UPDATE {SCHEMA}.outbox
+             SET dispatch_state='dispatching',dispatch_owner=c->>'sub',
+                 dispatch_epoch=dispatch_epoch+1,
+                 dispatch_lease_expires_at=clock_timestamp()+make_interval(secs=>lease_seconds),
+                 dispatch_attempts=dispatch_attempts+1
+           WHERE tenant_id=c->>'tenant_id' AND event_id=c->>'resource_id'
+             AND job_id=c->>'job_id' AND session_id=c->>'session_id'
+             AND operation_id=c->>'operation_id' AND dispatch_epoch=(c->>'epoch')::bigint
+             AND (dispatch_state='pending' OR
+                  (dispatch_state='dispatching' AND dispatch_lease_expires_at<=clock_timestamp()))
+          RETURNING dispatch_epoch,dispatch_lease_expires_at INTO new_epoch,new_expiry;
+          IF NOT FOUND THEN RAISE EXCEPTION 'Outbox dispatch fence changed'; END IF;
+          claimed_event_id:=c->>'resource_id'; event_type:=event_kind; event_payload:=body;
+          claimed_dispatch_epoch:=new_epoch; claimed_lease_expires_at:=new_expiry;
+          RETURN NEXT;
+        EXCEPTION WHEN OTHERS THEN RETURN;
+        END $dispatch$
+        """
+        cls.admin.execute(dispatch_sql)
+        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.dispatch_outbox_v2(text,integer) OWNER TO {VERIFIER}")
+        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.dispatch_outbox_v2(text,integer) FROM PUBLIC")
+
+        ack_sql = f"""
+        CREATE FUNCTION {SCHEMA}.ack_outbox_v2(token text)
+        RETURNS boolean
+        LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,{SCHEMA}
+        AS $ack$
+        DECLARE c jsonb; tx xid8; ledger_tx xid8; ledger_token text; inserted boolean;
+                state text; current_owner text; current_epoch bigint; current_expiry timestamptz;
+        BEGIN
+          c:={SCHEMA}.verify_v2(token);
+          IF c IS NULL OR c->>'aud'<>'stemlab-outbox-dispatch'
+             OR c->>'action'<>'worker.outbox.ack'
+             OR c->>'resource_type'<>'outbox_event'
+             OR c->>'owner' IS DISTINCT FROM c->>'sub' THEN RETURN false; END IF;
+          IF NOT EXISTS(SELECT 1 FROM {SCHEMA}.outbox_dispatchers
+                        WHERE dispatcher_id=c->>'sub' AND enabled) THEN RETURN false; END IF;
+          SELECT dispatch_state,dispatch_owner,dispatch_epoch,dispatch_lease_expires_at
+            INTO state,current_owner,current_epoch,current_expiry
+            FROM {SCHEMA}.outbox
+           WHERE tenant_id=c->>'tenant_id' AND event_id=c->>'resource_id'
+             AND job_id=c->>'job_id' AND session_id=c->>'session_id'
+             AND operation_id=c->>'operation_id'
+           FOR UPDATE;
+          IF NOT FOUND THEN RETURN false; END IF;
+          tx:=pg_current_xact_id();
+          inserted:=false;
+          INSERT INTO {SCHEMA}.nonce_ledger
+            (issuer,kid,nonce,token,transaction_id,tenant_id,job_id,session_id,owner,epoch,
+             action,resource_type,resource_id,operation_id)
+          VALUES(c->>'iss',c->>'kid',c->>'nonce',token,tx,c->>'tenant_id',c->>'job_id',
+                 c->>'session_id',c->>'owner',(c->>'epoch')::bigint,c->>'action',
+                 c->>'resource_type',c->>'resource_id',c->>'operation_id')
+          ON CONFLICT(issuer,kid,nonce) DO NOTHING
+          RETURNING true INTO inserted;
+          IF NOT coalesce(inserted,false) THEN
+            SELECT transaction_id,token INTO ledger_tx,ledger_token FROM {SCHEMA}.nonce_ledger
+             WHERE issuer=c->>'iss' AND kid=c->>'kid' AND nonce=c->>'nonce';
+            RETURN ledger_tx=tx AND ledger_token=token AND state='dispatched'
+                   AND current_owner=c->>'sub' AND current_epoch=(c->>'epoch')::bigint;
+          END IF;
+          IF state<>'dispatching' OR current_owner IS DISTINCT FROM c->>'sub'
+             OR current_epoch<>(c->>'epoch')::bigint OR current_expiry<=clock_timestamp() THEN
+            RAISE EXCEPTION 'Outbox acknowledgement owner, epoch or lease fence rejected';
+          END IF;
+          UPDATE {SCHEMA}.outbox
+             SET dispatch_state='dispatched',dispatched_at=clock_timestamp(),
+                 dispatch_lease_expires_at=NULL
+           WHERE tenant_id=c->>'tenant_id' AND event_id=c->>'resource_id'
+             AND job_id=c->>'job_id' AND session_id=c->>'session_id'
+             AND operation_id=c->>'operation_id' AND dispatch_state='dispatching'
+             AND dispatch_owner=c->>'sub' AND dispatch_epoch=(c->>'epoch')::bigint
+             AND dispatch_lease_expires_at>clock_timestamp();
+          IF NOT FOUND THEN RAISE EXCEPTION 'Outbox acknowledgement fence changed'; END IF;
+          RETURN true;
+        EXCEPTION WHEN OTHERS THEN RETURN false;
+        END $ack$
+        """
+        cls.admin.execute(ack_sql)
+        cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.ack_outbox_v2(text) OWNER TO {VERIFIER}")
+        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.ack_outbox_v2(text) FROM PUBLIC")
+
         allows_sql = f"""
         CREATE FUNCTION {SCHEMA}.assertion_allows(
           token text,row_tenant text,row_job text,row_session text,
@@ -530,6 +666,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.authorize_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.claim_next_v1(text,integer) TO {RUNTIME}")
+        cls.admin.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {DISPATCHER}")
+        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.dispatch_outbox_v2(text,integer) TO {DISPATCHER}")
+        cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.ack_outbox_v2(text) TO {DISPATCHER}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.renew_v2(text,integer) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.fail_v2(text) TO {RUNTIME}")
         cls.admin.execute(f"GRANT EXECUTE ON FUNCTION {SCHEMA}.retry_v2(text,integer,text) TO {RUNTIME}")
