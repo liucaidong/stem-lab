@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -184,7 +185,7 @@ def validate_schema_and_fixtures() -> None:
     }
     require(bool(list(observation_validator.iter_errors(invalid_observation))),
             "Observation with both scalar value and valueRef must be rejected")
-    print("PASS: Draft 2020-12 Schema, Unit Registry/dimensions, typed Event payloads, Package/Model/Observation semantics, and negative fixtures")
+    print("PASS: Draft 2020-12 Schema, Package asset digest/size, Unit Registry/dimensions, typed Event payloads, Package/Model/Observation semantics, and negative fixtures")
 
 
 def unit_registry_semantic_errors(registry: dict[str, Any]) -> list[str]:
@@ -258,6 +259,33 @@ def require_quantity_unit(
     require(unit is not None, f"{label}: unknown unit_id {unit_id}")
     require(quantity_kind in unit["quantity_kinds"],
             f"{label}: unit {unit_id} is incompatible with {quantity_kind}")
+
+
+def package_asset_semantic_errors(package: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    root = ROOT.resolve()
+    for asset in package["spec"]["assets"]:
+        source = Path(asset["source"])
+        if source.is_absolute() or ".." in source.parts:
+            errors.append(f"{asset['id']}: asset source must be a safe repository-relative path")
+            continue
+        candidate = ROOT / source
+        try:
+            resolved = candidate.resolve(strict=True)
+            resolved.relative_to(root)
+        except (FileNotFoundError, ValueError):
+            errors.append(f"{asset['id']}: asset source is missing or escapes repository root")
+            continue
+        if not resolved.is_file():
+            errors.append(f"{asset['id']}: asset source must be a file")
+            continue
+        payload = resolved.read_bytes()
+        actual_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
+        if asset["digest"] != actual_digest:
+            errors.append(f"{asset['id']}: asset digest does not match file bytes")
+        if "sizeBytes" in asset and asset["sizeBytes"] != len(payload):
+            errors.append(f"{asset['id']}: sizeBytes does not match file bytes")
+    return errors
 
 
 def package_semantic_errors(
