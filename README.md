@@ -281,3 +281,15 @@ R03.52.1 does not select Python as the production Worker runtime (DEC-03 OPEN), 
 | [Worker Pool sequences](docs/architecture/R03.52.2-worker-pool-sequences.md) | Startup, shutdown and poller failure sequences | Design diagram |
 
 This is not a distributed Scheduler or production process supervisor. PostgreSQL claim remains the durable scheduling authority. No fairness, autoscaling, global replica concurrency, DB adapter or broker is selected.
+
+
+### R03.52.3 — Process Signal & Graceful Shutdown Bridge
+
+| Asset | Purpose | Status |
+|---|---|---|
+| [Process lifecycle bridge](runtime/process_lifecycle.py) | SIGINT/SIGTERM to WorkerPool shutdown; restores previous handlers | Executable reference; CI pending |
+| [Signal bridge tests](scripts/test_process_lifecycle.py) | Forwarding, handler restoration, main-thread guard and invalid configuration | CI pending |
+| [Shutdown design](docs/architecture/R03.52.3-process-signal-graceful-shutdown.md) | Signal safety, drain semantics and deployment boundary | v0.1 reference |
+| [Shutdown sequence](docs/architecture/R03.52.3-process-signal-shutdown-sequence.md) | Signal-to-poller shutdown sequence | Design diagram |
+
+The bridge does not enforce a hard termination deadline, cancel non-cooperative threads, or configure a container supervisor. Forced termination relies on R03.51 lease expiry/reclaim/fencing.

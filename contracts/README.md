@@ -223,3 +223,11 @@ R03.52.1 CI evidence: [GitHub Actions Run #41441940260](https://github.com/liuca
 
 
 R03.52.2 CI evidence: [GitHub Actions Run #41442438174](https://github.com/liucaidong/stem-lab/actions/runs/41442438174) SUCCESS; Worker Pool 5/5, Worker Runtime 9/9, R03.51 PostgreSQL 20/20 and R03.50 PostgreSQL 8/8 passed. Worker Pool tests use fake pollers and do not verify cross-replica scheduling or production supervision.
+
+
+## Process Signal & Graceful Shutdown Bridge (R03.52.3)
+
+- runtime/process_lifecycle.py installs SIGINT/SIGTERM handlers from the main thread; the callback only sets an Event.
+- A monitor thread forwards shutdown to WorkerPool, and prior handlers are restored on exit.
+- scripts/test_process_lifecycle.py uses a patched signal API and fake Pool; no real process kill or deployment supervisor is exercised.
+- The bridge does not enforce a hard shutdown deadline. External orchestration owns termination grace and forced termination; leases are recovered by R03.51 expiry/fencing.

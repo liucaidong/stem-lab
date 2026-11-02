@@ -118,6 +118,9 @@ jobs:
       - name: Test bounded Worker poller pool and concurrency supervision reference
         run: python scripts/test_worker_pool.py
 
+      - name: Test process signal and graceful shutdown bridge reference
+        run: python scripts/test_process_lifecycle.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 
