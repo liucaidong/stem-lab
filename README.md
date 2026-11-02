@@ -204,5 +204,5 @@ R03.37 Event Registry与Compatibility Governance：Run #113通过Registry Schema
 | 文档/资产 | 内容 | 状态 |
 |---|---|---|
 | [R03.39架构设计](docs/architecture/R03.39-postgresql-transaction-rls-and-durable-messaging.md) | PostgreSQL事务、RLS、复合外键、幂等、Inbox/Outbox | v0.1候选；DEC-04/19保持OPEN |
-| [PostgreSQL集成测试](scripts/test_postgres_transaction_rls.py) | 真实PostgreSQL服务、RLS与事务/消息表测试 | 等待CI；PostgreSQL 17仅为CI测试目标 |
+| [PostgreSQL集成测试](scripts/test_postgres_transaction_rls.py) | 真实PostgreSQL服务、RLS与事务/消息表测试 | Run #123通过10项PostgreSQL 17真实数据库集成测试（局部）；生产数据库版本/迁移工具仍未选型 |
 
