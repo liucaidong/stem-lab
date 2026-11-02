@@ -1,0 +1,205 @@
+{
+  "fixture_version": "1alpha1",
+  "manifest": {
+    "apiVersion": "stemlab.example/v1alpha1",
+    "kind": "ExperimentPackage",
+    "metadata": {
+      "id": "org.example.dc-series",
+      "version": "0.1.0",
+      "title": "DC Series Circuit",
+      "subject": "physics"
+    },
+    "spec": {
+      "learningObjectives": [
+        {
+          "id": "objective-ohm",
+          "statement": "Relate current, voltage and resistance."
+        }
+      ],
+      "model": {
+        "id": "org.example.dc-model",
+        "version": "1.0.0",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "scene": {
+        "id": "org.example.dc-scene",
+        "version": "1.0.0",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "instruments": [
+        {
+          "id": "org.example.voltmeter",
+          "version": "1.0.0",
+          "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "workflow": {
+        "id": "org.example.dc-workflow",
+        "version": "1.0.0",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "assessment": {
+        "rubric": {
+          "id": "org.example.rubric",
+          "version": "1.0.0",
+          "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      },
+      "runtime": {
+        "allowedModes": [
+          "algebraic"
+        ],
+        "resetPolicy": "restore-initial-state",
+        "requiredCapabilities": [
+          "observation-provenance"
+        ]
+      },
+      "assets": [
+        {
+          "id": "org.example.diagram",
+          "mediaType": "image/svg+xml",
+          "sizeBytes": 256,
+          "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "licenseId": "CC-BY-4.0",
+          "source": "author"
+        }
+      ],
+      "validation": {
+        "validationSuite": "org.example.dc-suite",
+        "expertReviewRequired": true
+      }
+    }
+  },
+  "source_manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "model_document": {
+    "equations": [
+      {
+        "expressionRef": {
+          "id": "org.example.ohms-law",
+          "version": "1.0.0",
+          "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      }
+    ],
+    "constraints": [],
+    "validationCases": []
+  },
+  "catalog": {
+    "catalog_version": "1alpha1",
+    "snapshot_id": "catalog-snapshot-2026-11-02-001",
+    "policy": {
+      "external_host_allowlist": [],
+      "allow_restricted_references": false
+    },
+    "resources": [
+      {
+        "identity": {
+          "resource_type": "model",
+          "resource_id": "org.example.dc-model",
+          "version": "1.0.0",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "storage": "embedded",
+        "uri": "models/dc-model.json",
+        "media_type": "application/json",
+        "size_bytes": 2048,
+        "license_id": "internal",
+        "dependencies": [
+          {
+            "identity": {
+              "resource_type": "expression",
+              "resource_id": "org.example.ohms-law",
+              "version": "1.0.0",
+              "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "relation": "requires"
+          }
+        ]
+      },
+      {
+        "identity": {
+          "resource_type": "scene",
+          "resource_id": "org.example.dc-scene",
+          "version": "1.0.0",
+          "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "storage": "embedded",
+        "uri": "scenes/dc-scene.json",
+        "media_type": "application/json",
+        "size_bytes": 1024,
+        "license_id": "internal",
+        "dependencies": []
+      },
+      {
+        "identity": {
+          "resource_type": "instrument",
+          "resource_id": "org.example.voltmeter",
+          "version": "1.0.0",
+          "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "storage": "embedded",
+        "uri": "instruments/voltmeter.json",
+        "media_type": "application/json",
+        "size_bytes": 512,
+        "license_id": "internal",
+        "dependencies": []
+      },
+      {
+        "identity": {
+          "resource_type": "workflow",
+          "resource_id": "org.example.dc-workflow",
+          "version": "1.0.0",
+          "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "storage": "embedded",
+        "uri": "workflows/dc-workflow.json",
+        "media_type": "application/json",
+        "size_bytes": 768,
+        "license_id": "internal",
+        "dependencies": []
+      },
+      {
+        "identity": {
+          "resource_type": "rubric",
+          "resource_id": "org.example.rubric",
+          "version": "1.0.0",
+          "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "storage": "embedded",
+        "uri": "rubrics/science.json",
+        "media_type": "application/json",
+        "size_bytes": 384,
+        "license_id": "internal",
+        "dependencies": []
+      },
+      {
+        "identity": {
+          "resource_type": "asset",
+          "resource_id": "org.example.diagram",
+          "version": "1.0.0",
+          "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "storage": "embedded",
+        "uri": "assets/diagram.svg",
+        "media_type": "image/svg+xml",
+        "size_bytes": 256,
+        "license_id": "CC-BY-4.0",
+        "dependencies": []
+      },
+      {
+        "identity": {
+          "resource_type": "expression",
+          "resource_id": "org.example.ohms-law",
+          "version": "1.0.0",
+          "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "storage": "embedded",
+        "uri": "expressions/ohms-law.json",
+        "media_type": "application/json",
+        "size_bytes": 256,
+        "license_id": "internal",
+        "dependencies": []
+      }
+    ]
+  }
+}
