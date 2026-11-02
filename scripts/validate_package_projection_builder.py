@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validation-only deterministic Package projection builder reference."""
 from __future__ import annotations
-import copy, json, re, sys, unicodedata
+import copy, json, re, sys, unicodedata, runpy
 from pathlib import Path
 from urllib.parse import urlparse
 import jsonschema
@@ -294,6 +294,43 @@ def main():
     if graph != graph2 or projection != projection2:
         raise SystemExit("PERMUTATION_INVARIANCE_FAILED")
 
+    # End-to-end candidate serialization of the actual Manifest+Catalog projection.
+    canonical = runpy.run_path(
+        str(ROOT / "scripts/validate_package_canonical_manifest.py"),
+        run_name="r03_46_canonicalization_module"
+    )
+    normalize_projection = canonical["normalize_projection"]
+    candidate_bytes = canonical["candidate_bytes"]
+    candidate_digest = canonical["digest"]
+    canonical_projection = normalize_projection(projection)
+    canonical_projection_shuffled = normalize_projection(projection2)
+    if canonical_projection != canonical_projection_shuffled:
+        raise SystemExit("BUILDER_TO_CANONICAL_PROJECTION_MISMATCH")
+    baseline_digests = {}
+    for profile in ("rfc8785-jcs", "cbor-rfc8949-core"):
+        first_bytes = candidate_bytes(profile, canonical_projection)
+        second_bytes = candidate_bytes(profile, canonical_projection_shuffled)
+        if first_bytes != second_bytes:
+            raise SystemExit("BUILDER_TO_CANONICAL_BYTES_NOT_DETERMINISTIC: " + profile)
+        baseline_digests[profile] = candidate_digest(profile, first_bytes)
+        if baseline_digests[profile] != candidate_digest(profile, second_bytes):
+            raise SystemExit("BUILDER_TO_CANONICAL_DIGEST_NOT_DETERMINISTIC: " + profile)
+
+    # The source-byte digest is only the graph root anchor; it must not leak into
+    # the semantic package projection or its canonical digest.
+    alternate_source_digest = "sha256:" + "8" * 64
+    graph_alt, projection_alt = build_projection(
+        manifest, catalog, alternate_source_digest, model_docs
+    )
+    if graph_alt["nodes"][0]["digest"] == graph["nodes"][0]["digest"]:
+        raise SystemExit("ROOT_SOURCE_DIGEST_NOT_BOUND")
+    if projection_alt != projection:
+        raise SystemExit("SOURCE_MANIFEST_DIGEST_LEAKED_INTO_PROJECTION")
+    for profile in ("rfc8785-jcs", "cbor-rfc8949-core"):
+        alt_bytes = candidate_bytes(profile, normalize_projection(projection_alt))
+        if candidate_digest(profile, alt_bytes) != baseline_digests[profile]:
+            raise SystemExit("SOURCE_MANIFEST_DIGEST_CHANGED_PACKAGE_DIGEST: " + profile)
+
     def expect(code, mutate):
         m, c = copy.deepcopy(manifest), copy.deepcopy(catalog)
         mutate(m, c)
@@ -324,7 +361,7 @@ def main():
     else:
         raise SystemExit("missing source digest was accepted")
 
-    print("PASS: Manifest + Catalog projection reference builder; Graph/Projection schemas; transitive closure; Model Expression binding; permutation invariance; 11 rejection cases")
+    print("PASS: Manifest + Catalog projection; Graph/Projection schemas; transitive closure; Model Expression binding; canonical JCS/CBOR pipeline; source-digest self-reference exclusion; permutation invariance; 11 rejection cases")
     print("REFERENCE VALIDATOR ONLY: no production package ingestion, content-byte verification, network, signature or license enforcement")
 
 if __name__ == "__main__":
