@@ -37,6 +37,10 @@
 | [R02.7 用户研究执行手册](docs/product/R02.7-user-research-interview-guide.md) | 教师/学生/作者/管理员/采购者访谈、观察任务与记录模板 | v0.1；计划未执行 |
 | [R02.8 DC Circuit教学设计](docs/product/R02.8-dc-circuit-learning-design.md) | 学习目标、科学模型、实验序列、仪器语义、误概念和Rubric | v0.1；待学科签核 |
 | [R02.9 研究与科学设计补充审计](docs/product/R02.9-research-and-science-design-audit.md) | 新增研究/学科文档审计、证据缺口和产品冻结条件 | v0.1；有条件通过 |
+| [R02.10 商业模式与定价假设](docs/product/R02.10-business-model-and-pricing-hypotheses.md) | 客户细分、候选包装、价值度量、成本模型和定价研究 | v0.1；未验证假设 |
+| [R02.11 内容供给与质量治理](docs/product/R02.11-content-supply-and-quality-governance.md) | 内容生产生命周期、学科/教学/技术审核、许可和撤回 | v0.1设计草案 |
+| [R02.12 试点与客户运营](docs/product/R02.12-pilot-rollout-and-customer-operations.md) | 试点阶段、入驻培训、客户成功、支持分级和退出流程 | v0.1设计草案 |
+| [R02.13 产品战略与试点审计](docs/product/R02.13-product-strategy-and-pilot-audit.md) | R02全链路覆盖、一致性、产品冻结阻断项和阶段决策 | v0.1；有条件通过 |
 | [R02.1–R02.12 平台架构设计系列](docs/architecture/R02.1-R02.12-platform-architecture-series.md) | 总体架构、Model、Runtime、Package、Renderer、Authoring、Data、Learning、AI、Plugin和Infrastructure | v1.0设计基线 |
 
 ### R03 — 技术方案与架构
