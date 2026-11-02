@@ -834,6 +834,89 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.assertEqual(len(ids),2)
         self.assertEqual(len(set(ids)),2)
 
+    def test_outbox_dispatch_and_ack_are_exact_event_scoped(self):
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type,payload) "
+            "VALUES ('tenant-a','ev-dispatch','job-a','session-a','op-a','session.completed','{\"v\":1}')"
+        )
+        dispatch=self.issue(action="worker.outbox.dispatch",aud="stemlab-outbox-dispatch",
+                            resource_type="outbox_event",resource_id="ev-dispatch",
+                            owner="dispatcher-a",sub="dispatcher-a",epoch=1)
+        with self.dispatcher_connection() as conn:
+            with conn.transaction():
+                first=conn.execute(f"SELECT * FROM {SCHEMA}.dispatch_outbox_v2(%s,60)",(dispatch,)).fetchall()
+                second=conn.execute(f"SELECT * FROM {SCHEMA}.dispatch_outbox_v2(%s,60)",(dispatch,)).fetchall()
+                self.assertEqual(first,second)
+                self.assertEqual(first[0][0:2],("ev-dispatch","session.completed"))
+                self.assertEqual(first[0][2],{"v":1})
+                self.assertEqual(first[0][3],2)
+        ack=self.issue(action="worker.outbox.ack",aud="stemlab-outbox-dispatch",
+                       resource_type="outbox_event",resource_id="ev-dispatch",
+                       owner="dispatcher-a",sub="dispatcher-a",epoch=2)
+        with self.dispatcher_connection() as conn:
+            with conn.transaction():
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.ack_outbox_v2(%s)",(ack,)).fetchone()[0])
+        row=self.admin.execute(
+            f"SELECT dispatch_state,dispatch_owner,dispatch_epoch,dispatch_attempts,dispatched_at FROM {SCHEMA}.outbox WHERE event_id='ev-dispatch'"
+        ).fetchone()
+        self.assertEqual(row[0:4],("dispatched","dispatcher-a",2,1))
+        self.assertIsNotNone(row[4])
+
+    def test_outbox_dispatch_rejects_wrong_event_and_unassigned_dispatcher(self):
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) "
+            "VALUES ('tenant-a','ev-dispatch','job-a','session-a','op-a','session.completed')"
+        )
+        wrong_event=self.issue(action="worker.outbox.dispatch",aud="stemlab-outbox-dispatch",
+                               resource_type="outbox_event",resource_id="ev-other",
+                               owner="dispatcher-a",sub="dispatcher-a",epoch=1)
+        unassigned=self.issue(action="worker.outbox.dispatch",aud="stemlab-outbox-dispatch",
+                              resource_type="outbox_event",resource_id="ev-dispatch",
+                              owner="intruder",sub="intruder",epoch=1)
+        with self.dispatcher_connection() as conn:
+            with conn.transaction():
+                self.assertEqual(conn.execute(f"SELECT * FROM {SCHEMA}.dispatch_outbox_v2(%s,60)",(wrong_event,)).fetchall(),[])
+                self.assertEqual(conn.execute(f"SELECT * FROM {SCHEMA}.dispatch_outbox_v2(%s,60)",(unassigned,)).fetchall(),[])
+
+    def test_outbox_epoch_fences_old_ack_after_expired_lease_reclaim(self):
+        self.admin.execute(
+            f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) "
+            "VALUES ('tenant-a','ev-reclaim','job-a','session-a','op-a','session.completed')"
+        )
+        first=self.issue(action="worker.outbox.dispatch",aud="stemlab-outbox-dispatch",
+                         resource_type="outbox_event",resource_id="ev-reclaim",
+                         owner="dispatcher-a",sub="dispatcher-a",epoch=1)
+        with self.dispatcher_connection() as conn:
+            with conn.transaction():
+                self.assertEqual(conn.execute(f"SELECT * FROM {SCHEMA}.dispatch_outbox_v2(%s,60)",(first,)).fetchone()[3],2)
+        self.admin.execute(f"UPDATE {SCHEMA}.outbox SET dispatch_lease_expires_at=clock_timestamp()-interval '1 second' WHERE event_id='ev-reclaim'")
+        second=self.issue(action="worker.outbox.dispatch",aud="stemlab-outbox-dispatch",
+                          resource_type="outbox_event",resource_id="ev-reclaim",
+                          owner="dispatcher-a",sub="dispatcher-a",epoch=2)
+        with self.dispatcher_connection() as conn:
+            with conn.transaction():
+                self.assertEqual(conn.execute(f"SELECT * FROM {SCHEMA}.dispatch_outbox_v2(%s,60)",(second,)).fetchone()[3],3)
+        stale_ack=self.issue(action="worker.outbox.ack",aud="stemlab-outbox-dispatch",
+                             resource_type="outbox_event",resource_id="ev-reclaim",
+                             owner="dispatcher-a",sub="dispatcher-a",epoch=2)
+        with self.dispatcher_connection() as conn:
+            with conn.transaction():
+                self.assertFalse(conn.execute(f"SELECT {SCHEMA}.ack_outbox_v2(%s)",(stale_ack,)).fetchone()[0])
+        current_ack=self.issue(action="worker.outbox.ack",aud="stemlab-outbox-dispatch",
+                               resource_type="outbox_event",resource_id="ev-reclaim",
+                               owner="dispatcher-a",sub="dispatcher-a",epoch=3)
+        with self.dispatcher_connection() as conn:
+            with conn.transaction():
+                self.assertTrue(conn.execute(f"SELECT {SCHEMA}.ack_outbox_v2(%s)",(current_ack,)).fetchone()[0])
+
+    def test_dispatcher_has_no_direct_table_or_verifier_privileges(self):
+        with self.dispatcher_connection() as conn:
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SELECT * FROM {SCHEMA}.outbox")
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                conn.execute(f"SET ROLE {VERIFIER}")
+            self.assertEqual(conn.execute("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone(),(False,False))
+
     def test_valid_complete_unit_of_work(self):
         token=self.issue()
         with self.runtime_connection() as conn:
