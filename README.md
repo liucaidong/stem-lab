@@ -338,4 +338,4 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - [Verifier spike design and security boundary](docs/architecture/R03.52.7.1-database-tenant-assertion-verifier-spike.md)
 - [PostgreSQL adversarial verifier test](scripts/test_postgres_tenant_assertion_verifier.py)
 - The spike verifies HMAC assertions inside a SECURITY DEFINER function called by RLS. The test key is ephemeral and shared with the fixture issuer; production issuer, key custody, replay consumption, asymmetric verification and Store integration are not implemented.
-- CI evidence is pending; no production security claim is made.
+- [CI Run #41448568243](https://github.com/liucaidong/stem-lab/actions/runs/41448568243) SUCCESS; 12/12 PostgreSQL verifier tests pass. This is reference-spike evidence only; no production security claim is made.
