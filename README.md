@@ -379,3 +379,11 @@ This creates an authorization preflight plan only. It does not authenticate the 
 - CI Run #330 SUCCESS: PostgreSQL 17.11 + Ed25519 verifier/RLS exercised through Psycopg sync/async, asyncpg and node-postgres pools.
 - Initial measurements are smoke evidence only; node-postgres led this CI run at concurrency 8/32, while Psycopg sync led at concurrency 1. No production performance ranking or driver selection is made.
 - DEC-03 and DEC-14 remain OPEN; next increment is controlled full-operation and fault benchmarking.
+
+
+### R03.52.7.3.3 — Controlled Benchmark Runner Contract
+
+- [Controlled benchmark runner contract](docs/architecture/R03.52.7.3.3-controlled-benchmark-runner-contract.md)
+- Benchmark harness now supports explicit smoke and controlled profiles, repetitions, concurrency overrides and environment manifests.
+- Controlled profile has not yet been run; it requires an isolated operator-provisioned host. The current workload is still a protected RLS row read, not the full Store operation mix.
+- No production runtime/driver/pool selected; DEC-03 and DEC-14 remain OPEN.
