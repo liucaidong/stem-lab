@@ -83,7 +83,7 @@
 | [Runtime Event Payload Registry](contracts/events/README.md) | SessionStarted/ExecutionSucceeded/ObservationRecorded三种事件Payload Schema | Draft；脚本已接入，CI运行待确认 |
 | [Scientific Model Schema](contracts/scientific-model.schema.v1alpha1.json) | 模型参数、变量、方程引用、约束和求解器需求 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入 |
 | [Observation Schema](contracts/observation.schema.v1alpha1.json) | 观测来源、单位、仿真时间、质量和载荷引用 | Draft；本地元Schema/Fixture复核通过，完整语义待完成 |
-| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.2；扩展后重新解析及OpenAPI规范验证待执行 |
+| [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.2；OpenAPI规范验证器已接入脚本，CI运行待确认 |
 | [Contract Test Fixtures](contracts/examples/README.md) | Package/Event/Model/Observation样例及DC/RC参考算例 | 部分本地验证通过；CI运行待确认 |
 | [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；自动算术检查已纳入脚本，科学签核待完成 |
 | [RC Circuit参考算例JSON](contracts/examples/rc-circuit.reference-cases.json) | RC充电一阶ODE解析参考解；仅作Runtime技术验证 | Draft；非教学MVP，专家签核待完成 |
