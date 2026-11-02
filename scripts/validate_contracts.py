@@ -10,6 +10,7 @@ from typing import Any
 
 import jsonschema
 import yaml
+from openapi_spec_validator import validate as validate_openapi
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -175,8 +176,8 @@ def validate_openapi_yaml() -> None:
                     f"{method} {path} must define responses")
     require(operation_count == 4,
             f"Expected 4 draft operations, found {operation_count}")
-    print("PASS: OpenAPI YAML parsing and limited structural assertions")
-    print("NOTE: This does NOT replace an OpenAPI 3.1 specification validator")
+    validate_openapi(document)
+    print("PASS: OpenAPI 3.1 specification validation and structural assertions")
 
 
 def close(actual: float, expected: float, label: str) -> None:
