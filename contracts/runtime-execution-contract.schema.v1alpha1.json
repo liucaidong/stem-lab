@@ -41,14 +41,12 @@
       "enum": [
         "queued",
         "leased",
-        "starting",
         "running",
-        "checkpointing",
-        "cancelling",
         "succeeded",
         "failed",
+        "timed_out",
         "cancelled",
-        "timed_out"
+        "rejected"
       ]
     },
     "worker_lease": {
