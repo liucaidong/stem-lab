@@ -1449,6 +1449,20 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         self.assertFalse(self.authorize_once(self.issue(exp=int(time.time())-1)))
         self.assertFalse(self.authorize_once(self.issue(exp=int(time.time())+500)))
 
+    def test_runtime_pool_return_resets_role_and_session_gucs(self):
+        dsn=make_conninfo(DSN,user=LOGIN,password=PASSWORD)
+        with psycopg.connect(dsn,autocommit=True) as conn:
+            conn.execute("SELECT set_config('app.resource_assertion','stale-session-value',false)")
+            conn.execute(f"SET ROLE {RUNTIME}")
+            self.assertEqual(conn.execute("SELECT current_user").fetchone()[0],RUNTIME)
+            with conn.transaction():
+                conn.execute("SELECT set_config('app.resource_assertion','transaction-only-value',true)")
+            self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
+            conn.execute("RESET ROLE")
+            conn.execute("RESET ALL")
+            self.assertEqual(conn.execute("SELECT current_user").fetchone()[0],LOGIN)
+            self.assertIsNone(conn.execute("SELECT current_setting('app.resource_assertion',true)").fetchone()[0])
+
     def test_verifier_is_nonlogin_nonowner_and_has_no_ddl_privileges(self):
         role=self.admin.execute(
             "SELECT rolcanlogin,rolsuper,rolbypassrls,rolinherit FROM pg_roles WHERE rolname=%s",
