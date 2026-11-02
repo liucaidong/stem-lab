@@ -418,7 +418,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
            WHERE j.status IN ('queued','retry') AND j.available_at<=clock_timestamp()
              AND j.job_type=ANY(requested_types) AND j.attempt_count<j.maximum_attempts
            ORDER BY j.available_at,j.tenant_id,j.job_id
-           FOR UPDATE SKIP LOCKED LIMIT 1;
+           LIMIT 1 FOR UPDATE SKIP LOCKED;
           IF NOT FOUND THEN RAISE EXCEPTION 'no eligible assigned job'; END IF;
           UPDATE {SCHEMA}.jobs j
              SET status='running',owner=c->>'sub',epoch=j.epoch+1,
