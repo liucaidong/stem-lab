@@ -1128,6 +1128,11 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"SET ROLE {VERIFIER}")
             self.assertEqual(conn.execute("SELECT rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone(),(False,False))
 
+    def test_valid_v2_signature_verifier_accepts_issued_token(self):
+        token=self.issue()
+        verified=self.admin.execute(f"SELECT {SCHEMA}.verify_v2(%s)",(token,)).fetchone()[0]
+        self.assertIsNotNone(verified, "valid test-issuer token must pass DB-side signature/claim verifier")
+
     def test_valid_complete_unit_of_work(self):
         token=self.issue()
         with self.runtime_connection() as conn:
