@@ -81,3 +81,6 @@ jobs:
 
       - name: Run DC and RC numerical solver verification reference harness
         run: python scripts/test_solver_numerical_reference.py
+
+      - name: Validate Visualization, Scene Graph, Timeline, and Instrument contracts
+        run: python scripts/validate_visualization_instrument_contract.py
