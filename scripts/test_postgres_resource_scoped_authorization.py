@@ -177,9 +177,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         DECLARE c jsonb; renewed_until timestamptz;
         BEGIN
           IF lease_seconds NOT BETWEEN 5 AND 3600 THEN RETURN NULL; END IF;
-          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN NULL; END IF;
           c:={SCHEMA}.verify_v2(token);
           IF c IS NULL OR c->>'action'<>'worker.job.renew' THEN RETURN NULL; END IF;
+          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN NULL; END IF;
           UPDATE {SCHEMA}.jobs
              SET lease_expires_at=clock_timestamp()+make_interval(secs=>lease_seconds)
            WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id'
@@ -203,9 +203,9 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         AS $fail$
         DECLARE c jsonb;
         BEGIN
-          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN false; END IF;
           c:={SCHEMA}.verify_v2(token);
           IF c IS NULL OR c->>'action'<>'worker.job.fail' THEN RETURN false; END IF;
+          IF NOT {SCHEMA}.authorize_v2(token) THEN RETURN false; END IF;
           UPDATE {SCHEMA}.jobs
              SET status='failed'
            WHERE tenant_id=c->>'tenant_id' AND job_id=c->>'job_id'
