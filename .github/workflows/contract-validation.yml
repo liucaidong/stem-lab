@@ -5,6 +5,8 @@ on:
     paths:
       - "contracts/**"
       - "scripts/**"
+      - "docs/architecture/**"
+      - "contracts/README.md"
       - "requirements-contract-validation.txt"
       - "requirements-contract-validation.lock.txt"
       - ".github/workflows/contract-validation.yml"
@@ -13,6 +15,8 @@ on:
     paths:
       - "contracts/**"
       - "scripts/**"
+      - "docs/architecture/**"
+      - "contracts/README.md"
       - "requirements-contract-validation.txt"
       - "requirements-contract-validation.lock.txt"
       - ".github/workflows/contract-validation.yml"
