@@ -1,0 +1,69 @@
+{
+  "registry_version": "1.0-draft",
+  "dimension_order": ["mass", "length", "time", "electric_current"],
+  "units": [
+    {
+      "unit_id": "V",
+      "symbol": "V",
+      "name": "volt",
+      "quantity_kinds": ["electric-potential"],
+      "dimension": [1, 2, -3, -1],
+      "scale_to_si": 1,
+      "offset_to_si": 0
+    },
+    {
+      "unit_id": "A",
+      "symbol": "A",
+      "name": "ampere",
+      "quantity_kinds": ["electric-current"],
+      "dimension": [0, 0, 0, 1],
+      "scale_to_si": 1,
+      "offset_to_si": 0
+    },
+    {
+      "unit_id": "ohm",
+      "symbol": "Ω",
+      "name": "ohm",
+      "quantity_kinds": ["electric-resistance"],
+      "dimension": [1, 2, -3, -2],
+      "scale_to_si": 1,
+      "offset_to_si": 0
+    },
+    {
+      "unit_id": "W",
+      "symbol": "W",
+      "name": "watt",
+      "quantity_kinds": ["power"],
+      "dimension": [1, 2, -3, 0],
+      "scale_to_si": 1,
+      "offset_to_si": 0
+    },
+    {
+      "unit_id": "F",
+      "symbol": "F",
+      "name": "farad",
+      "quantity_kinds": ["capacitance"],
+      "dimension": [-1, -2, 4, 2],
+      "scale_to_si": 1,
+      "offset_to_si": 0
+    },
+    {
+      "unit_id": "s",
+      "symbol": "s",
+      "name": "second",
+      "quantity_kinds": ["time"],
+      "dimension": [0, 0, 1, 0],
+      "scale_to_si": 1,
+      "offset_to_si": 0
+    },
+    {
+      "unit_id": "1",
+      "symbol": "1",
+      "name": "dimensionless",
+      "quantity_kinds": ["dimensionless"],
+      "dimension": [0, 0, 0, 0],
+      "scale_to_si": 1,
+      "offset_to_si": 0
+    }
+  ]
+}
