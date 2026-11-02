@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "events": [
+    {
+      "event_type": "SessionStarted",
+      "schema_version": "1.0",
+      "payload_schema": "session-started.payload.schema.v1.json",
+      "fixture": "contracts/examples/runtime-event.valid.json"
+    },
+    {
+      "event_type": "ExecutionSucceeded",
+      "schema_version": "1.0",
+      "payload_schema": "execution-succeeded.payload.schema.v1.json",
+      "fixture": "contracts/examples/runtime-event.execution-succeeded.valid.json"
+    },
+    {
+      "event_type": "ObservationRecorded",
+      "schema_version": "1.0",
+      "payload_schema": "observation-recorded.payload.schema.v1.json",
+      "fixture": "contracts/examples/runtime-event.observation-recorded.valid.json"
+    }
+  ]
+}
