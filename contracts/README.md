@@ -124,3 +124,6 @@
 
 
 R03.45验证型参考实现已纳入 `scripts/validate_contracts.py` 的CI入口；[GitHub Actions Run #173](https://github.com/liucaidong/stem-lab/actions/runs/41425774644)通过Manifest/Catalog投影、Model Expression绑定、传递依赖闭包、排序扰动和11个拒绝案例。该结果只证明当前Python参考验证器和Fixture，不代表生产发布器或内容字节验证完成。
+
+
+最新加固验证为 [GitHub Actions Run #177](https://github.com/liucaidong/stem-lab/actions/runs/41426075633)：11项拒绝案例、ScientificModel spec形状、直接引用唯一性、Canonical Path唯一性/大小写碰撞及依赖闭包通过。生产资源摄取、真实字节Digest、签名和License Enforcement未实现。
