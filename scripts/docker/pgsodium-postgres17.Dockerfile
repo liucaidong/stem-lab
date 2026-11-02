@@ -18,7 +18,7 @@ RUN apt-get update \
     && tar -xzf /tmp/libsodium.tar.gz -C /tmp \
     && cd "/tmp/libsodium-${LIBSODIUM_VERSION}" \
     && ./configure --prefix=/usr/local --libdir=/usr/local/lib \
-    && make -j"$(nproc)" \
+    && make -j2 \
     && make install \
     && ldconfig \
     && curl -fsSL "https://api.pgxn.org/dist/pgsodium/${PGSODIUM_VERSION}/pgsodium-${PGSODIUM_VERSION}.zip" \
