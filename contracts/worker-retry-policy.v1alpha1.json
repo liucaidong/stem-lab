@@ -1,0 +1,40 @@
+{
+  "schema_version": "1alpha1",
+  "default_policy": {
+    "error_code": "UNCLASSIFIED_ERROR",
+    "retryable": false,
+    "base_delay_seconds": 0,
+    "max_delay_seconds": 0,
+    "safe_message": "The job failed due to an unclassified error."
+  },
+  "policies": [
+    {
+      "error_code": "DEPENDENCY_UNAVAILABLE",
+      "retryable": true,
+      "base_delay_seconds": 2,
+      "max_delay_seconds": 120,
+      "safe_message": "A required dependency is temporarily unavailable."
+    },
+    {
+      "error_code": "RATE_LIMITED",
+      "retryable": true,
+      "base_delay_seconds": 5,
+      "max_delay_seconds": 300,
+      "safe_message": "A required dependency temporarily rate-limited the operation."
+    },
+    {
+      "error_code": "INVALID_INPUT",
+      "retryable": false,
+      "base_delay_seconds": 0,
+      "max_delay_seconds": 0,
+      "safe_message": "The submitted input did not pass validation."
+    },
+    {
+      "error_code": "INTEGRITY_CHECK_FAILED",
+      "retryable": false,
+      "base_delay_seconds": 0,
+      "max_delay_seconds": 0,
+      "safe_message": "The package integrity check failed."
+    }
+  ]
+}

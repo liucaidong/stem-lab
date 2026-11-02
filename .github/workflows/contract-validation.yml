@@ -121,6 +121,12 @@ jobs:
       - name: Test process signal and graceful shutdown bridge reference
         run: python scripts/test_process_lifecycle.py
 
+      - name: Validate Worker Retry Policy Registry
+        run: python scripts/validate_worker_retry_policy.py
+
+      - name: Test Worker Retry Policy evaluation
+        run: python scripts/test_worker_retry_policy.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 

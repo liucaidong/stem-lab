@@ -293,3 +293,16 @@ This is not a distributed Scheduler or production process supervisor. PostgreSQL
 | [Shutdown sequence](docs/architecture/R03.52.3-process-signal-shutdown-sequence.md) | Signal-to-poller shutdown sequence | Design diagram |
 
 The bridge does not enforce a hard termination deadline, cancel non-cooperative threads, or configure a container supervisor. Forced termination relies on R03.51 lease expiry/reclaim/fencing.
+
+
+### R03.52.4 — Worker Error Taxonomy & Retry Policy Registry
+
+| Asset | Purpose | Status |
+|---|---|---|
+| [Retry Policy Schema](contracts/worker-retry-policy.schema.v1alpha1.json) | Versioned error policy contract | Draft; CI pending |
+| [Retry Policy Registry](contracts/worker-retry-policy.v1alpha1.json) | Illustrative transient/permanent/default policies | Candidate; not production policy |
+| [Retry evaluator](runtime/retry_policy.py) | Stable code mapping, fail-closed default, capped full jitter | Executable reference |
+| [Policy validator](scripts/validate_worker_retry_policy.py) | Schema, uniqueness and policy invariant checks | CI pending |
+| [Policy tests](scripts/test_worker_retry_policy.py) | Jitter, cap, attempts, unknown code and safe message tests | CI pending |
+
+No production exception classifier, dynamic policy rollout, Job policy-version pin, or DLQ operator workflow is included.

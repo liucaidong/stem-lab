@@ -234,3 +234,11 @@ R03.52.2 CI evidence: [GitHub Actions Run #41442438174](https://github.com/liuca
 
 
 R03.52.3 CI evidence: [GitHub Actions Run #41443126489](https://github.com/liucaidong/stem-lab/actions/runs/41443126489) SUCCESS; Signal Bridge tests 4/4 passed. Earlier failed attempts #41442821982 and #41442974507 are retained and their causes/fixes documented in the R03.21 WBS and R03.20 decision register. This is a patched-signal-API reference test, not container/deployment supervision.
+
+
+## Worker Error Taxonomy & Retry Policy Registry (R03.52.4)
+
+- worker-retry-policy.schema.v1alpha1.json defines a versioned registry schema; worker-retry-policy.v1alpha1.json is an illustrative candidate, not an approved production policy.
+- runtime/retry_policy.py maps stable error codes to safe messages and capped full-jitter decisions; unknown codes fail closed.
+- scripts/validate_worker_retry_policy.py checks schema and policy invariants; scripts/test_worker_retry_policy.py verifies behavior.
+- The persisted Job attempt_count/maximum_attempts remain authoritative. No production exception classifier, live rollout, signed policy, or DLQ replay is implemented.
