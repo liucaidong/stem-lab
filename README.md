@@ -40,6 +40,12 @@
 | [R03 技术架构基线](docs/architecture/R03-technical-architecture-baseline.md) | 模块边界、领域模型、Package、API、Runtime、Worker、安全、部署 | v1.0设计基线 |
 | [R03.5 跨文档审计与ADR](docs/architecture/R03.5-cross-document-audit-and-adr.md) | 一致性审计、架构决策、阻断项和开发门槛 | v0.1 |
 | [R03.6 产品—技术架构一致性审计](docs/architecture/R03.6-product-architecture-consistency-audit.md) | R02/R03追踪、架构歧义、技术冻结清单和Implementation-Ready门槛 | v0.1；未达Implementation-Ready |
+| [R03.7 Runtime状态机与Worker协议](docs/architecture/R03.7-runtime-state-command-worker-protocol.md) | Session状态机、Command事务、幂等、Clock、Lease/Epoch/Fencing与恢复 | v0.1；契约草案 |
+| [R03.8 Experiment Package规范](docs/architecture/R03.8-experiment-package-schema-and-release.md) | Manifest、依赖锁定、校验、不可变发布与撤回 | v0.1；Schema待冻结 |
+| [R03.9 Scientific Model与Observation契约](docs/architecture/R03.9-scientific-model-and-observation-contracts.md) | 模型定义、单位量纲、DC/RC验证、测量和数据语义 | v0.1；待专家签核 |
+| [R03.10 API与事件契约](docs/architecture/R03.10-api-event-contracts.md) | REST/OpenAPI、幂等、错误模型、事件信封、顺序和版本策略 | v0.1；契约草案 |
+| [R03.11 多租户安全与威胁模型](docs/architecture/R03.11-multitenant-security-and-threat-model.md) | IAM/RLS、Worker隔离、Package/AI安全、隐私与威胁登记 | v0.1；待安全/法律审查 |
+| [R03.12 部署与质量工程](docs/architecture/R03.12-deployment-quality-and-release-validation.md) | 部署拓扑、CI门禁、测试分层、可观测、备份恢复和发布 | v0.1；待Spike验证 |
 
 ## 核心产品与架构决策
 
