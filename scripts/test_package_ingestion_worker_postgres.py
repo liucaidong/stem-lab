@@ -50,6 +50,12 @@ def create_job(conn, job_id, session_id="s1", job_type="validate", max_attempts=
         (job_id, session_id, job_type, max_attempts),
     )
 
+def retry_delay(attempt_number, base_seconds=5, maximum_seconds=900, rng=None):
+    """Full jitter: Uniform(0, min(cap, base * 2^(attempt-1)))."""
+    if attempt_number < 1 or base_seconds < 0 or maximum_seconds < 0:
+        raise ValueError("invalid retry policy")
+    ceiling = min(maximum_seconds, base_seconds * (2 ** (attempt_number - 1)))
+    return (rng or random).uniform(0, ceiling)
 def claim_one(conn, worker, lease_seconds=30):
     """Atomic claim; DB clock is authoritative. Returns the new epoch as fencing token."""
     with conn.transaction():
@@ -266,7 +272,7 @@ class WorkerLeasePostgresTests(unittest.TestCase):
     def test_single_worker_claim_returns_lease_and_epoch(self):
         with app_conn() as c:
             claim = claim_one(c,"worker-a")
-        self.assertEqual(claim[2:],(1,1))
+        self.assertEqual(claim[1:3],(1,1))
 
     def test_two_workers_cannot_claim_same_job(self):
         barrier=threading.Barrier(2)
@@ -354,6 +360,15 @@ class WorkerLeasePostgresTests(unittest.TestCase):
         with app_conn() as c: self.assertEqual(complete(c,"j1","worker-a",lease[2]),"DUPLICATE")
         self.assertEqual(self.admin.execute(f"SELECT count(*) FROM {SCHEMA}.outbox").fetchone()[0],1)
 
+    def test_retry_delay_is_capped_full_jitter(self):
+        class Fixed:
+            @staticmethod
+            def uniform(low, high):
+                return high
+        self.assertEqual(retry_delay(1, 4, 10, Fixed), 4)
+        self.assertEqual(retry_delay(5, 4, 10, Fixed), 10)
+        with self.assertRaises(ValueError):
+            retry_delay(0)
     def test_rls_blocks_cross_tenant_job_reads(self):
         self.admin.execute(f"INSERT INTO {SCHEMA}.sessions VALUES ('tenant-b','s1','pkg','1.0.0','quarantined',1,clock_timestamp())")
         self.admin.execute(f"INSERT INTO {SCHEMA}.ingestion_jobs(tenant_id,job_id,session_id,package_id,package_version,job_type,status) VALUES ('tenant-b','jb','s1','pkg','1.0.0','validate','queued')")
