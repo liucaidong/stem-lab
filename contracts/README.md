@@ -191,3 +191,11 @@ R03.50 [Run #212](https://github.com/liucaidong/stem-lab/actions/runs/4143021061
 - `scripts/test_package_ingestion_worker_postgres.py` is a disposable PostgreSQL integration harness for concurrent claims, lease expiry/reclaim, epoch fencing, renewal, completion rollback, retry/DLQ, duplicate completion and tenant RLS.
 - The SQL is not a production migration. The harness is not a production Worker, scheduler, broker relay or replay service.
 - See `docs/architecture/R03.51-ingestion-worker-lease-fencing-retry.md` and the R03.51 verification report.
+
+
+## R03.51 Package Ingestion Job
+
+- `package-ingestion-job.schema.v1alpha1.json` defines the machine-readable Job envelope and lease/status fields.
+- `scripts/validate_ingestion_job_contract.py` validates the Draft 2020-12 schema and representative queued/running/succeeded states.
+- `sql/package-ingestion-worker/R03.51-ingestion-worker.sql` is reference DDL only; it assumes R03.50 Session tables and is not a production migration.
+- PostgreSQL lease/fencing tests are in `scripts/test_package_ingestion_worker_postgres.py`.
