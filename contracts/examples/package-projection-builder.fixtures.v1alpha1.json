@@ -72,17 +72,19 @@
   },
   "source_manifest_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "model_document": {
-    "equations": [
-      {
-        "expressionRef": {
-          "id": "org.example.ohms-law",
-          "version": "1.0.0",
-          "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    "spec": {
+      "equations": [
+        {
+          "expressionRef": {
+            "id": "org.example.ohms-law",
+            "version": "1.0.0",
+            "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+          }
         }
-      }
-    ],
-    "constraints": [],
-    "validationCases": []
+      ],
+      "constraints": [],
+      "validationCases": []
+    }
   },
   "catalog": {
     "catalog_version": "1alpha1",
