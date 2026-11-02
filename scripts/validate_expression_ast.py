@@ -23,16 +23,16 @@ def load(path: Path) -> Any:
 def dim_add(a, b): return tuple(x+y for x,y in zip(a,b))
 def dim_sub(a, b): return tuple(x-y for x,y in zip(a,b))
 def dim_scale(a, n): return tuple(x*n for x in a)
-def check_limits(node: Any, depth=1, count=None):
+def check_limits(node: Any, depth=1, count=None, max_depth=MAX_DEPTH, max_nodes=MAX_NODES):
     if count is None: count=[0]
     count[0]+=1
-    if depth>MAX_DEPTH: raise ExpressionError("DEPTH_LIMIT","AST depth limit exceeded")
-    if count[0]>MAX_NODES: raise ExpressionError("NODE_LIMIT","AST node limit exceeded")
+    if depth>max_depth: raise ExpressionError("DEPTH_LIMIT","AST depth limit exceeded")
+    if count[0]>max_nodes: raise ExpressionError("NODE_LIMIT","AST node limit exceeded")
     if isinstance(node,dict):
         args=node.get("arguments",[])
         if len(args)>MAX_ARGS: raise ExpressionError("ARGUMENT_LIMIT","function argument limit exceeded")
         for value in node.values():
-            if isinstance(value,(dict,list)): check_limits(value,depth+1,count)
+            if isinstance(value,(dict,list)): check_limits(value,depth+1,count,max_depth,max_nodes)
     elif isinstance(node,list):
         for value in node: check_limits(value,depth+1,count)
 def type_check(expr: dict, symbols: dict, units: dict):
@@ -97,7 +97,10 @@ def type_check(expr: dict, symbols: dict, units: dict):
             if d!=(0,0,0,0): raise ExpressionError("DIMENSION_MISMATCH",f"{fn} requires dimensionless input")
             return ((0,0,0,0),"dimensionless",None)
         raise ExpressionError("UNKNOWN_NODE","unknown AST node kind")
-    check_limits(expr["root"])
+    limits=expr.get("limits", {})
+    max_depth=min(MAX_DEPTH, limits.get("max_depth", MAX_DEPTH))
+    max_nodes=min(MAX_NODES, limits.get("max_nodes", MAX_NODES))
+    check_limits(expr["root"], max_depth=max_depth, max_nodes=max_nodes)
     actual=infer(expr["root"])
     expected=expr["expected_type"]
     if tuple(expected["dimension"])!=actual[0]:
