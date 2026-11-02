@@ -148,7 +148,7 @@
 | 文档/资产 | 内容 | 状态 |
 |---|---|---|
 | [R03.34架构设计](docs/architecture/R03.34-package-resource-graph-and-dependency-closure.md) | 资源身份、节点/边、引用完整性、循环检测、依赖闭包与外部/受限资源策略 | v0.1设计草案 |
-| [Resource Graph Schema](contracts/package-resource-graph.schema.v1alpha1.json) | Package资源图结构 | Draft；等待CI |
-| [Resource Graph Fixtures](contracts/examples/package-resource-graph.fixtures.v1alpha1.json) | 正向依赖图及负向图案例 | Draft；等待CI |
-| [Resource Graph Validator](scripts/validate_package_resource_graph.py) | 静态引用、身份、环、可达闭包与位置策略检查 | Draft；等待CI |
+| [Resource Graph Schema](contracts/package-resource-graph.schema.v1alpha1.json) | Package资源图结构 | Draft；Run #90 Graph Schema与9个负向图检查通过（局部） |
+| [Resource Graph Fixtures](contracts/examples/package-resource-graph.fixtures.v1alpha1.json) | 正向依赖图及负向图案例 | Draft；Run #90正/负向图Fixture验证通过（局部） |
+| [Resource Graph Validator](scripts/validate_package_resource_graph.py) | 静态引用、身份、环、可达闭包与位置策略检查 | Draft；Run #90静态图验证通过（局部） |
 
