@@ -38,3 +38,6 @@ jobs:
         run: python scripts/validate_contracts.py
       - name: Validate Scientific Expression AST and Quantity typing
         run: python scripts/validate_expression_ast.py
+
+      - name: Validate Package Resource Graph and dependency closure
+        run: python scripts/validate_package_resource_graph.py
