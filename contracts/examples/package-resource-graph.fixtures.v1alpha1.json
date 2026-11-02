@@ -378,7 +378,7 @@
             "resource_id": "model:dc-series",
             "resource_type": "model",
             "version": "1.0.0",
-            "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "storage": "embedded",
             "uri": "resources/model-dc-series.json"
           },
@@ -429,6 +429,14 @@
             "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
             "storage": "embedded",
             "uri": "resources/asset-diagram.json"
+          },
+          {
+            "resource_id": "model:dc-series",
+            "resource_type": "model",
+            "version": "1.0.0",
+            "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+            "storage": "embedded",
+            "uri": "resources/model-dc-series.json"
           }
         ],
         "edges": [
