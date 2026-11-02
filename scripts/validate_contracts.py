@@ -6,7 +6,8 @@ import copy
 import hashlib
 import json
 import math
-from pathlib import Path
+import tempfile
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 import jsonschema
@@ -99,6 +100,24 @@ def validate_schema_and_fixtures() -> None:
     invalid_asset_backslash["spec"]["assets"][0]["source"] = "contracts\\examples\\resources\\fixture-asset.json"
     require(bool(package_asset_semantic_errors(invalid_asset_backslash)),
             "Package with backslash path separators must be rejected")
+    invalid_asset_drive = copy.deepcopy(valid_package)
+    invalid_asset_drive["spec"]["assets"][0]["source"] = "C:/Windows/system.ini"
+    require(bool(package_asset_semantic_errors(invalid_asset_drive)),
+            "Package with Windows drive path must be rejected")
+    with tempfile.TemporaryDirectory() as temporary_directory:
+        outside_file = Path(temporary_directory) / "outside.json"
+        outside_file.write_text('{"outside":true}', encoding="utf-8")
+        symlink_path = ROOT / "contracts/examples/resources/.symlink-escape-test.json"
+        try:
+            symlink_path.symlink_to(outside_file)
+            invalid_asset_symlink = copy.deepcopy(valid_package)
+            invalid_asset_symlink["spec"]["assets"][0]["source"] = str(
+                symlink_path.relative_to(ROOT)
+            )
+            require(bool(package_asset_semantic_errors(invalid_asset_symlink)),
+                    "Package symlink escaping repository root must be rejected")
+        finally:
+            symlink_path.unlink(missing_ok=True)
     invalid_asset_missing = copy.deepcopy(valid_package)
     invalid_asset_missing["spec"]["assets"][0]["source"] = "contracts/examples/resources/missing.json"
     require(bool(package_asset_semantic_errors(invalid_asset_missing)),
@@ -294,7 +313,7 @@ def package_asset_semantic_errors(package: dict[str, Any]) -> list[str]:
     root = ROOT.resolve()
     for asset in package["spec"]["assets"]:
         source = Path(asset["source"])
-        if source.is_absolute() or ".." in source.parts or "\\" in asset["source"]:
+        if source.is_absolute() or PureWindowsPath(asset["source"]).is_absolute() or PureWindowsPath(asset["source"]).drive or ".." in source.parts or "\\" in asset["source"]:
             errors.append(f"{asset['id']}: asset source must be a safe repository-relative path")
             continue
         candidate = ROOT / source
