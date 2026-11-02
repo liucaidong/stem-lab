@@ -168,7 +168,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
         """
         cls.admin.execute(allows_sql)
         cls.admin.execute(f"ALTER FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) OWNER TO {VERIFIER}")
-        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text) FROM PUBLIC")
+        cls.admin.execute(f"REVOKE ALL ON FUNCTION {SCHEMA}.assertion_allows(text,text,text,text,text,text,text,text) FROM PUBLIC")
 
         # Policies on job-scoped tables rely on nonce ledger consumption in this
         # transaction. The caller-controlled GUC alone grants no access.
