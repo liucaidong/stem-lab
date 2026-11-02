@@ -1142,7 +1142,7 @@ class ResourceAuthorizationPostgresTests(unittest.TestCase):
                 conn.execute(f"UPDATE {SCHEMA}.jobs SET status='succeeded' WHERE tenant_id='tenant-a' AND job_id='job-a' AND session_id='session-a' AND owner='worker-a' AND epoch=7 AND status='running' AND lease_expires_at>clock_timestamp()")
                 conn.execute(f"INSERT INTO {SCHEMA}.receipts VALUES ('tenant-a','op-a','job-a','session-a','digest-1','APPLIED')")
                 conn.execute(f"INSERT INTO {SCHEMA}.transitions VALUES ('tenant-a','tr-a','job-a','session-a','op-a','running','succeeded')")
-                conn.execute(f"INSERT INTO {SCHEMA}.outbox VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
+                conn.execute(f"INSERT INTO {SCHEMA}.outbox(tenant_id,event_id,job_id,session_id,operation_id,event_type) VALUES ('tenant-a','ev-a','job-a','session-a','op-a','job.completed')")
         # The commit above is treated as acknowledged ambiguously: a fresh,
         # separately signed Receipt capability resolves the durable outcome.
         reconcile=self.issue(action="worker.receipt.reconcile",resource_type="receipt",resource_id="op-a")
