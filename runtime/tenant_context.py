@@ -85,3 +85,19 @@ def verify_tenant_assertion(
         resource_id=payload["resource_id"], issued_at=payload["iat"],
         expires_at=payload["exp"], nonce=payload["nonce"],
     )
+
+
+def assert_job_tenant_binding(
+    context: VerifiedTenantContext,
+    *,
+    persisted_tenant_id: str,
+    job_id: str,
+    payload_tenant_id: str | None = None,
+) -> None:
+    """Fail closed unless assertion, persisted Job row and optional payload agree."""
+    if not persisted_tenant_id or not job_id:
+        raise TenantContextError("persisted Job binding is missing")
+    if context.tenant_id != persisted_tenant_id or context.resource_id != job_id:
+        raise TenantContextError("assertion does not match persisted Job tenant/resource")
+    if payload_tenant_id is not None and payload_tenant_id != persisted_tenant_id:
+        raise TenantContextError("untrusted Job payload tenant mismatch")
