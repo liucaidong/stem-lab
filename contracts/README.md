@@ -62,3 +62,12 @@
 - 顶层Digest、签名和Attestation不参与自身摘要输入；
 - RFC 8785 JCS与RFC 8949 Deterministic CBOR均为候选，DEC-27保持OPEN；
 - 详细规则见[R03.35](../docs/architecture/R03.35-canonical-manifest-and-deterministic-package-digest.md)。
+
+
+## Package Governance
+
+- Attestation绑定Package ID/Version/Digest Profile/Digest；
+- Provenance记录构建者、源修订和依赖材料Digest；
+- License Record绑定具体Asset Digest及来源/权利/审核证据；
+- 静态治理验证不等于密码学验签、真实密钥管理或法律审查；
+- 详细规则见[R03.36](../docs/architecture/R03.36-package-signature-provenance-and-license-governance.md)。
