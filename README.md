@@ -141,3 +141,14 @@
 | [Expression AST Fixtures](contracts/examples/scientific-expression.fixtures.v1alpha1.json) | DC/RC有效表达式和负向语义案例 | Draft；等待CI |
 | [静态表达式验证器](scripts/validate_expression_ast.py) | Schema与静态类型/量纲推导，不执行表达式 | Draft；等待CI |
 
+
+
+### R03.34 — Package Resource Graph 与 Dependency Closure
+
+| 文档/资产 | 内容 | 状态 |
+|---|---|---|
+| [R03.34架构设计](docs/architecture/R03.34-package-resource-graph-and-dependency-closure.md) | 资源身份、节点/边、引用完整性、循环检测、依赖闭包与外部/受限资源策略 | v0.1设计草案 |
+| [Resource Graph Schema](contracts/package-resource-graph.schema.v1alpha1.json) | Package资源图结构 | Draft；等待CI |
+| [Resource Graph Fixtures](contracts/examples/package-resource-graph.fixtures.v1alpha1.json) | 正向依赖图及负向图案例 | Draft；等待CI |
+| [Resource Graph Validator](scripts/validate_package_resource_graph.py) | 静态引用、身份、环、可达闭包与位置策略检查 | Draft；等待CI |
+
