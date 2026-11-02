@@ -86,7 +86,7 @@
 | [Scientific Model Schema](contracts/scientific-model.schema.v1alpha1.json) | 模型参数、变量、方程引用、约束和求解器需求 | Draft；本地元Schema/Fixture复核通过，基础引用/范围检查已加入 |
 | [Observation Schema](contracts/observation.schema.v1alpha1.json) | 观测来源、单位、仿真时间、质量和载荷引用 | Draft；Schema与Package/Model/Quantity绑定语义正负断言通过Run #41/#42/#49 CI；量纲体系待完成 |
 | [Unit Registry Schema](contracts/units/unit-registry.schema.v1.json) | 单位登记结构、四维量纲向量、SI比例/偏移 | Draft；Schema/Registry和量纲基础断言Run #53通过 |
-| [SI Core Unit Registry](contracts/units/si-unit-registry.v1.json) | V/A/ohm/W/F/s/dimensionless核心单位 | Draft；待Run #50 CI验证
+| [SI Core Unit Registry](contracts/units/si-unit-registry.v1.json) | V/A/ohm/W/F/s/dimensionless核心单位 | Draft；Schema/Registry/量纲基础断言Run #53通过
 | [OpenAPI草案](contracts/openapi.v1.draft.yaml) | Session、Command、Observation API请求/响应/错误Schema | Draft v0.3；OpenAPI 3.1规范验证与API语义断言Run #49通过 |
 | [Contract Test Fixtures](contracts/examples/README.md) | Package/Event/Model/Observation样例及DC/RC参考算例 | CI Run #41/#42通过；全量版本锁定依赖回归完成 |
 | [DC Circuit参考算例JSON](contracts/examples/dc-circuit.reference-cases.json) | DC-001至DC-004理论输入/输出样例 | Draft；自动算术检查已纳入脚本，科学签核待完成 |
