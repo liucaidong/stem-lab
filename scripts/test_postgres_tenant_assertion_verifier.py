@@ -16,6 +16,7 @@ import unittest
 import uuid
 
 import psycopg
+from psycopg.conninfo import make_conninfo
 
 DSN = os.environ.get(
     "DATABASE_URL",
@@ -25,6 +26,8 @@ SUFFIX = uuid.uuid4().hex[:10]
 SCHEMA = "tenant_verifier_" + SUFFIX
 RUNTIME_ROLE = "tenant_runtime_" + SUFFIX
 VERIFIER_ROLE = "tenant_verifier_owner_" + SUFFIX
+LOGIN_ROLE = "tenant_login_" + SUFFIX
+LOGIN_PASSWORD = uuid.uuid4().hex + uuid.uuid4().hex
 ISSUER_KEY = os.urandom(32)
 AUDIENCE = "stemlab-api"
 MAX_LIFETIME_SECONDS = 120
@@ -94,6 +97,13 @@ class PostgreSQLTenantAssertionVerifierTests(unittest.TestCase):
             f"CREATE ROLE {RUNTIME_ROLE} NOLOGIN NOSUPERUSER NOCREATEDB "
             "NOCREATEROLE NOINHERIT NOBYPASSRLS"
         )
+        # Use a real non-superuser login. SET ROLE from a superuser session
+        # would not prove that the application credential lacks escalation.
+        cls.admin.execute(
+            f"CREATE ROLE {LOGIN_ROLE} LOGIN NOINHERIT NOSUPERUSER "
+            f"NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD '{LOGIN_PASSWORD}'"
+        )
+        cls.admin.execute(f"GRANT {RUNTIME_ROLE} TO {LOGIN_ROLE}")
         cls.admin.execute(f"CREATE SCHEMA {SCHEMA} AUTHORIZATION {VERIFIER_ROLE}")
         cls.admin.execute(
             f"CREATE TABLE {SCHEMA}.signing_keys "
@@ -272,7 +282,10 @@ class PostgreSQLTenantAssertionVerifierTests(unittest.TestCase):
             f"CREATE POLICY tenant_read ON {SCHEMA}.tenant_rows FOR SELECT "
             f"USING ({SCHEMA}.verify_tenant_assertion("
             "current_setting('app.tenant_assertion', true), tenant_id, "
-            "'stemlab-api', 'read', row_id))"
+            "'stemlab-api', 'read', row_id) OR "
+            f"{SCHEMA}.verify_tenant_assertion("
+            "current_setting('app.tenant_assertion', true), tenant_id, "
+            "'stemlab-api', 'update', row_id))"
         )
         cls.admin.execute(
             f"CREATE POLICY tenant_update ON {SCHEMA}.tenant_rows FOR UPDATE "
@@ -287,12 +300,16 @@ class PostgreSQLTenantAssertionVerifierTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         cls.admin.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
+        cls.admin.execute(f"DROP ROLE IF EXISTS {LOGIN_ROLE}")
         cls.admin.execute(f"DROP ROLE IF EXISTS {RUNTIME_ROLE}")
         cls.admin.execute(f"DROP ROLE IF EXISTS {VERIFIER_ROLE}")
         cls.admin.close()
 
     def connect_as_runtime(self):
-        conn = psycopg.connect(DSN, autocommit=True)
+        runtime_dsn = make_conninfo(
+            DSN, user=LOGIN_ROLE, password=LOGIN_PASSWORD
+        )
+        conn = psycopg.connect(runtime_dsn, autocommit=True)
         conn.execute(f"SET ROLE {RUNTIME_ROLE}")
         return conn
 
@@ -346,7 +363,7 @@ class PostgreSQLTenantAssertionVerifierTests(unittest.TestCase):
 
     def test_audience_and_action_mismatch_fail_closed(self):
         wrong_audience = issue_assertion(audience="other-service")
-        wrong_action = issue_assertion(action="update")
+        wrong_action = issue_assertion(action="delete")
         self.assertEqual(self.rows_for(wrong_audience), [])
         self.assertEqual(self.rows_for(wrong_action), [])
 
