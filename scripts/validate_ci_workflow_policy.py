@@ -2,6 +2,7 @@
 """Static policy guard for repository-wide GitHub Actions admission."""
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -124,6 +125,110 @@ def enforce_supply_chain_pins(content: str, path: Path) -> None:
         fail("pgsodium archive SHA-256 must be verified before extraction")
 
 
+
+def enforce_python_dependency_lock(workflow_content: str, path: Path, lock_override: str | None = None) -> None:
+    direct_path = ROOT / "requirements-contract-validation.txt"
+    lock_path = ROOT / "requirements-contract-validation.lock.txt"
+    if not direct_path.is_file() or not lock_path.is_file():
+        fail("Python direct requirements and hash lock must both exist")
+    direct = direct_path.read_text(encoding="utf-8")
+    lock = lock_override if lock_override is not None else lock_path.read_text(encoding="utf-8")
+    requirements = [
+        line.strip() for line in direct.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    entries = [
+        entry for entry in re.split(r"(?m)(?=^[A-Za-z0-9_.-]+==)", lock)
+        if re.match(r"(?m)^[A-Za-z0-9_.-]+==", entry)
+    ]
+    if not entries:
+        fail("Python dependency lock has no exact-version package entries")
+    for entry in entries:
+        if not re.search(r"(?m)^\s+--hash=sha256:[0-9a-f]{64}(?:\s+\\)?$", entry):
+            fail("every Python locked package must carry at least one SHA-256 hash")
+    for requirement in requirements:
+        package = re.split(r"[\[<>=!~]", requirement, maxsplit=1)[0]
+        normalized = package.lower().replace("_", "-")
+        if not re.search(rf"(?im)^{re.escape(normalized)}==", lock):
+            fail(f"direct Python dependency {package!r} is missing from the lock")
+    if workflow_content.count(
+        "python -m pip install --require-hashes -r requirements-contract-validation.lock.txt"
+    ) != 2:
+        fail("both Python CI jobs must install the unified lock with --require-hashes")
+    if workflow_content.count("pip install") != 2:
+        fail("untracked or inline pip install commands are not allowed in CI")
+
+
+def enforce_node_dependency_lock(workflow_content: str, benchmark_override: str | None = None) -> None:
+    package_path = ROOT / "scripts" / "benchmarks" / "store-driver-node" / "package.json"
+    lock_path = ROOT / "scripts" / "benchmarks" / "store-driver-node" / "package-lock.json"
+    if not package_path.is_file() or not lock_path.is_file():
+        fail("Node benchmark package.json and package-lock.json must both exist")
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    if package.get("dependencies", {}).get("pg") != "8.16.3":
+        fail("Node benchmark must pin pg exactly to 8.16.3")
+    if lock.get("lockfileVersion") != 3:
+        fail("Node benchmark must use npm lockfileVersion 3")
+    packages = lock.get("packages", {})
+    if packages.get("node_modules/pg", {}).get("version") != "8.16.3":
+        fail("Node package lock does not lock pg@8.16.3")
+    for package_name, metadata in packages.items():
+        if package_name.startswith("node_modules/") and metadata.get("version") and not metadata.get("integrity"):
+            fail(f"Node package {package_name!r} is missing an integrity digest")
+    if "npm ci --ignore-scripts --no-audit --no-fund" not in workflow_content:
+        fail("Node benchmark dependencies must be installed with npm ci and scripts disabled")
+    if "npm install" in workflow_content:
+        fail("mutable npm install commands are not allowed in CI")
+    if "working-directory: scripts/benchmarks/store-driver-node" not in workflow_content:
+        fail("npm ci must run in the isolated Node benchmark package directory")
+    benchmark_script = ROOT / "scripts" / "benchmark_store_driver_pool.mjs"
+    benchmark_content = benchmark_override if benchmark_override is not None else benchmark_script.read_text(encoding="utf-8")
+    if not re.search(r"\bcreateRequire\b", benchmark_content) or "./benchmarks/store-driver-node/package.json" not in benchmark_content:
+        fail("Node ESM benchmark must resolve pg from the isolated package directory")
+
+
+def enforce_apt_dependency_lock(docker_override: str | None = None) -> None:
+    dockerfile = ROOT / "scripts" / "docker" / "pgsodium-postgres17.Dockerfile"
+    content = docker_override if docker_override is not None else dockerfile.read_text(encoding="utf-8")
+    required = (
+        "http://snapshot.debian.org/archive/debian/20261027T000000Z",
+        "http://snapshot.debian.org/archive/debian-security/20261027T000000Z",
+        'Acquire::Check-Valid-Until "false";',
+        "build-essential=12.12",
+        "ca-certificates=20250419+deb13u1",
+        "clang-19=1:19.1.7-3+b1",
+        "curl=8.14.1-2+deb13u7",
+        "llvm-19-dev=1:19.1.7-3+b1",
+        "pkg-config=1.8.1-4",
+        "unzip=6.0-29+deb13u1",
+        "PGDG_SERVER_DEV_VERSION=17.11-1.pgdg13+2",
+        "PGDG_LIBPQ_DEV_VERSION=18.6-1.pgdg13+2",
+    )
+    for token in required:
+        if token not in content:
+            fail(f"APT dependency lock is missing required immutable input {token!r}")
+    if "apt-get download" not in content or content.count("sha256sum -c -") < 3:
+        fail("PGDG packages and source archives must be checksum-verified before use")
+    for variable in ("PGDG_SERVER_DEV_SHA256", "PGDG_LIBPQ_DEV_SHA256"):
+        if not re.search(rf"(?m)^ARG {variable}=[0-9a-f]{{64}}$", content):
+            fail(f"{variable} must be an explicit SHA-256 digest")
+
+
+def enforce_dependabot_config() -> None:
+    path = ROOT / ".github" / "dependabot.yml"
+    if not path.is_file():
+        fail("Dependabot configuration is required")
+    content = path.read_text(encoding="utf-8")
+    for ecosystem in ("github-actions", "pip", "docker", "npm"):
+        if f'package-ecosystem: "{ecosystem}"' not in content:
+            fail(f"Dependabot ecosystem {ecosystem!r} is not configured")
+    if content.count('interval: "weekly"') != 4:
+        fail("all four Dependabot ecosystems must use the weekly cadence")
+    if content.count("open-pull-requests-limit: 2") != 4:
+        fail("Dependabot PR limits must remain bounded to two per ecosystem")
+
+
 def main() -> int:
     files = sorted(list(WORKFLOWS.glob("*.yml")) + list(WORKFLOWS.glob("*.yaml")))
     if not files:
@@ -149,6 +254,10 @@ def main() -> int:
     enforce_supply_chain_pins(content, path)
     enforce_job_permissions(content, path)
     enforce_artifact_retention(content, path)
+    enforce_python_dependency_lock(content, path)
+    enforce_node_dependency_lock(content)
+    enforce_apt_dependency_lock()
+    enforce_dependabot_config()
     relative = path.relative_to(ROOT)
     unexpected = events - ALLOWED_ROOT_EVENTS
     if unexpected:

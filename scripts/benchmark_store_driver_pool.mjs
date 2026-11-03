@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import { performance } from "node:perf_hooks";
-import pg from "pg";
+import { createRequire } from "node:module";
 
-const { Pool } = pg;
+const require = createRequire(
+  new URL("./benchmarks/store-driver-node/package.json", import.meta.url),
+);
+const { Pool } = require("pg");
 const env = JSON.parse(fs.readFileSync(process.env.STORE_BENCH_ENV_FILE, "utf8"));
 
 function percentile(values, p) {

@@ -102,7 +102,7 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-contract-validation.lock.txt
       - name: Install pinned validators
-        run: python -m pip install -r requirements-contract-validation.lock.txt
+        run: python -m pip install --require-hashes -r requirements-contract-validation.lock.txt
       - name: Validate draft contracts and reference cases
         run: python scripts/validate_contracts.py
 
@@ -226,7 +226,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install pinned PostgreSQL client driver
-        run: python -m pip install "psycopg[binary,pool]==3.3.6" "asyncpg==0.32.0"
+        run: python -m pip install --require-hashes -r requirements-contract-validation.lock.txt
       - name: Build PostgreSQL 17.11 with pinned pgsodium
         run: docker build --pull -f scripts/docker/pgsodium-postgres17.Dockerfile -t stemlab-postgres17-pgsodium:3.1.11 .
       - name: Start PostgreSQL with pgsodium
@@ -250,7 +250,8 @@ jobs:
         with:
           node-version: "24"
       - name: Install node-postgres benchmark dependency
-        run: npm install --no-save --package-lock=false pg@8.16.3
+        run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: scripts/benchmarks/store-driver-node
       - name: Run Store driver and pool smoke benchmark
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
