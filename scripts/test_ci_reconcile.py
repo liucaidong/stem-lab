@@ -81,6 +81,18 @@ class ReconciliationClassificationTests(unittest.TestCase):
     def test_cancelled_run_requires_recovery(self):
         self.assertEqual(classify_target(TARGET, [run(conclusion="cancelled")], []).state, RECOVERY)
 
+    def test_queue_overflow_cancellation_cannot_be_masked_by_older_success(self):
+        older_success = run(run_id=100, created_at="2026-11-03T23:00:00Z")
+        latest_overflow_cancel = run(
+            run_id=200, status="completed", conclusion="cancelled",
+            created_at="2026-11-03T23:01:00Z",
+        )
+        older_check = check(run_id=100)
+        self.assertEqual(
+            classify_target(TARGET, [older_success, latest_overflow_cancel], [older_check]).state,
+            RECOVERY,
+        )
+
     def test_workflow_success_without_aggregate_check_is_not_covered(self):
         self.assertEqual(
             classify_target(TARGET, [run()], [check(name="validate-contracts")]).state,
