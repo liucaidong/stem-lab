@@ -44,13 +44,18 @@ Python and SQL currently agree on the eight requested action argument names/type
 7. String encoding permits long values up to the generic encoder length limit. The raw Assertion payload limit does not automatically bound separately supplied operation_arguments.
 8. The v2alpha2 Fail/Retry payload contains policy outputs (`retryable`, delay, `safe_message`) while R03.52.4 defines these as registry-derived decisions based on error code and persisted attempt budget. No accepted contract identifies the trusted producer, pins a policy version, or prevents a caller from supplying inconsistent outputs.
 9. The Retry Policy Registry schema/runtime has no global upper bound for `max_delay_seconds`; the sample 120/300 second values are illustrative only. The current registry is not evidence of an approved maximum or canonical microseconds conversion.
+10. The Retry Policy Registry schema/runtime permits error_code up to 128 characters, while the v2alpha2 digest codec accepts only 1–64 uppercase identifier characters; the protocol/registry intersection is not explicitly governed.
+11. RetryPolicy safe_message is constrained to 1–512 characters in the Python registry, while the v2alpha2 digest codec/SQL action validator accepts any string length; the digest contract does not currently enforce the registry's message bound.
+12. WorkerRuntime accepts an injected `classify_failure` callback and forwards its FailureDecision to Store; it does not enforce RetryPolicyRegistry use. FailureDecision and legacy FailJobCommand carry no policy_version, so the selected policy cannot be independently pinned or audited through the Store call.
+13. Delay ceilings differ by boundary: legacy FailJobCommand and v2alpha2 Retry cap at 86,400 seconds, while v2alpha2 Fail accepts non-negative int64 microseconds and the Registry has no global cap. The same policy result can be accepted by one path and rejected or overlarge in another.
 
 ## 4. Recommended limits and cross-field rules (proposed)
 
 These are candidate defaults for review, not accepted policy:
 - result_ref: non-empty UTF-8 string, <= 256 bytes, must reference an artifact owned by the same tenant/session and immutable after completion.
 - safe_message: UTF-8 <= 1024 bytes, reject control characters except explicitly permitted whitespace, redact secrets and credentials before signing.
-- error_code: resolve against the canonical versioned Worker Error Taxonomy, not regex alone.
+- error_code: resolve against the canonical versioned Worker Error Taxonomy, not regex alone; align the registry's 128-character limit and v2alpha2 codec's 64-character limit explicitly.
+- safe_message: define one UTF-8 byte/code-point limit across the registry, signer, digest codec, SQL and persisted outcome schema.
 - retry_delay_micros: do not claim a bound until an approved policy registry version defines one; require exact conversion from the policy result and, if retryable=false, zero delay. If retryable=true, require a policy-authorized bounded delay or a documented immediate-retry value.
 - expected_session_revision: non-negative int64 and must be representable by the persisted Session column; require exact equality under lock.
 - terminal_reason=max_attempts only when persisted attempt_count >= maximum_attempts; non_retryable only when the accepted error policy classifies the error as non-retryable.

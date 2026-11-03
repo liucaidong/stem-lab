@@ -17,6 +17,7 @@
 | UT-06 | Version classifier | One exact verifier family selected; no fallback | Pure dispatch rules | Actual operation entry wiring |
 | UT-07 | Error mapping | Stable codes for each parse/claim/action conflict | Error translation | Outer transaction rollback |
 | UT-08 | Retry policy binding | Trusted policy version, persisted attempt budget, retryable/delay/safe_message derivation and checked seconds↔microseconds conversion | Policy evaluation and action binding | Production policy approval or Handler transaction correctness |
+| UT-09 | Input size budget | Exact max/max+1 for raw Claim, Request Envelope, operation_arguments and total canonical bytes; reject before expensive hashing | Parser/encoder resource bounds | Production ingress rate limiting |
 
 ## 2. PostgreSQL Integration Test Matrix
 
@@ -31,6 +32,8 @@
 | PG-07 | Complete Handler | Runtime role, signed Claim, Job/Session/Receipt/Nonce | One end-to-end Complete transaction | Actual Handler binding/UOW | Other actions |
 | PG-08 | Catalog security | Runtime/Verifier/Dispatcher/Replay roles | Ownership, RLS, EXECUTE, membership, direct writes | Tested privilege boundary | Production credentials/provider |
 | PG-09 | Receipt Reconcile | Legacy and v2alpha2 Receipt stores | Version-correct read and outcome verification | Correct reconciliation path | Business repair capability |
+| PG-10 | Claim/Envelope/argument size caps | PostgreSQL 17 plus Python codec | Enforce exact per-surface and total byte ceilings; max accepted, max+1 rejected consistently | Input resource bounds and parser parity | Production ingress rate limiting |
+| PG-11 | DLQ replay atomic UOW | PostgreSQL 17, trusted actor/policy fixture, source Job/DLQ and new Job | Concurrent replay serializes; request_id idempotency, replay_count, new Job and audit record are all-or-none | Production ID strategy and operator approval workflow |
 
 ## 3. Concurrency Test Matrix
 
@@ -69,6 +72,7 @@
 | SEC-14 | Duplicate JSON key / unknown field | Reject before jsonb digest path |
 | SEC-15 | Outbox stale dispatcher ack | Reject by owner/epoch fence |
 | SEC-16 | Exact old signed assertion replay after committed nonce | `ASSERTION_REPLAYED`; Receipt lookup cannot override the nonce collision |
+| SEC-17 | Invoke `worker.dlq.replay` while its typed binding/Handler is not accepted | Fail closed before Receipt/Nonce/Job/DLQ writes; no unbound reason/request_id/new_job_id accepted |
 
 ## 5. Rollback Test Matrix
 
@@ -95,7 +99,7 @@ Formal commit-boundary failure injection is excluded from this phase. RB-10 is a
 - PR #19: Receipt helper uniqueness, finalization, concurrent first use and Receipt-only rollback.
 - PR #13: legacy resource authorization, RLS, nonce, lease fencing, Outbox/DLQ, concurrency and rollback reference suite.
 
-Existing tests cover portions of UT/PG/SEC/CC for their isolated reference helpers. They do not cover UT-08 policy-to-Handler binding, PG-07, PG-09, CC-01/04/05/06/07/08/09/10 in the integrated v2alpha2 path, or the full RB matrix.
+Existing tests cover portions of UT/PG/SEC/CC for their isolated reference helpers. They do not cover UT-08 policy-to-Handler binding, UT-09 input size budgets, PG-07/PG-09/PG-10, CC-01/04/05/06/07/08/09/10 in the integrated v2alpha2 path, or the full RB matrix.
 
 ## 7. Gate conclusion
 

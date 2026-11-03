@@ -65,7 +65,8 @@ Candidate dispatch rules:
 3. Reject mixed discriminator/field combinations.
 4. Never try a second verifier after the selected verifier fails.
 5. Action entry points must enforce the exact family allowed for that operation during the migration period.
-6. Preserve old verifier functions and semantics for existing legacy callers until a separately approved compatibility migration.
+6. Membership in the v2alpha2 digest action map does not prove a Handler exists or is accepted. `worker.dlq.replay` currently has an empty argument tuple while the R03.52.5 plan requires replay reason/request identity and trusted audit provenance; reject it at the v2alpha2 action dispatcher until G13 accepts its typed binding and atomic UOW.
+7. Preserve old verifier functions and semantics for existing legacy callers until a separately approved compatibility migration.
 
 The exact API shape and how a caller indicates which operation family it is invoking remain OPEN.
 
@@ -101,6 +102,7 @@ The exact API shape and how a caller indicates which operation family it is invo
 - Same nonce across versions follows the accepted shared uniqueness policy.
 - Existing PR #13 legacy tests remain unchanged and pass on their baseline.
 - Cross-version replay tests run with independent DB connections and persisted-state snapshots.
+- A v2alpha2 action present in the digest map but not accepted by the Handler registry (including `worker.dlq.replay`) fails closed before Receipt/Nonce/business writes.
 
 ## 7. Trusted Signer source facts
 

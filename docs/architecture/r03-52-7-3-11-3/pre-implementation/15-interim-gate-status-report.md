@@ -4,7 +4,7 @@
 **Status:** PRE-IMPLEMENTATION BLOCKED  
 **As-of:** 2026-11-03  
 **PR:** #21 — OPEN / DRAFT  
-**PR #21 head verified for Run #485:** `da06f11e309d31f2cf963307901dca4b03772a5d` (pre-batch audit head; subsequent audit changes are intentionally accumulated for one commit)
+**PR #21 pre-batch HEAD tested by Run #486:** `f3cef4b5dafff2a9b1b8e19e739c95b2a7d33ee5`; preceding Run #485 tested `da06f11e309d31f2cf963307901dca4b03772a5d`. This report captures the pre-batch HEAD; subsequent audit changes are not covered by Run #486 and require their own CI validation.
 
 ## 1. Executive determination
 
@@ -12,13 +12,13 @@
 
 ## 2. GitHub baseline verified
 
-- PR #13–#20 were returned by GitHub search as OPEN / DRAFT.
-- PR #13–#20 were not returned by the corresponding closed-PR search.
+- PR #13–#21 were individually checked as OPEN / DRAFT, merged=false.
+- PR #13–#20 form the verified stack; PR #21 targets the PR #20 audit branch.
 - PR #20 HEAD: `a9394870164bba5971ffa82b15c83d7e9b9cfc47`.
 - PR #20 changed-file inventory: one audit document.
 - PR #20 Run #439 (ID `41578429173`): completed SUCCESS.
 - PR #21 is OPEN / DRAFT and targets the PR #20 audit branch.
-- PR #21 changed-file inventory at the pre-batch snapshot: 33 Markdown documents only under `docs/architecture/r03-52-7-3-11-3/pre-implementation/`; the current audit batch adds one document and revises related audit records.
+- PR #21 changed-file inventory at the last verified snapshot: 34 Markdown documents only under `docs/architecture/r03-52-7-3-11-3/pre-implementation/`; the next audit batch is being prepared without branch updates.
 - No PR #13 reference implementation file is in the PR #21 changed-file inventory.
 
 ## 3. PR #21 CI evidence
@@ -33,15 +33,17 @@ The current PR head at authoring is later than the #448 tested commit. The later
 
 | #485 / ID `41585399419` | `da06f11e309d31f2cf963307901dca4b03772a5d` | SUCCESS (both jobs) | Pre-batch head: contract validation and tenant Ed25519 verifier helper jobs |
 
+| #486 / ID `41586441727` | `f3cef4b5dafff2a9b1b8e19e739c95b2a7d33ee5` | SUCCESS (both jobs) | Batched pre-implementation audit update |
+
 CI jobs execute existing contract and helper/reference suites. They do not contain integrated v2alpha2 business Handler/UOW acceptance.
 
 ## 4. Gate status
 
 | Gate | Current state | Blocking reason |
 |---|---|---|
-| G0 | IN_PROGRESS | PR #13–#21 head chain and Run #485 verified; R03.20/R03.52.7.3.5 decision statuses and Product Code Freeze statements checked; named approval/freeze-authority evidence not located and full repository source inventory remains incomplete |
-| G1 | OPEN | R535-OD3 open; Schema/SQL/Python boundary discrepancies; malformed trailing SQL fragments; digest-to-mutation binding absent |
-| G2 | OPEN | No common fail-closed version dispatcher; full legacy behavior regression matrix not complete |
+| G0 | IN_PROGRESS | PR #13–#21 head chain and Runs #485/#486 verified; R03.20/R03.52.7.3.5/R03.52.5 decision statuses, Product Code Freeze statements and recursive PR #20 tree inventory checked; named approval/freeze-authority evidence and line-by-line review of scoped source paths remain open |
+| G1 | OPEN | R535-OD3 open; Claim/Schema/SQL/Python boundary discrepancies; total input/canonical-byte budgets absent; malformed trailing SQL fragments; digest-to-mutation binding absent |
+| G2 | OPEN | No common fail-closed version dispatcher; unsupported digest-map actions such as DLQ replay need an explicit reject-before-write rule; full legacy behavior regression matrix not complete |
 | G3 | OPEN | Trusted signer and operational issuer/key lifecycle not implemented/accepted |
 | G4 | OPEN | Typed action binding is a candidate matrix; retryability/delay/safe_message trusted source and policy-version binding are unresolved; no integrated handler |
 | G5 | OPEN | Receipt helper fixture identity defect; no business integration or complete replay semantics |
@@ -52,7 +54,7 @@ CI jobs execute existing contract and helper/reference suites. They do not conta
 | G10 | OPEN | Failure-to-persisted-state matrix is a candidate; no complete state snapshots |
 | G11 | OPEN | Existing helper harnesses reusable; integrated test architecture and CI suite absent |
 | G12 | OPEN | Complete vertical slice design exists but critical Session/write/lock/security semantics remain unresolved |
-| G13 | OPEN | Remaining action designs are candidates; Fail/Retry policy authority, exact delay units and persisted semantics remain unresolved |
+| G13 | OPEN | Remaining action designs are candidates; Fail/Retry policy authority/units and DLQ replay's empty digest binding versus R03.52.5 plan remain unresolved |
 | G14 | OPEN | Cross-document review is partial; independent Security/Architecture review remains outstanding |
 | G15 | BLOCKED | G0–G14 are not all ACCEPTED |
 
@@ -69,6 +71,8 @@ CI jobs execute existing contract and helper/reference suites. They do not conta
 9. Claim field limits differ between JSON Schema and SQL validation.
 10. Trusted signer, key enrollment/rotation/revocation and key access boundary are not implemented/accepted.
 11. Retryability, safe_message and delay are action digest inputs but their trusted derivation, policy version, global bounds and seconds/microseconds conversion are not specified.
+12. Canonical Claim, Request Envelope and separately supplied operation_arguments do not share an approved total byte budget; Python parsing and SQL Claim parsing currently have different explicit ingress caps.
+13. `worker.dlq.replay` is recognized by the v2alpha2 digest codec with empty arguments, but replay reason/request identity and the required Job/DLQ/audit transaction are not bound or implemented.
 
 ## 6. Preserved constraints
 
@@ -98,4 +102,4 @@ Current result is **PRE-IMPLEMENTATION BLOCKED**. This status is not “mostly c
 ## Change history
 
 - 2026-11-03: Initial interim G0–G15 status report.
-- 2026-11-03: Added exact PR #21 pre-batch HEAD and Run #485 completion evidence; subsequent audit changes are staged for one batched commit.
+- 2026-11-03: Added exact PR #21 pre-batch HEAD and Run #485/#486 completion evidence; the subsequent audit batch is outside the recorded CI evidence and must be validated separately.

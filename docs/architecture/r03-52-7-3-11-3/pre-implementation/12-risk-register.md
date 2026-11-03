@@ -21,12 +21,15 @@
 | RISK-13 | Action map includes DLQ Replay outside requested eight-action scope | Unclear contract ownership and incomplete acceptance | Medium | Python/SQL digest action maps include worker.dlq.replay | Explicitly defer or formally include separate design | Architecture | OPEN |
 | RISK-14 | Outbox delivery semantics may be confused with exactly-once effects | Duplicate or out-of-order external side effects | High | Prior architecture states at-least-once delivery and consumer dedup requirement | Event ID dedup, inbox, ordering and lease fencing tests | Messaging | OPEN |
 | RISK-15 | Product freeze and production decisions lack a single signed authoritative artifact in this audit | Accidental scope/authority drift | Medium | README and architecture docs repeat ACTIVE/OPEN status | Locate authoritative decision records and record owner/sign-off | Architecture governance | OPEN |
+| RISK-16 | Retryability, delay and safe_message are signed action values without an accepted trusted policy source/version/bounds | Incorrect retry scheduling, policy bypass or non-deterministic replay | High | R03.52.4 Registry exists as a reference; WorkerRuntime accepts an injected classifier; FailureDecision/Store Fail carry no policy_version; delay ceilings differ across layers | Enforce trusted registry evaluation, pin policy version, derive outputs from persisted attempt budget, unify delay bounds and bind exact result to digest/mutation | Worker + Protocol + Security | OPEN |
+| RISK-17 | Request Envelope/operation_arguments and Python strict JSON input lack a complete total size budget | Memory/CPU exhaustion and inconsistent ingress behavior | High | SQL Claim parser caps raw Claim at 16 KiB; separate operation_arguments has no total cap; Python parser has no explicit cap | Define and enforce transport/Claim/envelope/argument limits and maximum canonical bytes | Protocol + Runtime + Security | OPEN |
+| RISK-18 | `worker.dlq.replay` is accepted by the digest action map with empty args while the replay plan requires unbound reason/request identity and no production UOW exists | Replay reason/identity tampering, duplicate Job creation or incomplete audit trail | High | R03.52.5 preflight is plan-only; v2alpha2 action tuple is empty; production transaction/auth issuer absent | Fail closed until typed arguments/provenance, trusted authorization and atomic source-DLQ/new-Job/audit transaction are accepted | Worker + Security + Database | OPEN |
 
 ## Highest-priority blockers
 
 1. RISK-01 through RISK-06: protocol/compatibility/atomicity blockers.
 2. RISK-07 through RISK-10: database privilege and cross-language contract blockers.
-3. RISK-11 through RISK-15: operational semantics and governance blockers.
+3. RISK-11 through RISK-18: operational semantics, retry-policy authority, DLQ replay binding, input-size and governance blockers.
 
 ## Risk acceptance rule
 
