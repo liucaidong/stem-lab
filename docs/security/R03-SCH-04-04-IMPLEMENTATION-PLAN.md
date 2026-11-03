@@ -2,7 +2,7 @@
 
 ## 1. Status and authorization
 
-**Architecture direction accepted; U0–U4 implemented on the SCH.04 working branch. U5 manual read-only reconciliation and offline tests are implemented, awaiting validation on the consolidated head. PR #33 remains unmerged.**
+**U0–U5 are implemented on the SCH.04 working branch. The prior U5 baseline passed exact-head CI on SHA ae4557d914b1417693e6f9e9214aa9d734253d68 (Run 41734325333, attempt 1). This audit batch corrects all-open-PR discovery and fail-closed edge cases; 24 offline regression tests and the live read-only audit pass locally. The corrected head awaits its post-push CI gate. The live audit reports COVERED_SUCCESS=2, ACTIVE=0, RECOVERY_REQUIRED=16, UNKNOWN=0. PR #33 remains Draft / OPEN / unmerged. Historical recovery remains unauthorized.**
 
 Approved direction:
 - remove the global 300-second cooldown and artifact-marker admission delay;
@@ -44,10 +44,10 @@ validate-contracts      tenant-ed25519-verifier
              CI result
        (exact required check; fail closed)
 
-Scheduled/manual reconciler
-  -> inspect open PR heads + main SHA
-  -> inspect runs + CI result
-  -> recover missing/cancelled/failed target safely
+Manual read-only reconciler
+  -> inspect every open PR head + current main SHA
+  -> inspect exact-SHA runs + CI result
+  -> classify recovery-needed targets without writing
 ```
 
 ## 3. Implementation work units
@@ -95,15 +95,15 @@ Scheduled/manual reconciler
 - Validate YAML and Dependabot configuration semantics.
 - Update static dependency-policy fixtures only in the same reviewed change as the corresponding legitimate dependency change; do not weaken digest/SHA/hash enforcement.
 
-### U5 — Manual read-only reconciliation (implemented; CI validation pending)
-- Implement a manual CLI that inspects every open PR current head SHA and current main SHA.
-- Inspect workflow runs and exact `CI result` checks for those SHAs.
+### U5 — Manual read-only reconciliation (implemented; 24 tests passed; live audit complete)
+- Implement a manual CLI that inspects every open PR current head SHA regardless of base branch, plus current main as a separate target; retain each PR's base ref and base SHA.
+- Inspect exact workflow runs and `CI result` checks for every discovered SHA.
 - Classify each target as covered-success, active, recovery-required, or unknown.
 - Select only the latest relevant run for each exact SHA and required workflow; an older success must never mask a newer failure, cancellation, or active run.
 - Require the latest run and its same-run `CI result` check to agree on exact SHA, workflow run ID, check name, and GitHub Actions app ID 15368.
 - Never trigger duplicate work for a target already active or covered by latest-run exact-SHA success.
 - Treat unknown/API errors as unknown, not success.
-- Current U5 performs no rerun, dispatch, cancellation, or other write; no scheduled workflow is added.
+- Current U5 performs no rerun, dispatch, cancellation, or other write; no scheduled workflow is added. PRs targeting non-main branches are included for CI coverage reporting but are not claimed to be governed by main Ruleset #26463757.
 - Any write-capable recovery is deferred to a later phase and requires separate review and explicit authorization.
 - Offline regression tests are included in required CI.
 
@@ -139,7 +139,7 @@ Scheduled/manual reconciler
 | `.github/workflows/ci-reconciliation.yml` (deferred) | not in current scope; no scheduled reconciliation workflow |
 | `scripts/test_ci_reconcile.py` (implemented) | exact SHA, latest-run precedence, same-run check binding, active-run dedupe |
 
-The reconciler and offline tests are implemented in the SCH.04 working branch; no scheduled workflow has been added.
+The reconciler now includes all open PRs regardless of base branch, and the offline tests include pagination, malformed-response, timezone, and stacked-PR discovery regressions. No scheduled workflow has been added.
 
 ## 5. Security and permission boundary
 
@@ -178,4 +178,4 @@ Implementation is accepted only when all are true:
 8. U7 isolated burst, overflow, recovery, and final acceptance.
 9. One cohesive implementation PR; no merge until complete CI success.
 
-**Current state:** U0–U4 implemented in PR #33; exact-SHA required CI passed on head fb31d718f38613ebb3ce7d1cb49aec60dbfd8d58. U5 read-only CLI and offline tests are being added. No recovery writes, scheduled workflow, Ruleset changes, or main-branch changes are authorized.
+**Current state (2026-11-04):** U0–U5 are implemented. The prior U5 baseline passed Run 41734325333 on SHA ae4557d914b1417693e6f9e9214aa9d734253d68. This audit batch adds all-open-PR discovery and fail-closed edge-case corrections; the corrected U5 suite passes 24/24 locally and awaits post-push CI. Live read-only reconciliation covered main plus all 17 open PRs: 2 covered-success, 16 recovery-required, 0 active, 0 unknown. PR #13 is explicitly included in the disposition matrix. PR #25–#28 are confirmed merged and excluded from the open-PR set. U7 controlled queue/overflow validation remains a separate final acceptance item; no recovery writes, scheduled workflow, Ruleset changes, or main-branch changes are authorized.
