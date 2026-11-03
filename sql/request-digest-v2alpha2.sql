@@ -311,6 +311,135 @@ BEGIN
      OR p_payload_b64url !~ '^[A-Za-z0-9_-]+$'
      OR length(p_signature_b64url) <> 86
      OR p_signature_b64url !~ '^[A-Za-z0-9_-]+
+  END IF;
+  payload_bytes := decode(rpad(translate(p_payload_b64url, '-_', '+/'),
+    ((length(p_payload_b64url) + 3) / 4) * 4, '='), 'base64');
+  signature_bytes := decode(rpad(translate(p_signature_b64url, '-_', '+/'),
+    ((length(p_signature_b64url) + 3) / 4) * 4, '='), 'base64');
+  IF octet_length(payload_bytes) > 16384 OR octet_length(signature_bytes) <> 64 THEN
+    RAISE EXCEPTION 'v2alpha2 assertion size or signature length invalid';
+  END IF;
+  IF rtrim(translate(replace(encode(payload_bytes, 'base64'), E'\\n', ''), '+/', '-_'), '=') <> p_payload_b64url
+     OR rtrim(translate(replace(encode(signature_bytes, 'base64'), E'\\n', ''), '+/', '-_'), '=') <> p_signature_b64url THEN
+    RAISE EXCEPTION 'non-canonical base64url assertion encoding';
+  END IF;
+  raw_payload := convert_from(payload_bytes, 'UTF8');
+  claim := __SCHEMA__.parse_strict_json_object_v2alpha2(raw_payload);
+  IF NOT (claim ?& allowed_fields) OR (claim - allowed_fields) <> '{}'::jsonb THEN
+    RAISE EXCEPTION 'v2alpha2 assertion fields missing or unknown';
+  END IF;
+  IF claim->>'contract_version' <> '2alpha2'
+     OR jsonb_typeof(claim->'v') IS DISTINCT FROM 'number' OR claim->>'v' <> '2'
+     OR jsonb_typeof(claim->'epoch') IS DISTINCT FROM 'number'
+     OR jsonb_typeof(claim->'iat') IS DISTINCT FROM 'number'
+     OR jsonb_typeof(claim->'exp') IS DISTINCT FROM 'number' THEN
+    RAISE EXCEPTION 'v2alpha2 assertion version or numeric claim invalid';
+  END IF;
+  FOREACH claim_field IN ARRAY ARRAY[
+    'iss','kid','action','tenant_id','job_id','session_id','resource_type',
+    'resource_id','operation_id','idempotency_key','request_digest','sub','aud','owner','nonce'
+  ] LOOP
+    IF jsonb_typeof(claim->claim_field) IS DISTINCT FROM 'string'
+       OR claim->>claim_field = '' THEN
+      RAISE EXCEPTION 'v2alpha2 assertion string claim invalid: %', claim_field;
+    END IF;
+  END LOOP;
+  IF (claim->>'epoch')::numeric <> trunc((claim->>'epoch')::numeric)
+     OR (claim->>'iat')::numeric <> trunc((claim->>'iat')::numeric)
+     OR (claim->>'exp')::numeric <> trunc((claim->>'exp')::numeric)
+     OR (claim->>'epoch')::numeric < 1 OR (claim->>'iat')::numeric < 0
+     OR (claim->>'exp')::numeric < 1 THEN
+    RAISE EXCEPTION 'v2alpha2 assertion integer claim invalid';
+  END IF;
+  IF length(claim->>'nonce') NOT BETWEEN 16 AND 256
+     OR claim->>'nonce' !~ '^[A-Za-z0-9_-]+$'
+     OR claim->>'request_digest' !~ '^sha256:[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'v2alpha2 assertion nonce or digest invalid';
+  END IF;
+  now_s := floor(extract(epoch FROM clock_timestamp()))::bigint;
+  IF (claim->>'iat')::bigint > now_s OR (claim->>'exp')::bigint <= now_s
+     OR (claim->>'exp')::bigint <= (claim->>'iat')::bigint
+     OR (claim->>'exp')::bigint - (claim->>'iat')::bigint > 120 THEN
+    RAISE EXCEPTION 'v2alpha2 assertion time window invalid';
+  END IF;
+  SELECT k.public_key INTO public_key FROM __SCHEMA__.issuer_keys AS k
+   WHERE k.kid = claim->>'kid' AND k.issuer = claim->>'iss'
+     AND k.revoked_at IS NULL AND k.not_before <= clock_timestamp()
+     AND (k.not_after IS NULL OR k.not_after > clock_timestamp());
+  IF NOT FOUND OR public_key IS NULL THEN RAISE EXCEPTION 'v2alpha2 issuer key unavailable'; END IF;
+  IF NOT pgsodium.crypto_sign_verify_detached(signature_bytes, payload_bytes, public_key) THEN
+    RAISE EXCEPTION 'v2alpha2 assertion signature invalid';
+  END IF;
+  IF NOT __SCHEMA__.assert_request_digest_v2alpha2(claim, p_operation_arguments) THEN
+    RAISE EXCEPTION 'v2alpha2 request digest mismatch';
+  END IF;
+  RETURN claim;
+END;
+$fn$;
+ THEN
+    RAISE EXCEPTION 'invalid v2alpha2 compact assertion encoding';
+  END IF;
+  payload_bytes := decode(rpad(translate(p_payload_b64url, '-_', '+/'),
+    ((length(p_payload_b64url) + 3) / 4) * 4, '='), 'base64');
+  signature_bytes := decode(rpad(translate(p_signature_b64url, '-_', '+/'),
+    ((length(p_signature_b64url) + 3) / 4) * 4, '='), 'base64');
+  IF octet_length(payload_bytes) > 16384 OR octet_length(signature_bytes) <> 64 THEN
+    RAISE EXCEPTION 'v2alpha2 assertion size or signature length invalid';
+  END IF;
+  raw_payload := convert_from(payload_bytes, 'UTF8');
+  claim := __SCHEMA__.parse_strict_json_object_v2alpha2(raw_payload);
+  IF NOT (claim ?& allowed_fields) OR (claim - allowed_fields) <> '{}'::jsonb THEN
+    RAISE EXCEPTION 'v2alpha2 assertion fields missing or unknown';
+  END IF;
+  IF claim->>'contract_version' <> '2alpha2'
+     OR jsonb_typeof(claim->'v') IS DISTINCT FROM 'number' OR claim->>'v' <> '2'
+     OR jsonb_typeof(claim->'epoch') IS DISTINCT FROM 'number'
+     OR jsonb_typeof(claim->'iat') IS DISTINCT FROM 'number'
+     OR jsonb_typeof(claim->'exp') IS DISTINCT FROM 'number' THEN
+    RAISE EXCEPTION 'v2alpha2 assertion version or numeric claim invalid';
+  END IF;
+  FOREACH claim_field IN ARRAY ARRAY[
+    'iss','kid','action','tenant_id','job_id','session_id','resource_type',
+    'resource_id','operation_id','idempotency_key','request_digest','sub','aud','owner','nonce'
+  ] LOOP
+    IF jsonb_typeof(claim->claim_field) IS DISTINCT FROM 'string'
+       OR claim->>claim_field = '' THEN
+      RAISE EXCEPTION 'v2alpha2 assertion string claim invalid: %', claim_field;
+    END IF;
+  END LOOP;
+  IF (claim->>'epoch')::numeric <> trunc((claim->>'epoch')::numeric)
+     OR (claim->>'iat')::numeric <> trunc((claim->>'iat')::numeric)
+     OR (claim->>'exp')::numeric <> trunc((claim->>'exp')::numeric)
+     OR (claim->>'epoch')::numeric < 1 OR (claim->>'iat')::numeric < 0
+     OR (claim->>'exp')::numeric < 1 THEN
+    RAISE EXCEPTION 'v2alpha2 assertion integer claim invalid';
+  END IF;
+  IF length(claim->>'nonce') NOT BETWEEN 16 AND 256
+     OR claim->>'nonce' !~ '^[A-Za-z0-9_-]+$'
+     OR claim->>'request_digest' !~ '^sha256:[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'v2alpha2 assertion nonce or digest invalid';
+  END IF;
+  now_s := floor(extract(epoch FROM clock_timestamp()))::bigint;
+  IF (claim->>'iat')::bigint > now_s OR (claim->>'exp')::bigint <= now_s
+     OR (claim->>'exp')::bigint <= (claim->>'iat')::bigint
+     OR (claim->>'exp')::bigint - (claim->>'iat')::bigint > 120 THEN
+    RAISE EXCEPTION 'v2alpha2 assertion time window invalid';
+  END IF;
+  SELECT k.public_key INTO public_key FROM __SCHEMA__.issuer_keys AS k
+   WHERE k.kid = claim->>'kid' AND k.issuer = claim->>'iss'
+     AND k.revoked_at IS NULL AND k.not_before <= clock_timestamp()
+     AND (k.not_after IS NULL OR k.not_after > clock_timestamp());
+  IF NOT FOUND OR public_key IS NULL THEN RAISE EXCEPTION 'v2alpha2 issuer key unavailable'; END IF;
+  IF NOT pgsodium.crypto_sign_verify_detached(signature_bytes, payload_bytes, public_key) THEN
+    RAISE EXCEPTION 'v2alpha2 assertion signature invalid';
+  END IF;
+  IF NOT __SCHEMA__.assert_request_digest_v2alpha2(claim, p_operation_arguments) THEN
+    RAISE EXCEPTION 'v2alpha2 request digest mismatch';
+  END IF;
+  RETURN claim;
+END;
+$fn$;
+ THEN
     RAISE EXCEPTION 'invalid v2alpha2 compact assertion encoding';
   END IF;
   payload_bytes := decode(rpad(translate(p_payload_b64url, '-_', '+/'),
