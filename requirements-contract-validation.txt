@@ -1,7 +1,0 @@
-jsonschema==4.26.0
-PyYAML==6.0.3
-openapi-spec-validator==0.9.0
-rfc8785==0.1.4
-cbor2==6.1.5
-psycopg[binary,pool]==3.3.6
-asyncpg==0.32.0
