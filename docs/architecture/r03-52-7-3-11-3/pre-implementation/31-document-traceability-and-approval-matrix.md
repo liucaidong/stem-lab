@@ -64,6 +64,9 @@ No document in this PR grants business Handler implementation permission. G15 re
 | 40-documentation-consistency-report.md | CONSISTENCY REVIEW PARTIAL | G0/G13/G14 | PR #21 docs 00–33, current PR/CI snapshot | Full link/ID scan and remaining source audit | Architecture governance | Cross-reference scan and approval traceability complete | NO |
 | 41-implementation-entry-gate.md | BLOCKED | G0–G15 | Source audit, security, transaction, test and approval artifacts | All predecessor gates | Architecture + Security + Project Owner | G0–G14 PASS or approved N/A; G15 explicitly approved | NO |
 | 42-final-pre-implementation-closure-report.md | NOT READY | G0–G15 | Current repository snapshot and docs 34–41 | Blocker closure and owner authorization | Project Owner + Architecture + Security + Database + Worker | All blockers closed, evidence verified and explicit entry approval | NO |
+| 43-protocol-security-hardening-delta.md | REFERENCE HARDENING / CI PASS | G1/G3/G6/G7/G9/G10 | PR #22 protocol hardening | Integrated handler/UOW and independent review | Protocol + Worker + Database + Security | Helper-level parity and least-privilege tests pass; production UOW remains separate | NO |
+| 44-atomic-business-handler-uow-reference.md | REFERENCE IMPLEMENTATION / LIMITED SCOPE | G2–G5/G8/G9/G11 | PR #23 package.validate completion handler | Full action coverage, deployment migration and independent review | Worker + Database + Security | PostgreSQL UOW, rollback and lost-COMMIT acknowledgement tests pass; remaining actions separately approved | NO |
+| 45-cross-contract-consistency-closure.md | TARGETED CONSISTENCY FIXES / CI PENDING | G1/G4/G10/G13 | PR #23 Python, JSON Schema, SQL and conformance tests | Full 81-path audit and remaining contract decisions | Protocol + Worker + Database + Security | Listed fail-action, numeric and retry-policy bounds are identical across all applicable layers | NO |
 
 ## 3. Approval record requirements
 
@@ -89,3 +92,4 @@ G15 remains BLOCKED. This matrix makes document ownership and evidence traceabil
 - 2026-11-03: Initial pre-implementation document traceability matrix.
 - 2026-11-03: Added governance/test/retry-policy audit traceability rows.
 - 2026-11-03: Added final source audit, Atomic UoW, contract matrix, security gate, decision closure, test matrix, documentation consistency and final entry-gate artifacts (34–42).
+- 2026-11-03: Added protocol hardening, limited-scope atomic Handler/UOW and targeted cross-contract consistency closure (43–45).

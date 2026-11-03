@@ -55,6 +55,13 @@ class RetryPolicyTests(unittest.TestCase):
             registry.decide("DEPENDENCY_UNAVAILABLE", 1, 5)
 
 
+    def test_attempt_budget_and_error_code_length_are_bounded(self):
+        registry = RetryPolicyRegistry.from_document(DOCUMENT)
+        with self.assertRaises(ValueError):
+            registry.decide("DEPENDENCY_UNAVAILABLE", 1, 101)
+        with self.assertRaises(ValueError):
+            RetryPolicy("E" * 65, True, 1, 2, "safe")
+
     def test_document_loader_rejects_coerced_boolean_and_duplicate_codes(self):
         invalid_type = copy.deepcopy(DOCUMENT)
         invalid_type["policies"][0]["retryable"] = "false"

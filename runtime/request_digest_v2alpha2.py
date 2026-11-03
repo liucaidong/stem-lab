@@ -10,7 +10,7 @@ ENVELOPE_FIELDS = ("contract_version","action","tenant_id","job_id","session_id"
 ACTIONS = {
  "worker.job.renew": ("lease_seconds",),
  "worker.job.complete": ("expected_session_revision","result_ref"),
- "worker.job.fail": ("error_code","retryable","retry_delay_micros","safe_message"),
+ "worker.job.fail": ("error_code","retryable","retry_delay_micros","retry_policy_version","safe_message"),
  "worker.job.retry": ("delay_micros","error_code"),
  "worker.job.dead_letter": ("error_code","terminal_reason"),
  "worker.outbox.dispatch": ("lease_seconds",),
@@ -100,14 +100,21 @@ def validate_envelope(e: dict[str,Any]) -> None:
         elif key=="retryable":
             if type(value) is not bool: raise RequestEncodingError("retryable must be boolean")
         elif not isinstance(value,str): raise RequestEncodingError(key+" must be string")
-    if e["action"] in {"worker.job.renew","worker.outbox.dispatch"} and not 5<=args["lease_seconds"]<=3600: raise RequestEncodingError("lease_seconds out of range")
+    if e["action"]=="worker.job.renew" and not 5<=args["lease_seconds"]<=300: raise RequestEncodingError("job lease_seconds out of range")
+    if e["action"]=="worker.outbox.dispatch" and not 5<=args["lease_seconds"]<=3600: raise RequestEncodingError("outbox lease_seconds out of range")
     if e["action"]=="worker.job.retry" and not 1<=args["delay_micros"]<=86400000000: raise RequestEncodingError("delay_micros out of range")
     if "retry_delay_micros" in args and args["retry_delay_micros"] > 86400000000:
         raise RequestEncodingError("retry_delay_micros out of range")
     if e["action"]=="worker.job.fail" and not args["retryable"] and args["retry_delay_micros"] != 0:
         raise RequestEncodingError("non-retryable failure must have zero delay")
-    if e["action"]=="worker.job.complete" and not args["result_ref"]: raise RequestEncodingError("result_ref empty")
+    if e["action"]=="worker.job.complete":
+        if not 0<=args["expected_session_revision"]<=2147483646: raise RequestEncodingError("expected_session_revision out of int32 range")
+        if not 1<=len(args["result_ref"])<=1024: raise RequestEncodingError("result_ref must contain 1..1024 characters")
+    if e["action"]=="worker.job.fail":
+        if not 1<=len(args["safe_message"])<=512: raise RequestEncodingError("safe_message must contain 1..512 characters")
+        if not 1<=len(args["retry_policy_version"])<=128: raise RequestEncodingError("retry_policy_version must contain 1..128 characters")
     if e["action"] in {"worker.job.fail","worker.job.retry","worker.job.dead_letter"} and not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}",args["error_code"]): raise RequestEncodingError("invalid error_code")
+    if e["action"]=="worker.job.dead_letter" and args["terminal_reason"] not in {"max_attempts","non_retryable"}: raise RequestEncodingError("invalid terminal_reason")
 
 def canonical_request_bytes(e: dict[str,Any]) -> bytes:
     validate_envelope(e)

@@ -68,6 +68,20 @@ class WorkerRuntimeTests(unittest.TestCase):
                              heartbeat_interval_seconds=0.02,
                              poll_interval_seconds=0, **kwargs)
 
+    def test_claimed_job_rejects_unsafe_epoch_and_attempt_budget(self):
+        with self.assertRaises(ValueError):
+            ClaimedJob("tenant-a", "job-1", "validate", {}, "worker-a", 2**53, 1, 5)
+        with self.assertRaises(ValueError):
+            ClaimedJob("tenant-a", "job-1", "validate", {}, "worker-a", 7, 1, 101)
+
+    def test_runtime_rejects_non_registry_retry_authority(self):
+        class UntrustedPolicy:
+            def decide(self, error_code, attempt_count, maximum_attempts):
+                raise AssertionError("must not be invoked")
+        with self.assertRaises(TypeError):
+            WorkerRuntime(worker_id="w", store=FakeStore(), handlers={},
+                          classify_error_code=classify, retry_policy=UntrustedPolicy())
+
     def test_idle_does_not_run_handler(self):
         store = FakeStore()
         runtime = self.runtime(store, {"validate": lambda *_: self.fail("unexpected")})

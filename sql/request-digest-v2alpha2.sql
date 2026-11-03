@@ -165,7 +165,7 @@ BEGIN
   expected_args := CASE action_name
     WHEN 'worker.job.renew' THEN ARRAY['lease_seconds']
     WHEN 'worker.job.complete' THEN ARRAY['expected_session_revision','result_ref']
-    WHEN 'worker.job.fail' THEN ARRAY['error_code','retryable','retry_delay_micros','safe_message']
+    WHEN 'worker.job.fail' THEN ARRAY['error_code','retryable','retry_delay_micros','retry_policy_version','safe_message']
     WHEN 'worker.job.retry' THEN ARRAY['delay_micros','error_code']
     WHEN 'worker.job.dead_letter' THEN ARRAY['error_code','terminal_reason']
     WHEN 'worker.outbox.dispatch' THEN ARRAY['lease_seconds']
@@ -205,16 +205,20 @@ BEGIN
     RAISE EXCEPTION 'operation arguments missing or unknown for action %', action_name;
   END IF;
 
-  IF action_name IN ('worker.job.renew','worker.outbox.dispatch') THEN
+  IF action_name = 'worker.job.renew' THEN
     IF pg_catalog.jsonb_typeof(args->'lease_seconds') <> 'number'
        OR pg_catalog.scale((args->>'lease_seconds')::numeric) <> 0
-       OR (args->>'lease_seconds')::numeric NOT BETWEEN 5 AND 3600 THEN RAISE EXCEPTION 'invalid lease_seconds'; END IF;
+       OR (args->>'lease_seconds')::numeric NOT BETWEEN 5 AND 300 THEN RAISE EXCEPTION 'invalid job lease_seconds'; END IF;
+  ELSIF action_name = 'worker.outbox.dispatch' THEN
+    IF pg_catalog.jsonb_typeof(args->'lease_seconds') <> 'number'
+       OR pg_catalog.scale((args->>'lease_seconds')::numeric) <> 0
+       OR (args->>'lease_seconds')::numeric NOT BETWEEN 5 AND 3600 THEN RAISE EXCEPTION 'invalid outbox lease_seconds'; END IF;
   ELSIF action_name = 'worker.job.complete' THEN
     IF pg_catalog.jsonb_typeof(args->'expected_session_revision') <> 'number'
        OR pg_catalog.scale((args->>'expected_session_revision')::numeric) <> 0
-       OR (args->>'expected_session_revision')::numeric < 0
+       OR (args->>'expected_session_revision')::numeric NOT BETWEEN 0 AND 2147483646
        OR pg_catalog.jsonb_typeof(args->'result_ref') <> 'string'
-       OR args->>'result_ref' = '' THEN RAISE EXCEPTION 'invalid complete arguments'; END IF;
+       OR pg_catalog.length(args->>'result_ref') NOT BETWEEN 1 AND 1024 THEN RAISE EXCEPTION 'invalid complete arguments'; END IF;
   ELSIF action_name = 'worker.job.fail' THEN
     IF pg_catalog.jsonb_typeof(args->'error_code') <> 'string'
        OR args->>'error_code' !~ '^[A-Z][A-Z0-9_]{0,63}$'
@@ -223,7 +227,10 @@ BEGIN
        OR pg_catalog.scale((args->>'retry_delay_micros')::numeric) <> 0
        OR (args->>'retry_delay_micros')::numeric NOT BETWEEN 0 AND 86400000000
        OR (args->'retryable' = 'false'::jsonb AND (args->>'retry_delay_micros')::numeric <> 0)
-       OR pg_catalog.jsonb_typeof(args->'safe_message') <> 'string' THEN RAISE EXCEPTION 'invalid fail arguments'; END IF;
+       OR pg_catalog.jsonb_typeof(args->'retry_policy_version') <> 'string'
+       OR pg_catalog.length(args->>'retry_policy_version') NOT BETWEEN 1 AND 128
+       OR pg_catalog.jsonb_typeof(args->'safe_message') <> 'string'
+       OR pg_catalog.length(args->>'safe_message') NOT BETWEEN 1 AND 512 THEN RAISE EXCEPTION 'invalid fail arguments'; END IF;
   ELSIF action_name = 'worker.job.retry' THEN
     IF pg_catalog.jsonb_typeof(args->'delay_micros') <> 'number'
        OR pg_catalog.scale((args->>'delay_micros')::numeric) <> 0
