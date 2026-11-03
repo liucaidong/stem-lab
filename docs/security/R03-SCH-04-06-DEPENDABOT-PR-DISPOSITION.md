@@ -36,3 +36,18 @@ This PR updates the immutable action reference for `actions/upload-artifact` to 
 - A cancelled, missing, or incomplete run is not a passing check.
 - Reassess current head SHA and exact required `CI result` status immediately before any future decision.
 - No automatic merge is authorized by this disposition.
+
+## Repository-wide current-head reconciliation snapshot (2026-11-04)
+
+A read-only audit of all 17 currently open PR heads plus the current main SHA was performed against the latest matching workflow run and the exact `CI result` check from Actions App 15368.
+
+| Target group | Observed result |
+|---|---|
+| main | latest workflow and exact `CI result` succeeded |
+| PR #33 (SCH.04) | latest workflow and exact `CI result` succeeded |
+| PR #29–#31 | latest runs cancelled; no exact successful aggregate check |
+| PR #32 | latest run failed; no exact successful aggregate check |
+| PR #14, #16–#24 (except #15) | workflow runs report success, but the current head check-runs do not contain the required aggregate `CI result`; these heads are not proven covered under the current required-check contract |
+| PR #15 | latest run failed; required aggregate check absent |
+
+This snapshot does not dispatch or rerun any workflow. The legacy successful job checks on PR #14 and #16–#24 are not substituted for the required aggregate check. Revalidation/recovery of those heads is deferred; do not infer merge readiness from individual job success alone.

@@ -6,13 +6,13 @@ from ci_reconcile import ACTIVE, RECOVERY, SUCCESS, Target, classify_target, run
 SHA = "a" * 40
 TARGET = Target("pull_request", "example", 7, SHA)
 
-def run(run_id=123, status="completed", conclusion="success", created_at="2026-11-04T00:00:00Z", attempt=1):
+def run(run_id=123, status="completed", conclusion="success", created_at="2026-11-04T00:00:00Z", attempt=1, run_started_at="2026-11-04T00:00:00Z"):
     return {"id": run_id, "head_sha": SHA, "path": ".github/workflows/contract-validation.yml",
-            "status": status, "conclusion": conclusion, "run_attempt": attempt, "created_at": created_at}
+            "status": status, "conclusion": conclusion, "run_attempt": attempt, "created_at": created_at, "run_started_at": run_started_at}
 
-def check(run_id=123, conclusion="success", app_id=15368, name="CI result"):
+def check(run_id=123, conclusion="success", app_id=15368, name="CI result", started_at="2026-11-04T00:00:00Z"):
     return {"name": name, "app": {"id": app_id}, "status": "completed", "conclusion": conclusion,
-            "details_url": f"https://github.com/example/repo/actions/runs/{run_id}/job/999", "head_sha": SHA}
+            "details_url": f"https://github.com/example/repo/actions/runs/{run_id}/job/999", "head_sha": SHA, "started_at": started_at}
 
 class ReconciliationClassificationTests(unittest.TestCase):
     def test_exact_sha_required_check_and_workflow_success_is_covered(self):
@@ -52,6 +52,23 @@ class ReconciliationClassificationTests(unittest.TestCase):
         older = run(run_id=100, created_at="2026-11-03T23:00:00Z")
         latest = run(run_id=200, status="in_progress", conclusion=None, created_at="2026-11-04T00:00:00Z")
         self.assertEqual(classify_target(TARGET, [older, latest], [check(run_id=100)]).state, ACTIVE)
+
+    def test_old_successful_attempt_cannot_mask_latest_successful_rerun(self):
+        first = run(run_id=123, attempt=1, run_started_at="2026-11-04T00:00:00Z")
+        latest = run(run_id=123, attempt=2, run_started_at="2026-11-04T00:10:00Z")
+        old_attempt_check = check(run_id=123, started_at="2026-11-04T00:01:00Z")
+        self.assertEqual(classify_target(TARGET, [first, latest], [old_attempt_check]).state, RECOVERY)
+
+    def test_check_started_in_latest_attempt_is_covered(self):
+        latest = run(run_id=123, attempt=2, run_started_at="2026-11-04T00:10:00Z")
+        latest_attempt_check = check(run_id=123, started_at="2026-11-04T00:10:01Z")
+        self.assertEqual(classify_target(TARGET, [latest], [latest_attempt_check]).state, SUCCESS)
+
+    def test_missing_attempt_timestamps_are_not_accepted_as_success(self):
+        latest = run()
+        no_attempt_time = check()
+        no_attempt_time.pop("started_at")
+        self.assertEqual(classify_target(TARGET, [latest], [no_attempt_time]).state, RECOVERY)
 
     def test_check_for_different_sha_is_not_covered(self):
         different = check(run_id=123)

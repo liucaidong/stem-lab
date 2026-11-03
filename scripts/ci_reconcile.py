@@ -2,6 +2,7 @@
 """Read-only reconciliation of current PR/main heads against the required CI result."""
 from __future__ import annotations
 import argparse, json, os, re, sys
+from datetime import datetime
 from dataclasses import asdict, dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -80,6 +81,20 @@ def run_id_from_details_url(value: str) -> int | None:
     match = re.search(r"/actions/runs/([0-9]+)/job/[0-9]+(?:$|[?#])", value)
     return int(match.group(1)) if match else None
 
+def check_started_in_latest_attempt(check: dict[str, Any], latest_run: dict[str, Any]) -> bool:
+    # A workflow rerun reuses its run ID. details_url alone therefore cannot
+    # distinguish an old successful attempt from the latest attempt.
+    run_started = latest_run.get("run_started_at")
+    check_started = check.get("started_at")
+    if not isinstance(run_started, str) or not isinstance(check_started, str):
+        return False
+    try:
+        return datetime.fromisoformat(check_started.replace("Z", "+00:00")) >= datetime.fromisoformat(
+            run_started.replace("Z", "+00:00")
+        )
+    except ValueError:
+        return False
+
 def classify_target(target: Target, workflow_runs: list[dict[str, Any]], check_runs: list[dict[str, Any]]) -> Finding:
     relevant = [
         r for r in workflow_runs
@@ -113,6 +128,7 @@ def classify_target(target: Target, workflow_runs: list[dict[str, Any]], check_r
                 and check.get("status") == "completed"
                 and check.get("conclusion") == "success"
                 and check.get("head_sha") == target.sha
+                and check_started_in_latest_attempt(check, latest)
                 and run_id_from_details_url(str(check.get("details_url") or "")) == run_id
             ):
                 return Finding(target.kind, target.name, target.number, target.sha, SUCCESS, run_id,

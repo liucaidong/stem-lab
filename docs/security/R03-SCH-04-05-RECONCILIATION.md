@@ -41,7 +41,7 @@ Only the latest relevant workflow run for a target SHA is authoritative. The sel
 - GitHub Actions integration app ID `15368`;
 - successful completed check;
 - check head SHA equals the target SHA;
-- check `details_url` resolves to the selected latest workflow run ID.
+- check `details_url` resolves to the selected latest workflow run ID, and the check start time is at or after that run attempt's `run_started_at`. This is necessary because GitHub reruns reuse the workflow run ID.
 
 ## Safety properties
 
@@ -53,7 +53,7 @@ Only the latest relevant workflow run for a target SHA is authoritative. The sel
 
 ## Validation
 
-Offline tests cover exact-SHA checks, expected app identity, run/check association, active-run deduplication, missing/cancelled runs, and the regression where an older success must not mask a newer failure.
+Offline tests cover exact-SHA checks, expected app identity, run/check association, active-run deduplication, missing/cancelled runs, older-run precedence, and the regression where an earlier successful attempt of the same rerun ID must not mask the latest attempt.
 
 ## Deferred recovery phase
 
