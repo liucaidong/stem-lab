@@ -111,6 +111,8 @@ def main() -> int:
         fail("ci-admission must export steps.admission.outputs.admitted")
     if "python scripts/ci_admission.py" not in gate:
         fail("ci-admission must run scripts/ci_admission.py")
+    if "python scripts/test_ci_result.py" not in gate:
+        fail("ci-admission must run scripts/test_ci_result.py")
     if not all(
         token in gate
         for token in (
@@ -122,7 +124,7 @@ def main() -> int:
         fail("ci-admission must upload the marker artifact only after admission")
 
     for job_name, block in jobs.items():
-        if job_name == "ci-admission":
+        if job_name in {"ci-admission", "ci-result"}:
             continue
         if not re.search(r"(?m)^    needs: ci-admission\s*$", block):
             fail(f"job {job_name!r} must depend on ci-admission")
@@ -132,9 +134,27 @@ def main() -> int:
         ):
             fail(f"job {job_name!r} must run only when admission is granted")
 
+    result = jobs.get("ci-result")
+    if result is None:
+        fail("root workflow is missing the mandatory ci-result aggregation job")
+    if not re.search(r"(?m)^    name: CI result\s*$", result):
+        fail("ci-result must publish the stable required check name 'CI result'")
+    if not re.search(r"(?m)^    if: always\(\)\s*$", result):
+        fail("ci-result must run with if: always()")
+    for dependency in ("ci-admission", "validate-contracts", "tenant-ed25519-verifier"):
+        if not re.search(rf"(?m)^      - {re.escape(dependency)}\s*$", result):
+            fail(f"ci-result must aggregate {dependency!r}")
+    for job_name in jobs:
+        if job_name in {"ci-admission", "ci-result"}:
+            continue
+        if not re.search(rf"(?m)^      - {re.escape(job_name)}\s*$", result):
+            fail(f"ci-result must aggregate validation job {job_name!r}")
+    if "python scripts/ci_result.py" not in result:
+        fail("ci-result must run scripts/ci_result.py")
+
     print(
         f"CI workflow policy valid: one root workflow ({relative}), "
-        f"global lock {GLOBAL_GROUP}, 600-second admission gate."
+        f"global lock {GLOBAL_GROUP}, 600-second admission gate, truthful CI result."
     )
     return 0
 

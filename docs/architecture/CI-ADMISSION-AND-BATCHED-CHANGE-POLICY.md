@@ -38,6 +38,10 @@ before any contract, PostgreSQL, integration, security, or benchmark job starts.
    succeeds.
 7. If the GitHub API, timestamp parsing, or marker upload fails, the gate fails
    closed and all validation jobs remain blocked.
+8. The always-running `ci-result` job aggregates the admission and every required
+   validation job. It succeeds only when admission was granted and every validation
+   job completed successfully. Cooldown rejection is reported as `CI DEFERRED` and
+   produces a non-successful required check, so it cannot be mistaken for validation.
 
 The artifact is deliberately used instead of Actions cache: pull-request caches are
 branch/ref scoped and are not a reliable repository-wide lock across different PRs.
@@ -45,7 +49,20 @@ The artifact marker is repository-visible across PR branches. Its creation time 
 slightly later than admission, so the effective interval is conservative and never
 shorter than 600 seconds.
 
-## 4. GitHub platform boundary
+## 4. Final CI result and branch protection
+
+`CI result` is the stable aggregate check intended for `main` branch protection.
+It must be configured as a required status check only after GitHub has emitted the
+check on a real workflow run and its exact context has been verified. The aggregate
+job deliberately exits non-zero for a cooldown deferral: GitHub Actions does not
+provide a native successful-but-deferred job conclusion that is safe for a required
+merge gate. This keeps the PR blocked until a later admitted run completes all tests.
+
+A skipped validation job after admission is treated as a failure, not as success.
+A failed/cancelled admission job, missing admission output, failed validation, or
+cancelled/skipped validation also makes the aggregate check non-successful.
+
+## 5. GitHub platform boundary
 
 GitHub creates the workflow run record when an eligible event is received, before
 workflow YAML can execute. Therefore this in-repository gate guarantees that no
@@ -54,7 +71,7 @@ GitHub Actions run record itself is absent. Preventing even run-record creation
 requires an external webhook/GitHub App admission controller that dispatches CI
 only after acquiring a durable repository-wide lock.
 
-## 5. Change batching protocol
+## 6. Change batching protocol
 
 During an engineering task:
 
@@ -67,8 +84,10 @@ During an engineering task:
 - Do not push intermediate fixes. If CI rejects a run during cooldown, finish all
   fixes locally and dispatch or push one final validation request after cooldown.
 
-## 6. Policy regression checks
+## 7. Policy regression checks
 
 `scripts/validate_ci_workflow_policy.py` enforces the single-root topology, global
-concurrency group, gate dependency, and marker persistence. `scripts/test_ci_admission.py`
-checks the 599/600/601-second boundaries and timestamp handling.
+concurrency group, gate dependency, marker persistence, and always-running aggregate
+check. `scripts/test_ci_admission.py` checks the 599/600/601-second boundaries and
+timestamp handling. `scripts/test_ci_result.py` verifies that only a fully admitted
+and fully successful validation run can produce a successful aggregate result.
