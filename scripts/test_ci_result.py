@@ -23,7 +23,7 @@ class FinalCiDecisionTests(unittest.TestCase):
         )
         self.assertFalse(passed)
         self.assertIn("CI DEFERRED", message)
-        self.assertIn("600-second", message)
+        self.assertIn("300-second", message)
 
     def test_admission_job_failure_blocks_validation(self):
         passed, message = final_ci_decision("failure", "", {})
