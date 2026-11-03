@@ -36,6 +36,7 @@ This is useful infrastructure for isolated conformance tests. It is not an integ
 | `scripts/test_postgres_resource_scoped_authorization.py` | Legacy resource authorization reference | Existing legacy Claim/Job/Receipt/DLQ/Outbox paths, RLS, nonce, owner/epoch/lease fencing and concurrency | v2alpha2 dispatch/Receipt/Nonce/UOW integration |
 | `scripts/test_postgres_tenant_assertion_verifier.py` | Earlier tenant verifier boundary | Reference tenant verifier and role/RLS behavior | v2alpha2 business actions |
 | `scripts/test_postgres_tenant_ed25519_verifier.py` | Ed25519 verifier reference | Database-side Ed25519 behavior in disposable pgsodium fixture | Trusted production issuer/key custody or v2alpha2 Handler UOW |
+| `scripts/test_dlq_replay.py` / `runtime/dlq_replay.py` | DLQ replay preflight | Actor/action/tenant/source Job/reason/replay limit validation and plan fields | Production authorization issuer, signed argument binding or atomic replay transaction |
 | `scripts/test_store_protocol_contract.py` | Adapter-neutral Store/UOW contract | Protocol-level conformance assertions | Actual PostgreSQL action transactions |
 
 ## 3. Test harness reuse strategy
@@ -82,6 +83,7 @@ The extraction itself must be tested against the existing PR #13 fixture and mus
 - Claim-to-resource identity binding.
 - Digest arguments and mutation values from the same typed binding.
 - Receipt + Nonce + Job/Session + Transition + Outbox (+ DLQ) same transaction.
+- DLQ replay (when separately accepted): lock source Job/DLQ, revalidate trusted authorization, reserve request idempotency, create new Job, increment replay_count and persist actor/reason/policy audit record in one transaction.
 - Typed error propagation to outer transaction.
 - Same-request replay does not repeat mutation.
 

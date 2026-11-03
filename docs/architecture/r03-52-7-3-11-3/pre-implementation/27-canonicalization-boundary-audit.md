@@ -53,18 +53,19 @@ The strict parser checks duplicate keys using PostgreSQL json before jsonb conve
 
 | ID | Difference | Consequence |
 |---|---|---|
-| CANON-01 | Candidate ADR specifies uint32 byte lengths; Python uses unsigned 32-bit packing; SQL uses signed int4send and rejects values above 2^31−1 | Bytes are identical only in the common positive range; accepted domain differs |
+| CANON-01 | Candidate ADR says uint32; Python `_u32` rejects values above 0x7fffffff before unsigned packing; SQL uses int4send for positive signed int4 lengths | Python/SQL accepted positive range is aligned at 0..2^31−1; discrepancy is the ADR's wider declared uint32 range, not a current Python-vs-SQL byte mismatch |
 | CANON-02 | Raw Claim payload is capped at 16 KiB, but operation_arguments is passed separately to digest helper and has no explicit total canonical-byte cap | The Claim cap does not prevent oversized argument payloads or memory/CPU abuse |
 | CANON-03 | Action strings such as result_ref and safe_message have no maximum length in Python/SQL action validation | A small Claim can authorize hashing/processing a very large separately supplied argument |
 | CANON-04 | Generic codec supports null tag, while current action argument schemas require exact fields and do not permit null | Null must be rejected at action schema layer; codec support is not action permission |
 | CANON-05 | Python rejects floats before encoding; PostgreSQL receives jsonb numeric, which may normalize lexical forms before typed validation | Exponent/decimal lexical parity must be tested or avoided by typed SQL parameters |
 | CANON-06 | SQL harness extracts function bodies individually up to first $fn$; and does not parse trailing orphan fragments | Full SQL file validity is not established by helper test success |
+| CANON-07 | Python `parse_json_strict` has no explicit raw input size cap; SQL strict Claim parser caps raw Claim payload at 16,384 bytes; operation_arguments are separately supplied and have no total canonical-byte cap | These are distinct input surfaces, not a direct same-function parity mismatch; ingress/Claim/Envelope/argument size budgets must be explicit to prevent unbounded parsing and hashing |
 
 ## 5. Recommended boundary resolution
 
 1. Set an explicit maximum canonical Request Envelope byte length and maximum operation_arguments byte length. A 16 KiB or 64 KiB cap is a candidate; select one based on actual maximum safe_message/result_ref and payload needs.
 2. Set per-field UTF-8 byte limits for all action arguments.
-3. If all values are capped below 2^31 bytes, explicitly define length prefixes as 4-byte network-order positive lengths with a stricter maximum; alternatively use a truly unsigned uint32 implementation in SQL if larger values are required.
+3. Correct the normative ADR: either cap lengths at 2^31−1 to match the current Python and PostgreSQL implementations, or implement full uint32 in SQL and Python consistently. Do not describe the current Python/SQL positive-range encoding as mismatched.
 4. Prefer typed SQL parameters for each action argument and construct the canonical argument object from those parameters inside the Handler. Do not rely on a separately supplied JSONB object that can differ from mutation parameters.
 5. Reject null for every current action argument unless an action schema explicitly defines null semantics.
 6. Test 1, 1.0, 1e0, -0, very large integer, invalid UTF-8, unpaired surrogate, C0/C1 control, NFC/NFD and nested limits across Python and PostgreSQL.

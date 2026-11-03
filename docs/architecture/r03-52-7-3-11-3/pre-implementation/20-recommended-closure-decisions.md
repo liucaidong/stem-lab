@@ -24,6 +24,8 @@ Conditions before acceptance:
 - remove all orphan function-body fragments from the SQL asset;
 - enforce one normative Claim/Envelope field limit table across Schema/Python/SQL;
 - enforce maximum safe integer for Claim epoch/iat/exp consistently;
+- align the ADR's uint32 length declaration with the current Python `_u32` and PostgreSQL `int4send` positive ceiling (2^31−1), or implement full uint32 consistently;
+- define total Claim, Request Envelope and separately supplied operation_arguments byte budgets before accepting the codec as normative;
 - add C0/C1, supplementary Unicode, unpaired surrogate, exponent/decimal, -0, nested limits and null negative vectors;
 - verify the full SQL asset, not extracted function fragments;
 - obtain formal R535-OD3 Architecture/Security approval.
@@ -134,6 +136,14 @@ Do not let a broad exception handler return false/null after partial writes. The
 The exact policy version (or immutable policy digest) and the derived values must be bound through the same typed action binding used for Digest and SQL mutation. Define a global/per-code maximum, a canonical internal delay unit, checked conversions and explicit rounding/overflow behavior. Fail and Retry must not compute contradictory scheduling decisions. The existing registry's float-seconds fields and sample policy do not constitute an approved production maximum or conversion rule.
 
 This is a recommendation only. Worker, Protocol, Security and Database owners must approve the authority, policy pinning, bounds and conversion before G1/G4/G13 acceptance.
+
+### REC-14 — Keep DLQ replay fail-closed until action binding and UOW are accepted
+
+The v2alpha2 digest action map currently recognizes `worker.dlq.replay` with an empty argument tuple, while the R03.52.5 preflight plan contains a stable request_id, human reason, actor, replay number, policy version and distinct new Job ID. The preflight is not a production authorization issuer or database transaction.
+
+**Recommendation:** do not dispatch this action to a v2alpha2 business Handler yet. Fail closed before Receipt/Nonce/business writes. Before enabling it, approve which fields are caller-signed versus trusted/server-derived; map the stable request identity to the idempotency contract; bind the human reason or source it from a trusted workflow; derive actor from verified Claim subject; derive replay count/number under a locked DLQ row; generate new_job_id through the approved server ID strategy; and persist trusted authorization policy version. The production UOW must lock source Job/DLQ, revalidate authorization/limit, reserve idempotency, create the new Job, increment replay_count and append immutable audit record atomically.
+
+This remains outside the current eight-action Handler slice and is not authorized by presence in the digest action registry.
 
 ## 3. Decisions intentionally not made
 

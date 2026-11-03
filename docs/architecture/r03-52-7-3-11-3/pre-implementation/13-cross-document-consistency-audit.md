@@ -79,6 +79,18 @@ The upstream R03.52.7.3.5 contract is explicit: a committed nonce collision is r
 
 The v2alpha2 Fail/Retry digest arguments include retryability and delay values, while R03.52.4 defines those values as outputs of a versioned policy registry based on error code and persisted attempt budget. The registry schema/runtime has no global maximum delay, and the sample policy is illustrative. Fail uses integer microseconds, Retry uses integer seconds, and the legacy Store API uses floating-point seconds. No accepted rule currently establishes who computes these values, which policy version is pinned, or the exact conversion/rounding/bounds. G1/G4/G13 remain OPEN until the same policy result is bound to digest and mutation.
 
+### C-10 — Canonical length prefix and ingress size budgets
+
+The candidate ADR declares uint32 length prefixes, but the Python `_u32` helper explicitly rejects values above 0x7fffffff and PostgreSQL `int4send` uses the same positive signed-int4 range. The current Python/SQL accepted positive range is aligned; the discrepancy is between the wider ADR statement and the implementation ceiling. Separately, the SQL raw Claim parser caps Claim payload at 16 KiB, Python `parse_json_strict` has no explicit input cap, and separately supplied `operation_arguments` have no total canonical-byte cap. These are distinct input surfaces and need explicit transport/Claim/Envelope/argument budgets. G1 remains OPEN.
+
+### C-11 — Error-code and safe-message length parity
+
+The Retry Policy Registry/legacy Store contract permits error_code up to 128 characters and safe_message up to 512 characters; the v2alpha2 digest codec restricts error_code to 64 characters and does not impose a safe_message length cap. The normative protocol must define the shared allowed domain and byte/code-point limits; it cannot assume the Registry constraints are enforced by the v2alpha2 digest helper. G1/G4/G13 remain OPEN.
+
+### C-12 — DLQ replay action registry is not a Handler contract
+
+The digest codec recognizes `worker.dlq.replay` but assigns it an empty argument object. The R03.52.5 preflight requires request_id, reason, actor, replay number, authorization policy version and a distinct new Job ID; it is plan-only and lacks a production authorization issuer/UOW. This action must fail closed until its trusted field provenance, signed argument binding and atomic source-DLQ/new-Job/audit transaction are accepted. G2/G13 remain OPEN.
+
 ## 4. No implicit acceptance
 
 This cross-audit is not an independent Security approval. It records consistency of the documents and explicitly retains the unresolved issues above. No proposal becomes ACCEPTED by being repeated in multiple documents.

@@ -14,6 +14,8 @@ This audit compares the existing Worker Retry Policy Registry (R03.52.4) with th
 | Source | Verified contract | Boundary |
 |---|---|---|
 | `runtime/retry_policy.py` | RetryPolicy uses `base_delay_seconds` and `max_delay_seconds` as floats; values must be finite/non-negative; max must be >= base; non-retryable policies must have zero bounds; decision uses persisted attempt_count/maximum_attempts and full jitter | Reference policy evaluator, not a production classifier or approved catalog |
+| `runtime/worker_runtime.py` | Accepts an injected `classify_failure(Exception) -> FailureDecision`; WorkerRuntime does not itself instantiate or enforce RetryPolicyRegistry | The caller-supplied classifier is a trust boundary; registry use is not guaranteed by this runtime |
+| `runtime/store_protocol.py` | FailJobCommand carries error_code/safe_message/retryable/retry_delay_seconds, caps delay at 86,400 seconds and has no policy_version field | Legacy Store contract has a different unit/range boundary and does not pin the policy version used to derive the failure decision |
 | `contracts/worker-retry-policy.schema.v1alpha1.json` | Delay fields are JSON numbers with minimum 0; no absolute maximum is defined | Schema validation does not establish a global delay cap |
 | `contracts/worker-retry-policy.v1alpha1.json` | Illustrative sample uses 120 seconds for DEPENDENCY_UNAVAILABLE and 300 seconds for RATE_LIMITED | Sample is explicitly illustrative, not approved production policy |
 | `runtime/request_digest_v2alpha2.py` | Fail args: error_code/retryable/retry_delay_micros/safe_message; Retry args: delay_seconds/error_code; Retry delay 1..86400 seconds; Fail delay non-negative signed int64; error_code regex | Codec validates shape/range, not whether policy output is authoritative |
@@ -33,6 +35,8 @@ R03.52.4 defines the policy flow:
 
 The v2alpha2 Fail action instead accepts `retryable`, `retry_delay_micros` and `safe_message` as digest arguments. Retry accepts `delay_seconds` and `error_code`. A valid signature/digest proves that the values match the signed request; it does not prove that those values were correctly derived from the approved policy and persisted attempt budget.
 
+The gap is concrete in the current runtime: `WorkerRuntime` receives `classify_failure` as an injected callback and forwards its `FailureDecision` to `store.fail`; it does not enforce that the callback uses `RetryPolicyRegistry`, nor does `FailureDecision` carry a policy version. The registry's `decide(error_code, attempt_count, maximum_attempts)` can compute a policy result, but the current call graph does not prove that persisted attempt_count/maximum_attempts and a pinned registry version are used for every failure.
+
 The action contract must identify the trusted policy evaluator and the source of attempt_count/maximum_attempts. A worker-supplied boolean, delay or safe message must not override the policy merely because it is signed.
 
 ### 3.2 There is no approved global delay maximum
@@ -49,6 +53,8 @@ The Registry JSON Schema constrains delay values to numbers >= 0 but supplies no
 | v2alpha2 Retry digest | delay_seconds | integer seconds, 1..86400 |
 
 No approved conversion contract defines rounding, precision loss, overflow behavior, maximum delay, or whether a sub-second retry is valid. The digest must describe the exact typed value used to derive the persisted scheduling timestamp.
+
+The upper bounds also diverge: legacy `FailJobCommand` accepts at most 86,400 seconds; v2alpha2 Retry accepts integer seconds 1..86,400; v2alpha2 Fail accepts any non-negative signed-int64 microsecond value (no policy maximum in the codec). The Retry Policy Registry itself has no global maximum. A policy result can therefore be representable in one layer and rejected or dangerously oversized in another.
 
 ### 3.4 Retry and Fail may duplicate policy decisions
 
