@@ -325,9 +325,13 @@ def main() -> int:
     if "python scripts/ci_result.py" not in result:
         fail("ci-result must run scripts/ci_result.py")
 
+    admission_source = (ROOT / "scripts" / "ci_admission.py").read_text(encoding="utf-8")
+    if not re.search(r"(?m)^COOLDOWN_SECONDS = 300$", admission_source):
+        fail("repository-wide CI admission cooldown must remain exactly 300 seconds")
+
     print(
         f"CI workflow policy valid: one root workflow ({relative}), "
-        f"global lock {GLOBAL_GROUP}, 600-second admission gate, truthful CI result."
+        f"global lock {GLOBAL_GROUP}, 300-second admission gate, truthful CI result."
     )
     return 0
 

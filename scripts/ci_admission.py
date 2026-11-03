@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repository-wide 600-second GitHub Actions admission gate.
+"""Repository-wide 300-second GitHub Actions admission gate.
 
 The workflow-level concurrency group serializes gate evaluations. A successful
 admission uploads a repository-visible Actions artifact. Later runs inspect the
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-COOLDOWN_SECONDS = 600
+COOLDOWN_SECONDS = 300
 MARKER_ARTIFACT_NAME = "stem-lab-ci-admission"
 MARKER_PATH = Path(".ci-admission/marker.json")
 
@@ -39,7 +39,7 @@ def admission_decision(
     latest_marker_created_at: datetime | None,
     cooldown_seconds: int = COOLDOWN_SECONDS,
 ) -> tuple[bool, int]:
-    """Return (admitted, remaining_seconds); boundary is inclusive at 600s."""
+    """Return (admitted, remaining_seconds); boundary is inclusive at 300s."""
     if cooldown_seconds <= 0:
         raise ValueError("cooldown_seconds must be positive")
     if latest_marker_created_at is None:

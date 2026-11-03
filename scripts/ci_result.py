@@ -24,7 +24,7 @@ def final_ci_decision(
         return False, f"CI BLOCKED: admission job concluded {admission_result!r}; validation was not authorized."
 
     if admitted == "false":
-        return False, "CI DEFERRED: the repository-wide 600-second cooldown is active; rerun after it expires."
+        return False, "CI DEFERRED: the repository-wide 300-second cooldown is active; rerun after it expires."
     if admitted != "true":
         return False, f"CI BLOCKED: admission output is missing or invalid ({admitted!r})."
 

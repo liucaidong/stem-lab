@@ -53,7 +53,7 @@ jobs:
           python scripts/test_ci_admission.py
           python scripts/test_ci_result.py
           python scripts/test_ci_workflow_policy.py
-      - name: Enforce repository-wide 600-second CI admission gate
+      - name: Enforce repository-wide 300-second CI admission gate
         id: admission
         env:
           GH_TOKEN: ${{ github.token }}

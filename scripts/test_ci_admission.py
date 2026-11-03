@@ -13,25 +13,25 @@ class AdmissionDecisionTests(unittest.TestCase):
     def test_first_run_is_admitted(self):
         self.assertEqual(admission_decision(self.last, None), (True, 0))
 
-    def test_599_seconds_is_rejected(self):
-        event = self.last + timedelta(seconds=599)
+    def test_299_seconds_is_rejected(self):
+        event = self.last + timedelta(seconds=299)
         admitted, remaining = admission_decision(event, self.last)
         self.assertFalse(admitted)
         self.assertEqual(remaining, 1)
 
-    def test_exactly_600_seconds_is_admitted(self):
-        event = self.last + timedelta(seconds=600)
+    def test_exactly_300_seconds_is_admitted(self):
+        event = self.last + timedelta(seconds=300)
         self.assertEqual(admission_decision(event, self.last), (True, 0))
 
-    def test_more_than_600_seconds_is_admitted(self):
-        event = self.last + timedelta(seconds=601)
+    def test_more_than_300_seconds_is_admitted(self):
+        event = self.last + timedelta(seconds=301)
         self.assertEqual(admission_decision(event, self.last), (True, 0))
 
     def test_event_queued_before_marker_is_rejected(self):
         event = self.last - timedelta(seconds=1)
         admitted, remaining = admission_decision(event, self.last)
         self.assertFalse(admitted)
-        self.assertGreaterEqual(remaining, 600)
+        self.assertGreaterEqual(remaining, 300)
 
     def test_timezone_offsets_are_normalized(self):
         parsed = parse_timestamp("2026-11-03T17:00:00+08:00")
