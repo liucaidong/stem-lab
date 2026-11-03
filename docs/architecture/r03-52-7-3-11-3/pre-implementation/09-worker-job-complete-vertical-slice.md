@@ -31,13 +31,13 @@ sequenceDiagram
     H->>H: compare computed digest with signed request_digest
     H->>DB: BEGIN (caller-owned transaction)
     H->>DB: lock Job + Session; validate tenant/job/session relationship
-    H->>DB: Receipt reserve/replay arbitration
+    H->>DB: Receipt lookup/replay check; lock existing row if present
     alt Existing terminal Receipt, same key + digest + identity
         H->>DB: consume fresh assertion Nonce
         DB-->>H: stored outcome; no business mutation
     else No Receipt
         H->>DB: validate owner/epoch/status/DB-clock lease + Session revision
-        H->>DB: reserve pending Receipt
+        H->>DB: insert pending Receipt with unique-key race recheck
         H->>DB: consume Nonce under cross-version uniqueness contract
         H->>DB: mutate Job and accepted Session fields
         H->>DB: insert Transition + Outbox
