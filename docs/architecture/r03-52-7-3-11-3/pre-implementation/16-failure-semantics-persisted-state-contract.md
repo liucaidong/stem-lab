@@ -47,7 +47,7 @@ Compare primary-key sets and exact row values, not only counts. Read after-state
 | Commit Failure — definitive server abort | Transaction abort reported | All action changes absent | New Receipt absent | New nonce absent | All inserts absent |
 | Commit Outcome Ambiguous (connection lost) | Client must reconcile by same operation identity; no blind fresh mutation | Either all action changes committed or none; never partial | Terminal Receipt exists iff whole transaction committed | Nonce exists iff whole transaction committed | Transition/Outbox/DLQ exist iff whole transaction committed |
 | Deadlock (40P01) | Transaction abort; retry whole transaction only after confirmed rollback, using same business envelope and a fresh assertion nonce | No attempt writes committed | No attempt Receipt committed | No attempt nonce committed | No attempt inserts committed |
-| Serialization Failure (40001) | Transaction abort; retry whole transaction only | No attempt writes committed | No attempt Receipt committed | No attempt nonce committed | No attempt inserts committed |
+| Serialization Failure (40001) | Transaction abort; retry whole transaction only after confirmed rollback, using same business envelope and a fresh assertion nonce | No attempt writes committed | No attempt Receipt committed | No attempt nonce committed | No attempt inserts committed |
 | Outer Transaction Rollback | Caller rolls back | All action changes absent | New Receipt absent | New nonce absent | All inserts absent |
 
 The same-request terminal Receipt replay is a no-op with respect to business mutation. It must not re-run Job or Session state transitions.
