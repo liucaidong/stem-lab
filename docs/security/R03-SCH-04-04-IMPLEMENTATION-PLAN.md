@@ -1,240 +1,182 @@
-# R03-SCH-04.4 — Scheduler Implementation Plan (Approval-Gated)
+# R03-SCH-04.4 — Native-First CI Scheduling Implementation Plan
 
-## 1. Status
+## 1. Status and authorization
 
-**Plan only — implementation is NOT authorized.**
+**Architecture direction accepted; implementation has not started.**
 
-The architecture ADR in SCH.04.2 remains PROPOSED. This plan assumes the recommended hybrid:
-- durable external task queue as authoritative state;
-- GitHub Actions `queue: max` as bounded execution backstop;
-- Dependabot arrival shaping;
-- exact-task idempotency;
-- 300-second inter-start interval retained as a delay, not a rejection.
+Approved direction:
+- remove the global 300-second cooldown and artifact-marker admission delay;
+- use GitHub Actions native `queue: max` for the custom required-validation workflow;
+- retain `cancel-in-progress: false` and the global concurrency group;
+- add bounded current-head reconciliation and recovery;
+- shape Dependabot arrival rate;
+- keep Ruleset #26463757 and required check `CI result` unchanged.
 
-No code, workflow, Dependabot configuration, App permission, Ruleset, or infrastructure was changed while producing this plan.
+Not authorized by this plan:
+- external Scheduler, durable external queue, webhook service, or dedicated GitHub App;
+- Ruleset or branch-protection changes;
+- bypassing required validation;
+- automatic merge of PR #29–#32;
+- changing dependency policy pins without a compatibility review.
 
-## 2. Design constraints and GitHub API facts
+No production workflow or Dependabot configuration was changed during this plan revision.
 
-1. GitHub's workflow dispatch endpoint requires GitHub App repository permission `Actions: write`; its `ref` parameter is a branch or tag.
-2. GitHub's workflow-run rerun endpoint requires `Actions: write`.
-3. GitHub documents that reruns use the same `GITHUB_SHA` and `GITHUB_REF` as the original event. This is preferable for recovering a cancelled PR workflow because it preserves the original event context and commit identity.
-4. Reruns are available for up to 30 days and are limited to 50 attempts per workflow run.
-5. Checks API read requires `Checks: read`; creating/updating a check run requires a GitHub App with `Checks: write`.
+## 2. Target design
 
-Sources:
-- [Create workflow dispatch event](https://docs.github.com/en/rest/actions/workflows)
-- [Re-run workflow run](https://docs.github.com/en/rest/actions/workflow-runs)
-- [Re-running workflows and jobs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)
-- [Checks API permissions](https://docs.github.com/en/rest/checks/runs)
+```text
+GitHub PR / main push / Dependabot PR
+             |
+             v
+contract-validation.yml
+  concurrency:
+    group: stem-lab-global-ci
+    cancel-in-progress: false
+    queue: max
+             |
+             v
+ci-admission (policy / safety only; no cooldown)
+       |                         |
+       v                         v
+validate-contracts      tenant-ed25519-verifier
+       |                         |
+       +------------+------------+
+                    v
+             CI result
+       (exact required check; fail closed)
 
-**Required-check rule:** do not use the GitHub Checks API to create a parallel `CI result` check under the external scheduler App. The current Ruleset is configured for the GitHub Actions integration. Prefer GitHub Actions to remain the producer of the required `CI result` context. Any alternate check producer requires a separate Ruleset integration review and is outside this plan.
+Scheduled/manual reconciler
+  -> inspect open PR heads + main SHA
+  -> inspect runs + CI result
+  -> recover missing/cancelled/failed target safely
+```
 
-## 3. Proposed GitHub App boundary
+## 3. Implementation work units
 
-Candidate installation scope: only `liucaidong/stem-lab`.
+### U0 — Freeze and refresh baseline
+- Read current main SHA, workflow YAML, admission scripts/tests, Dependabot config, Ruleset, open PR #29–#32 and current head SHAs.
+- Capture current required check context and integration identity.
+- Confirm working branch contains the full SCH.04 document set.
+- Confirm no unrelated branch or Ruleset mutation occurred.
+- No production changes.
 
-| Permission / event | Proposed level | Purpose |
-|---|---|---|
-| Actions | Read + Write | Inspect workflow runs/jobs; rerun cancelled runs; dispatch worker only if integration proof requires it |
-| Pull requests | Read | Read PR number, head/base SHA, branch, open/closed state |
-| Checks | Read | Inspect `CI result` and other check conclusions |
-| Contents | Read | Read workflow/ref metadata if required |
-| Metadata | Read | Repository identity |
-| Webhook: pull_request | Subscribe | Capture opened/synchronize/reopened/ready_for_review/closed |
-| Webhook: push | Subscribe | Capture main branch pushes |
-| Webhook: workflow_run | Subscribe | Correlate task records with run IDs and conclusions |
+### U1 — Remove cooldown behavior safely
+- Inspect `scripts/ci_admission.py`, `scripts/test_ci_admission.py`, `scripts/validate_ci_workflow_policy.py`, `scripts/test_ci_workflow_policy.py`, and all references to the 300-second interval / artifact marker.
+- Define the admission job's remaining purpose: static policy and safe-run admission only.
+- Remove artifact-listing logic, marker age calculation, 300-second comparisons, delayed/rejected state, and marker upload/download dependencies.
+- Preserve fail-closed behavior for invalid workflow policy, unauthorized event context, or malformed inputs.
+- Update tests so no test expects a 300-second delay or marker artifact.
+- Add regression assertions that no cooldown/marker implementation remains in the active workflow path.
+- Do not remove unrelated artifacts used by benchmark/test reporting.
 
-Explicitly excluded:
-- Administration: none;
-- Rulesets / branch protection: no write;
-- Contents: no write;
-- Checks: no write;
-- Actions write is limited to run rerun/dispatch operations.
+### U2 — Native concurrency queue migration
+- Change only the custom required-validation workflow's queue mode from `single` to `max`.
+- Preserve `group: stem-lab-global-ci`.
+- Preserve `cancel-in-progress: false`.
+- Do not add another concurrency group for required validation.
+- Add/update static policy tests to enforce this exact contract.
+- Add explicit documentation/monitoring for the 100-pending bound and non-FIFO ordering.
+- Do not assume this controls Dependabot's internal/dynamic workflows.
 
-The GitHub App must verify webhook signatures, enforce a repository allowlist, persist the delivery ID, and reject replayed deliveries idempotently.
+### U3 — Required-check correctness tests
+- Preserve the job name `CI result` and exact status context.
+- Preserve `if: always()` and dependencies on admission plus every required validation job.
+- Test admission failure, missing output, skipped validation, failure, cancellation, timeout, and missing job result.
+- Prove every non-success path makes `CI result` fail.
+- Prove success is possible only when all required jobs succeed.
+- Keep Ruleset #26463757 unchanged.
 
-## 4. Component plan
+### U4 — Dependabot arrival shaping
+- Update `.github/dependabot.yml` with explicit weekly UTC schedule windows staggered by ecosystem (GitHub Actions, pip, Docker, npm).
+- Set `open-pull-requests-limit: 1` for each ecosystem entry.
+- Retain minor/patch grouping.
+- Keep major upgrades individually reviewable.
+- Do not introduce a version-update cooldown as a replacement for the removed CI cooldown.
+- Ensure security updates remain independently actionable.
+- Validate YAML and Dependabot configuration semantics.
+- Update static dependency-policy fixtures only in the same reviewed change as the corresponding legitimate dependency change; do not weaken digest/SHA/hash enforcement.
 
-| Component | Candidate path / location | Responsibility | Dependencies |
-|---|---|---|---|
-| Scheduler service | Separate private deployment repository/service (name not created) | Webhook receiver, queue API, scheduler, reconciler, audit API | GitHub App, durable database/queue, secret manager |
-| Task schema | Scheduler service `db/migrations/001_ci_task_ledger.sql` | Tasks, deliveries, attempts, leases, outbox, audit events | Transactional database |
-| Event normalizer | Scheduler service `src/events/normalize.py` | Normalize PR/push/manual payloads and exact SHA | Webhook signature verification |
-| Task identity | Scheduler service `src/tasks/identity.py` | Stable task key and duplicate detection | Canonical JSON / SHA-256 |
-| Queue repository | Scheduler service `src/tasks/repository.py` | Atomic enqueue, claim, lease, ack, retry, dead-letter | DB transaction and row locks |
-| Priority scheduler | Scheduler service `src/scheduler/dispatch.py` | P0–P4 priority, FIFO per class, aging, 300-second eligibility | Queue repository |
-| GitHub client | Scheduler service `src/github/actions.py` | Inspect runs, rerun cancelled runs, optional dispatch fallback | App installation token |
-| Reconciler | Scheduler service `src/reconcile/workflow_runs.py` | Find orphaned, cancelled, missing, or stale run/task linkage | Actions:read/write, Checks:read |
-| Worker workflow | `.github/workflows/contract-validation.yml` (evolve in place) | Preserve complete validation and `CI result` | Scheduler client / approved dispatch model |
-| Admission client | `scripts/ci_scheduler_client.py` | Request/heartbeat/complete scheduler lease | Scheduler API, short-lived signed token |
-| Task identity tests | `scripts/test_ci_task_identity.py` | Duplicate delivery and distinct SHA invariants | Pure unit tests |
-| State-machine tests | `scripts/test_ci_scheduler_state_machine.py` | Allowed transitions, terminal-state immutability | Pure unit tests |
-| API fault tests | `scripts/test_ci_scheduler_api_faults.py` | 429/5xx/timeout/403/retry-after | Fake GitHub client |
-| Concurrency tests | `scripts/test_ci_scheduler_concurrency.py` | Atomic claims, leases, fencing tokens | Transactional test DB |
-| Fault-injection suite | `scripts/test_ci_scheduler_fault_injection.py` | Runner loss, cancellation, rerun, artifact loss, crash recovery | Test DB + fake Actions adapter |
-| Policy validator | `scripts/validate_ci_scheduler_policy.py` | Assert no bypass, permissions, required jobs and concurrency policy | Workflow YAML parser |
+### U5 — Bounded reconciliation and recovery
+- Prefer a scheduled/manual workflow with read-only inspection by default.
+- Inspect all open PR current head SHAs and current main SHA.
+- Inspect workflow runs and exact `CI result` checks for those SHAs.
+- Classify each target as covered-success, active, recovery-required, or unknown.
+- Never recover a target already active or already covered by exact-SHA success.
+- Treat unknown/API errors as unknown, not success.
+- Use original workflow-run rerun where supported and verify SHA/ref preservation.
+- If a no-job cancelled run cannot be rerun, test the alternative recovery route in isolation before enabling it.
+- Bound attempts, apply backoff, respect API rate limits, and emit an audit record with target SHA/run ID/attempt/reason/conclusion.
+- Do not create an external App check. The GitHub Actions workflow remains the required-check producer.
+- Keep reconciliation cadence low and configurable; initial candidate is every 15 minutes plus manual dispatch, subject to run-volume testing.
 
-The service repository/path is a proposal only. Do not create it until the external scheduler decision and hosting provider are approved.
+### U6 — PR #29–#32 disposition
+- Keep all four PRs unmerged until their current head SHAs have complete successful required checks and independent compatibility review.
+- PR #29: blocked pending coherent PostgreSQL 18 build/runtime/extension strategy; it currently mixes a PG18 base image with PG17 development/install paths.
+- PR #30: plausible dependency update but unvalidated; fix exact-version policy fixture and run complete validation before merge consideration.
+- PR #31: inspect current state and obtain a complete run; cancellation is not success.
+- PR #32: update the action SHA policy fixture only after verifying the intended immutable upstream action SHA and action major compatibility; then rerun full CI.
+- Reassess current PR state before any action; do not assume the historical snapshots remain current.
 
-## 5. Required-check integration — critical proof gate
+### U7 — Shadow validation, cutover, and rollback
+- Implement all changes on the existing SCH.04 working branch.
+- Run YAML/static policy/unit tests locally or in isolated test workflows first.
+- Prepare one cohesive implementation PR; avoid repeated pushes that trigger unnecessary CI.
+- Verify queue behavior with a controlled burst that stays below the 100-pending bound.
+- Separately test overflow detection/reconciliation without creating a run storm.
+- Verify PR check association, exact SHA, integration identity, and aggregate semantics.
+- Do not merge until all required checks succeed on the exact PR head SHA.
+- Rollback through one reviewed PR restoring the previous workflow/admission implementation if required; do not change Ruleset.
 
-The current required check is `CI result`, Ruleset ID `26463757`, with strict checks enabled.
+## 4. Candidate repository paths
 
-Preferred recovery path for an existing run:
-1. Capture the PR/push event and persist the task.
-2. Correlate the event with the GitHub Actions run ID.
-3. If the original run is cancelled before jobs or is otherwise retryable, call the workflow-run rerun endpoint.
-4. GitHub reruns the original event using the same SHA and ref.
-5. Observe the new run attempt and require all original validation jobs plus `CI result` to succeed.
+| Path | Planned change |
+|---|---|
+| `.github/workflows/contract-validation.yml` | queue max; remove marker artifact steps; preserve required jobs |
+| `scripts/ci_admission.py` | remove cooldown/marker scheduler behavior; retain policy admission |
+| `scripts/test_ci_admission.py` | replace cooldown tests with admission invariants |
+| `scripts/validate_ci_workflow_policy.py` | enforce native queue and no cooldown |
+| `scripts/test_ci_workflow_policy.py` | regression tests for queue and required-check contract |
+| `.github/dependabot.yml` | stagger schedules; PR limit 1/ecosystem |
+| `scripts/ci_reconcile.py` (candidate) | inspect current-head coverage and recovery decisions |
+| `.github/workflows/ci-reconciliation.yml` (candidate) | scheduled/manual bounded reconciliation |
+| `scripts/test_ci_reconcile.py` (candidate) | exact SHA, active-run dedupe, unknown state, recovery bounds |
 
-This preserves the original PR event context better than dispatching a new workflow against a moving branch.
+Candidate paths are not created or modified yet.
 
-Before relying on it, a controlled test MUST prove that GitHub accepts a rerun of a workflow run cancelled before any job was created (as observed for PR #29–#31). The test must confirm:
-- same original SHA and ref;
-- a new run attempt is created;
-- the PR receives the required `CI result` check;
-- the check's integration identity remains GitHub Actions;
-- no duplicate check is left pending;
-- a failed/cancelled rerun remains non-success.
+## 5. Security and permission boundary
 
-Fallback if the no-job rerun is not supported:
-- test a worker dispatch against a PR head branch;
-- verify the run's `head_sha` and check association match the exact intended PR head;
-- if not, retain the original PR-triggered workflow as the required-check owner and use it as the scheduler-controlled worker.
-- Do not create a check through the external App; that would use a different integration identity and is not accepted by this plan.
+- No new GitHub App.
+- No new external credentials or database.
+- Keep workflow token permissions least-privilege.
+- Read-only reconciliation is preferred.
+- If rerun capability requires write permission, use the narrowest supported GitHub Actions permission and only after explicit review.
+- No Administration, Rulesets, branch-protection, Contents write, or Checks write permission.
+- Never execute untrusted PR code in a privileged reconciliation context.
+- Never expose `GITHUB_TOKEN`, installation tokens, or secrets in logs/artifacts.
 
-## 6. Migration work units
+## 6. Acceptance gates
 
-### U0 — Baseline freeze and evidence capture
-- Record current main SHA, PR heads, Ruleset, workflow IDs, and current required-check context.
-- Save exact current YAML and static policy fixtures.
-- No changes to main or Ruleset.
+Implementation is accepted only when all are true:
+1. No global 300-second cooldown or artifact-marker admission logic remains.
+2. Custom workflow concurrency uses the existing global group, `queue: max`, and `cancel-in-progress: false`.
+3. `CI result` remains the exact required check and fails closed.
+4. Every open PR current head and current main SHA has a successful exact-SHA required check, or is explicitly reported as unresolved.
+5. Reconciliation avoids duplicate active/successful runs and handles overflow/cancellation without false success.
+6. Dependabot schedules are staggered and each ecosystem's open PR limit is one.
+7. Security updates remain actionable.
+8. PR #29–#32 are not merged without complete CI and compatibility review.
+9. Ruleset #26463757 is unchanged.
+10. No external Scheduler/App/queue infrastructure has been introduced.
 
-### U1 — Durable task store and schema
-- Implement task envelope, delivery ledger, attempts, lease/fencing token, scheduler outbox, terminal audit.
-- Enforce unique task key and unique delivery ID.
-- Add transactional claim and immutable transition log.
-- Verify restart and concurrent-writer behavior.
+## 7. Execution order
 
-### U2 — Webhook ingress in shadow mode
-- Subscribe to PR, push, and workflow_run events.
-- Verify HMAC signatures.
-- Persist all supported events before returning 2xx.
-- No Actions rerun/dispatch authority in this unit.
-- Compare task ledger to actual GitHub events and current open PR heads.
-- Prove idempotent duplicate delivery handling.
+1. U0 baseline freeze.
+2. U1 admission/cooldown removal and tests.
+3. U2 native queue migration and policy tests.
+4. U3 required-check correctness.
+5. U4 Dependabot governance.
+6. U5 reconciliation implementation and fault tests.
+7. U6 PR #29–#32 disposition.
+8. U7 isolated burst, overflow, recovery, and final acceptance.
+9. One cohesive implementation PR; no merge until complete CI success.
 
-### U3 — GitHub Actions adapter and recovery
-- Implement Actions run lookup, run attempt inspection, rerun, and dispatch fallback.
-- Use Actions:read/write only after explicit App permission approval.
-- Test cancelled-before-job rerun.
-- Verify same SHA/ref and required check identity.
-- Add rate-limit handling and bounded retry.
-
-### U4 — Scheduler and 300-second throttle
-- Implement priority classes, FIFO per class, aging, and worker limit.
-- Preserve 300 seconds as `eligible_at` delay.
-- Never mark a task complete when deferred.
-- Add lease expiry, fencing token, retry and dead-letter behavior.
-- Ensure active validation is non-preemptive by default.
-
-### U5 — Workflow integration
-- Keep `validate-contracts` and `tenant-ed25519-verifier` unchanged in coverage and semantics.
-- Preserve job names and exact aggregate context `CI result`.
-- Replace artifact-marker decision as the authoritative queue state only after shadow parity.
-- Set native custom workflow queue to `max` only after the overflow/reconciliation test.
-- No simultaneous old and new admission decisions.
-- Do not change Ruleset.
-
-### U6 — Dependabot governance rollout
-- Stagger weekly schedule windows.
-- Reduce each ecosystem's open version-update PR limit to one.
-- Retain minor/patch groups.
-- Keep major updates individually visible.
-- Ensure security updates are not delayed by version-update cooldown.
-- Fix exact-version static policy fixtures without weakening immutable SHA/digest/hash checks.
-- Ensure Python direct requirements and generated hash lock versions agree.
-
-### U7 — Reconciliation and operations
-- Periodically compare durable task state, workflow runs, check runs, and open PR head SHAs.
-- Detect orphaned task, orphaned run, missing required check, stale lease, cancelled run, exhausted retry, and queue overflow.
-- Provide operator commands/API for inspect, retry, cancel, and dead-letter replay.
-- Alert on oldest task age and missing required check.
-
-## 7. File/interface contract
-
-### Scheduler API (proposed)
-
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/webhooks/github` | Receive signed GitHub webhook |
-| POST | `/v1/tasks` | Create an operator-authorized manual task |
-| GET | `/v1/tasks/{task_id}` | Read task state and attempts |
-| POST | `/v1/tasks/{task_id}/retry` | Explicit retry |
-| POST | `/v1/tasks/{task_id}/cancel` | Authorized cancellation |
-| POST | `/internal/tasks/claim` | Atomic worker claim |
-| POST | `/internal/tasks/{task_id}/heartbeat` | Renew current lease |
-| POST | `/internal/tasks/{task_id}/complete` | Record terminal worker result |
-| GET | `/healthz` | Liveness |
-| GET | `/readyz` | Dependency readiness |
-| GET | `/metrics` | Queue/worker/API metrics |
-
-### Database tables (proposed)
-
-- `ci_tasks`
-- `ci_task_deliveries`
-- `ci_task_attempts`
-- `ci_task_leases`
-- `ci_task_events` (append-only)
-- `ci_scheduler_outbox`
-- `ci_task_dead_letters`
-
-The scheduler database is a separate control-plane store. Do not reuse the STEM product tenant database or any tenant-scoped application schema.
-
-## 8. API rate-limit and retry plan
-
-- Respect `Retry-After`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`.
-- Use conditional requests and ETags where available.
-- Batch run/check lookups and cache PR metadata.
-- Treat 429 and transient 5xx/network errors as retryable.
-- Treat 401/403 permission failures as configuration incidents, not retry storms.
-- Treat 404 as ambiguous until repository/run lifecycle is reconciled; never infer task success.
-- Use bounded exponential backoff with jitter.
-- Every API attempt records method, endpoint class, status, request ID, latency, and retry decision without logging tokens or secrets.
-
-## 9. No-double-execution and no-pending-check migration
-
-1. Build the new service in shadow mode; it does not dispatch.
-2. Compare its normalized task list against actual PR/push events and Actions runs.
-3. Complete all state-machine and API adapter tests using a test repository or isolated branch.
-4. Prepare one migration PR that changes workflow integration and policy fixtures together.
-5. During the cutover window, pause scheduler dispatch; do not merge a half-migrated state.
-6. Enable the new authoritative scheduler only after the worker path is deployed and the old admission decision is disabled in the same controlled rollout.
-7. Reconcile every open PR head and current main SHA after cutover.
-8. Verify one and only one authoritative `CI result` outcome per task/attempt.
-9. Keep a watchdog for any required check that remains pending beyond the agreed SLA.
-10. Do not merge the migration PR until all required checks pass on its exact head SHA.
-
-## 10. Rollback plan
-
-- Disable external dispatch/rerun actions first.
-- Preserve all durable tasks and audit events.
-- Stop claiming new tasks; allow active validation jobs to finish.
-- Restore the previous workflow trigger/admission path in a single reviewed rollback PR if necessary.
-- Do not delete queue rows or task attempts.
-- Reconcile ambiguous dispatches against Actions run IDs before retrying.
-- Keep the 300-second policy unchanged.
-- Do not change Ruleset #26463757.
-- Verify the exact `CI result` context is again produced by the original workflow before declaring rollback complete.
-
-## 11. Implementation acceptance gate
-
-Implementation may begin only after explicit approval of:
-- external durable queue architecture and hosting/provider;
-- GitHub App creation/installation and permission list;
-- scheduler database and backup/retention design;
-- priority/fairness policy;
-- required-check rerun/dispatch integration proof;
-- migration/cutover/rollback plan.
-
-No approval is inferred from the request to continue the audit. No GitHub App, infrastructure, workflow, Dependabot configuration, or Ruleset has been changed in SCH.04.4.
+**Current state:** architecture and plan revised only. The next authorized activity is U0 read-only baseline refresh, followed by implementation work on the existing working branch. Production CI configuration remains unchanged.
