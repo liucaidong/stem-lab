@@ -14,11 +14,27 @@ def main() -> None:
         encoding=conn.execute('SHOW server_encoding').fetchone()[0]
         assert encoding.upper()=='UTF8', f'PostgreSQL database encoding must be UTF8, got {encoding}'
         parts=SQL.split("CREATE OR REPLACE FUNCTION ")
-        assert len(parts)==4, f"expected schema + 3 function definitions, got {len(parts)}"
+        assert len(parts)==6, f"expected schema + 5 function definitions, got {len(parts)}"
         conn.execute(parts[0].strip())
         for function_source in parts[1:]:
             body=function_source.split("$fn$;",1)[0]
             conn.execute("CREATE OR REPLACE FUNCTION "+body+"$fn$;")
+        strict_parser=f"SELECT {SCHEMA}.parse_strict_json_object_v2alpha2(%s)"
+        valid_raw='{"outer":[{"x":1,"y":2}]}'
+        parsed=conn.execute(strict_parser,(valid_raw,)).fetchone()[0]
+        assert parsed=={"outer":[{"x":1,"y":2}]}, "strict raw JSON parser changed valid object"
+        for duplicate_raw in (
+            '{"action":"worker.job.complete","action":"worker.job.fail"}',
+            '{"outer":{"claim":"a","claim":"b"}}',
+            '{"items":[{"nonce":"n1","nonce":"n2"}]}',
+        ):
+            try:
+                conn.execute(strict_parser,(duplicate_raw,))
+            except psycopg.Error:
+                pass
+            else:
+                raise AssertionError(f"PostgreSQL accepted duplicate JSON object key: {duplicate_raw}")
+        print("PostgreSQL strict raw-claim JSON duplicate-key rejection: PASS")
         envelope=VECTOR["envelope"]
         claim=dict(envelope)
         claim.pop("operation_arguments")
