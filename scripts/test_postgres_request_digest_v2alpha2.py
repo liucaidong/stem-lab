@@ -116,6 +116,14 @@ def main() -> None:
         signature=conn.execute("SELECT pgsodium.crypto_sign_detached(%s,%s)",(raw_payload,private_key)).fetchone()[0]
         signature_b64=base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii")
         verify_sql=f"SELECT {SCHEMA}.verify_request_assertion_v2alpha2(%s,%s,%s::jsonb)"
+        # A 64-byte signature has 2 unused low bits in its final Base64URL symbol.
+        alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        last_index=alphabet.index(signature_b64[-1])
+        noncanonical_signature=signature_b64[:-1]+alphabet[last_index | 1]
+        try: conn.execute(verify_sql,(payload_b64,noncanonical_signature,json.dumps(args)))
+        except psycopg.Error: pass
+        else: raise AssertionError("PostgreSQL accepted non-canonical Base64URL pad bits")
+        print("PostgreSQL non-canonical Base64URL rejection: PASS")
         verified=conn.execute(verify_sql,(payload_b64,signature_b64,json.dumps(args))).fetchone()[0]
         assert verified["contract_version"]=="2alpha2"
         print("PostgreSQL v2alpha2 raw-payload Ed25519 verification and digest binding: PASS")
