@@ -27,7 +27,7 @@ BEGIN
   IF pg_catalog.jsonb_typeof(p_operation_arguments) IS DISTINCT FROM 'object'
      OR pg_catalog.jsonb_typeof(p_operation_arguments->'expected_session_revision') IS DISTINCT FROM 'number'
      OR pg_catalog.jsonb_typeof(p_operation_arguments->'result_ref') IS DISTINCT FROM 'string'
-     OR length(p_operation_arguments->>'result_ref') NOT BETWEEN 1 AND 256 THEN
+     OR length(p_operation_arguments->>'result_ref') NOT BETWEEN 1 AND 1024 THEN
     RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='INVALID_JOB_COMPLETE_ARGUMENTS';
   END IF;
   v_expected_revision := (p_operation_arguments->>'expected_session_revision')::numeric;

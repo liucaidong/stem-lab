@@ -70,6 +70,7 @@ def main() -> None:
             {"expected_session_revision":7.0,"result_ref":"artifact:abc"},
             {"expected_session_revision":7,"result_ref":"artifact:abc","unknown":"x"},
             {"expected_session_revision":7,"result_ref":""},
+            {"expected_session_revision":7,"result_ref":"x"*1025},
         ):
             try: conn.execute(call,(json.dumps(claim,ensure_ascii=False),json.dumps(bad_args,ensure_ascii=False)))
             except psycopg.Error: pass
