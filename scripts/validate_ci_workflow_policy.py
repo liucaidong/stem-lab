@@ -152,7 +152,7 @@ def main() -> int:
         for token in (
             "- name: Persist repository-wide admission marker",
             "if: steps.admission.outputs.admitted == 'true'",
-            "uses: actions/upload-artifact@v4",
+            "uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
         )
     ):
         fail("ci-admission must upload the marker artifact only after admission")
