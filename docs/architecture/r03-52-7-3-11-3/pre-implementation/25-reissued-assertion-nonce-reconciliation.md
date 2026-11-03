@@ -58,6 +58,8 @@ Expected:
 
 This is the canonical retry path described by R03.52.7.3.5.
 
+A deadlock (40P01) or serialization failure (40001) follows the same rule only after the database transaction is confirmed rolled back: preserve the same business Request Envelope and digest, but issue a fresh assertion with a fresh nonce and fresh iat/exp/signature. Do not reuse the prior transaction's committed nonce.
+
 ### Path C — Ambiguous commit reconciliation
 
 After a connection loss during COMMIT, the client must not assume rollback and must not replay the old assertion nonce in a new transaction.
