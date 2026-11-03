@@ -30,6 +30,16 @@ The repository currently has independently tested v2alpha2 primitives, not a bus
 | GAP-15 | Canonicalization approval | R535-OD3 and canonicalization ADR remain OPEN/PROPOSED | Formal approval of exact bytes, field set, limits and vectors | Critical | OPEN |
 | GAP-16 | Production architecture | DEC-03 and DEC-14 remain OPEN; no production adapter/driver/pool/provider is selected | Separate approved decisions; not a prerequisite to disposable contract design unless directly required | Deferred | OPEN |
 | GAP-17 | Code-freeze authority | Product Code Freeze ACTIVE; P3.17 OUT OF SCOPE | Explicit authorized freeze decision after all prerequisites | Critical | BLOCKED |
+| GAP-18 | Claim validation parity | JSON Schema caps and SQL manual verifier checks differ; Python codec is not a full Claim validator | Normative Claim field/range table and Schema/Python/SQL parity tests | Critical | OPEN |
+| GAP-19 | Canonicalization size boundary | ADR says uint32 length; Python uses unsigned 32-bit packing; SQL int4send caps at 2^31−1; operation_arguments has no total size cap | Maximum canonical bytes and per-field UTF-8 limits; cross-language boundary vectors | High | OPEN |
+| GAP-20 | Action argument bounds | result_ref/safe_message and retry_delay_micros lack business-level upper bounds; retryable/delay cross-field rules undefined | Per-action byte/range/policy constraints and typed SQL parameter binding | High | OPEN |
+| GAP-21 | Re-issued assertion semantics | Upstream contract distinguishes exact token replay from fresh-nonce retry with same business envelope/digest | Receipt/Nonce tests for exact replay, reissue, deadlock retry and ambiguous commit | Critical | OPEN |
+| GAP-22 | Receipt store split | Legacy receipts and request_receipts_v2alpha2 are separate; v2alpha2 reconcile is not wired to its own Receipt store | Version-correct read-only reconciliation contract and cross-version idempotency decision | Critical | OPEN |
+| GAP-23 | Receipt helper security/outcome | Helper trusts caller identity/digest, finalization is receipt_id-only, outcome schema/size and RLS/grants are absent | Least-privilege call boundary, exact identity comparison, outcome schema and catalog tests | Critical | OPEN |
+| GAP-24 | Legacy action compatibility | Claim Assignment v1alpha1 and Resource Assertion v2alpha1 have distinct entry points and action semantics | Full unchanged legacy regression matrix and explicit v2alpha2-only dispatch | High | OPEN |
+| GAP-25 | SQL asset integrity | Digest SQL file has six function declarations but nine function terminators; test extractor ignores trailing orphan bodies | Clean SQL asset and parse/run complete file in disposable PostgreSQL | High | OPEN |
+| GAP-26 | Retry delay unit contract | Legacy Store uses retry_delay_seconds; v2alpha2 Fail digest uses retry_delay_micros | Canonical internal unit, checked conversion and policy bounds | High | OPEN |
+| GAP-27 | Receipt fixture reissue coverage | PR #19 helper tests change operation_id while reusing literal digest; no fresh-nonce same-business-envelope test | Correct fixtures with recomputed digests and fresh assertion nonce semantics | High | OPEN |
 
 ## 3. Dependency Matrix
 
