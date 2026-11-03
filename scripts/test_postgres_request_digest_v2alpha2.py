@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import json, os, pathlib, uuid
+import base64, json, os, pathlib, time, uuid
 import psycopg
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 DSN=os.environ.get("DATABASE_URL","postgresql://postgres:postgres@localhost:5432/stemlab_test")
@@ -14,8 +14,13 @@ def main() -> None:
         encoding=conn.execute('SHOW server_encoding').fetchone()[0]
         assert encoding.upper()=='UTF8', f'PostgreSQL database encoding must be UTF8, got {encoding}'
         parts=SQL.split("CREATE OR REPLACE FUNCTION ")
-        assert len(parts)==6, f"expected schema + 5 function definitions, got {len(parts)}"
+        assert len(parts)==7, f"expected schema + 6 function definitions, got {len(parts)}"
         conn.execute(parts[0].strip())
+        conn.execute("CREATE EXTENSION IF NOT EXISTS pgsodium")
+        conn.execute("LOAD 'pgsodium'")
+        public_key, private_key = conn.execute("SELECT public,secret FROM pgsodium.crypto_sign_new_keypair()").fetchone()
+        conn.execute(f"CREATE TABLE {SCHEMA}.issuer_keys (kid text PRIMARY KEY, issuer text NOT NULL, public_key bytea NOT NULL, not_before timestamptz NOT NULL, not_after timestamptz, revoked_at timestamptz)")
+        conn.execute(f"INSERT INTO {SCHEMA}.issuer_keys(kid,issuer,public_key,not_before) VALUES ('test-key','test-issuer',%s,clock_timestamp()-interval '1 day')",(public_key,))
         for function_source in parts[1:]:
             body=function_source.split("$fn$;",1)[0]
             conn.execute("CREATE OR REPLACE FUNCTION "+body+"$fn$;")
@@ -99,6 +104,40 @@ def main() -> None:
         print("PostgreSQL Unicode golden vector: PASS")
         print("PostgreSQL object-key order invariance: PASS")
         print("PostgreSQL invalid-argument rejection: PASS")
+
+        # Sign and verify the exact decoded raw payload bytes.
+        verify_claim=dict(claim)
+        verify_claim.update({"v":2,"iss":"test-issuer","kid":"test-key","sub":"worker-a",
+            "aud":"stemlab-worker-store","owner":"worker-a","epoch":7,
+            "iat":int(time.time()),"exp":int(time.time())+60,
+            "nonce":"0123456789abcdef0123456789abcdef"})
+        raw_payload=json.dumps(verify_claim,ensure_ascii=False,separators=(",",":")).encode("utf-8")
+        payload_b64=base64.urlsafe_b64encode(raw_payload).rstrip(b"=").decode("ascii")
+        signature=conn.execute("SELECT pgsodium.crypto_sign_detached(%s,%s)",(raw_payload,private_key)).fetchone()[0]
+        signature_b64=base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii")
+        verify_sql=f"SELECT {SCHEMA}.verify_request_assertion_v2alpha2(%s,%s,%s::jsonb)"
+        verified=conn.execute(verify_sql,(payload_b64,signature_b64,json.dumps(args))).fetchone()[0]
+        assert verified["contract_version"]=="2alpha2"
+        print("PostgreSQL v2alpha2 raw-payload Ed25519 verification and digest binding: PASS")
+
+        bad_signature=conn.execute("SELECT pgsodium.crypto_sign_detached(%s,%s)",(raw_payload+b" ",private_key)).fetchone()[0]
+        bad_signature_b64=base64.urlsafe_b64encode(bad_signature).rstrip(b"=").decode("ascii")
+        try: conn.execute(verify_sql,(payload_b64,bad_signature_b64,json.dumps(args)))
+        except psycopg.Error: pass
+        else: raise AssertionError("PostgreSQL accepted an invalid Ed25519 signature")
+
+        duplicate_raw=raw_payload.decode("utf-8").replace('"action":"worker.job.complete"','"action":"worker.job.complete","action":"worker.job.fail"',1).encode("utf-8")
+        duplicate_payload=base64.urlsafe_b64encode(duplicate_raw).rstrip(b"=").decode("ascii")
+        duplicate_signature=conn.execute("SELECT pgsodium.crypto_sign_detached(%s,%s)",(duplicate_raw,private_key)).fetchone()[0]
+        duplicate_signature_b64=base64.urlsafe_b64encode(duplicate_signature).rstrip(b"=").decode("ascii")
+        try: conn.execute(verify_sql,(duplicate_payload,duplicate_signature_b64,json.dumps(args)))
+        except psycopg.Error: pass
+        else: raise AssertionError("PostgreSQL accepted a signed duplicate-key Claim")
+
+        try: conn.execute(verify_sql,(payload_b64,signature_b64,json.dumps(changed)))
+        except psycopg.Error: pass
+        else: raise AssertionError("PostgreSQL accepted an operation-argument digest mismatch")
+        print("PostgreSQL v2alpha2 invalid-signature, duplicate-key and digest-mismatch rejection: PASS")
     finally:
         conn.execute(f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE")
         conn.close()
