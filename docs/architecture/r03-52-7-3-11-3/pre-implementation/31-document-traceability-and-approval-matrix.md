@@ -1,0 +1,76 @@
+# Pre-Implementation Document Traceability and Approval Matrix
+
+**Version:** 0.1.0  
+**Status:** GOVERNANCE REGISTER / OPEN  
+**As-of:** 2026-11-03  
+**Implementation authorization:** NO — all documents are pre-implementation audit/design only.
+
+## 1. Status and approval rules
+
+- **SOURCE-VERIFIED:** a source fact was fetched and checked; design decisions may still be open.
+- **PROPOSED:** candidate contract/design, not accepted.
+- **OPEN:** required decision, evidence or test is incomplete.
+- **IN_PROGRESS:** partial evidence exists; closure conditions remain.
+- **BLOCKED:** downstream gate cannot pass.
+- **ACCEPTED:** only when a named authority explicitly approves the exact scope and evidence.
+
+No document in this PR grants business Handler implementation permission. G15 remains BLOCKED.
+
+## 2. Document traceability matrix
+
+| File | Status | Gate(s) | Evidence basis | Dependencies | Decision owner | Acceptance criteria | Implementation allowed |
+|---|---|---|---|---|---|---|---|
+| 00-baseline-and-scope.md | SOURCE-VERIFIED BASELINE | G0 | PR metadata, PR #20 HEAD, CI #439, source inventory | GitHub current state | Architecture governance | Current PR states/heads/files/CI and constraints independently verified | NO |
+| 01-gap-register-and-dependencies.md | OPEN | G0–G15 | PR #20 audit and fetched source assets | All source inventories | Architecture + Security | Every gap has owner, evidence, dependency and closure proof | NO |
+| 02-entry-gate-matrix.md | IN_PROGRESS | G0–G15 | Source and CI evidence available at creation | All G0–G14 artifacts | Architecture + Security | G0–G14 ACCEPTED before G15 | NO |
+| 03-protocol-digest-source-audit.md | OPEN | G1 | PR #15 schema/Python/SQL, PR #17 parser, PR #18 verifier | R535-OD3, golden vectors, typed binding | Protocol + Security | Exact cross-language bytes/fields/limits and mutation binding accepted | NO |
+| 04-receipt-and-nonce-contract-audit.md | OPEN | G5/G6 | PR #19 Receipt helper/test and PR #13 nonce ledger | G1/G2/G4 | Protocol + Database + Security | Receipt/Nonce replay, transaction and cross-version semantics tested | NO |
+| 05-atomic-uow-locking-and-failure-contract.md | PROPOSED | G7/G8/G10 | PR #20 candidate sequence and R03.52.7.3.5 transaction principles | G4–G6, action write sets | Database + Architecture | One outer transaction, lock graph, rollback and error propagation proven | NO |
+| 06-action-handler-binding-matrix.md | PROPOSED | G4/G12/G13 | PR #15 action map and PR #20 audit | G1–G3 | Protocol + action owner + Security | Every action has one typed binding for digest and mutation | NO |
+| 07-postgresql-security-model-audit.md | OPEN | G9 | PR #13 role fixture and PR #14/11.1 inventory | Action call graph, R535-OD5 | Security + Database | Least-privilege role/ownership/EXECUTE/RLS/catalog tests pass | NO |
+| 08-postgresql-test-strategy.md | PROPOSED | G11 | Existing workflow and PostgreSQL helper tests | G1–G10 | Test + Database | Reusable fixtures, test layers and proof boundaries accepted | NO |
+| 09-worker-job-complete-vertical-slice.md | PROPOSED | G12 | PR #13 Complete path, PR #15 digest fields, PR #20 audit, R03.52.7.3.5 | G1–G11 | Architecture + Worker + Security | Sequence, state, writes, locks, errors and full UOW tests accepted | NO |
+| 10-remaining-action-designs.md | PROPOSED | G13 | PR #13 handler signatures and PR #15 action map | Complete slice and G1–G11 | Architecture + Worker | Each action-specific delta and test proof accepted | NO |
+| 11-decision-and-deferred-register.md | OPEN | G0/G14 | R03.20, R03.52.7.3.5, PR #14/#15 records | Named decision owners | Project owner + Architecture + Security | DEC/R535/product freeze status and approvals authoritative | NO |
+| 12-risk-register.md | OPEN | G14 | Source audits and design gap analysis | All gates | Risk owners per row | Critical/high risks closed or explicitly accepted by owner | NO |
+| 13-cross-document-consistency-audit.md | OPEN | G14 | Documents 00–12 and PR #20 audit | All normative contracts | Independent Architecture + Security | No unresolved contradiction across accepted contracts | NO |
+| 14-version-dispatch-and-trusted-signer-audit.md | OPEN | G2/G3 | v1alpha1/v2alpha1/v2alpha2 schemas and PR #15 signer design | G1, key trust decision | Protocol + Security | One fail-closed verifier path and trusted key lifecycle accepted | NO |
+| 15-interim-gate-status-report.md | BLOCKED | G0–G15 | Snapshot of GitHub/CI/source evidence at authoring | All gates | Architecture governance | Current G0–G14 evidence refreshed and all mandatory gates accepted | NO |
+| 16-failure-semantics-persisted-state-contract.md | PROPOSED | G10 | User-specified failure classes and UOW candidate | G7/G8 and action write sets | Database + Test + Security | Every failure has exact before/after snapshot acceptance | NO |
+| 17-lock-dependency-graph.md | PROPOSED | G8 | PR #20 candidate sequence; R03.20 Run #208/#210/#212 deadlock evidence | All action SQL and FK/index edges | Database | Acyclic lock order proven under multi-connection tests | NO |
+| 18-pr-source-inventory.md | IN_PROGRESS | G0 | PR #13–#20 changed-file inventory and fetched source | Exact PR-object head mapping | Architecture governance | Per-PR current head, files, CI and governance artifacts verified | NO |
+| 19-protocol-semantic-conflict-register.md | OPEN | G1/G4/G5/G6 | PR #15 envelope/action/Receipt semantics and PR #19 helper | Protocol owner decision | Protocol + Security | Conflicts resolved in normative contract and vectors | NO |
+| 20-recommended-closure-decisions.md | PROPOSED | G1–G10 | Source audits and security/transaction principles | Named decision approval | Project owner + Architecture + Security + Database | Each recommendation explicitly accepted/rejected/deferred | NO |
+| 21-pr-head-and-ci-evidence-matrix.md | IN_PROGRESS | G0 | GitHub branch refs and workflow runs | PR-object head mapping | Architecture governance | Current PR heads map to exact branch refs and CI evidence | NO |
+| 22-receipt-fixture-correction-spec.md | PROPOSED | G5/G11 | PR #19 test fixture and Request Envelope fields | G1/G5/G6 | Test + Protocol | Corrected fixtures use recomputed digest and fresh nonce semantics | NO |
+| 23-claim-validation-parity-matrix.md | OPEN | G1 | JSON Schema vs SQL verifier vs Python codec | Normative field/limit table | Protocol + Security | All Claim fields/limits/errors have exact parity | NO |
+| 24-action-argument-bounds-audit.md | OPEN | G1/G4 | Python and SQL action argument validators | Retry policy/error taxonomy/artifact model | Worker + Protocol | Every action arg has closed type, range, size and cross-field rules | NO |
+| 25-reissued-assertion-nonce-reconciliation.md | OPEN | G5/G6/G10 | R03.52.7.3.5 Section 8 and PR #19 helper | Receipt/Nonce normative contract | Security + Protocol + Database | Exact replay, reissue and ambiguous-commit paths tested | NO |
+| 26-legacy-action-compatibility-baseline.md | OPEN | G0/G2/G4 | PR #13 legacy PostgreSQL fixture | Complete regression suite | Worker + Security | Legacy behavior remains unchanged and regression tests pass | NO |
+| 27-canonicalization-boundary-audit.md | OPEN | G1 | PR #15 canonicalization ADR, Python codec, SQL codec | R535-OD3 | Protocol + Database | Byte limits, typed args and SQL/Python vectors approved | NO |
+| 28-receipt-storage-and-reconciliation-gap.md | OPEN | G5/G6/G9 | Legacy receipts vs request_receipts_v2alpha2 source | Receipt reconcile contract | Protocol + Database + Security | Correct versioned Receipt lookup and cross-version idempotency proven | NO |
+| 29-receipt-helper-contract-security-gaps.md | OPEN | G5/G7/G9/G10 | PR #19 Receipt SQL | Least-privilege and UOW design | Database + Security | Helper identity/tenant/outcome/permissions are enforced | NO |
+| 30-legacy-postgresql-role-grant-matrix.md | SOURCE-VERIFIED LEGACY FIXTURE | G9 | PR #13 role/grant/RLS source | v2alpha2 role design | Security + Database | Legacy baseline preserved; v2alpha2 target least-privilege tests pass | NO |
+
+## 3. Approval record requirements
+
+When a row is accepted, record:
+- decision ID and exact scope;
+- named approver(s) and date;
+- exact document version/commit SHA;
+- evidence and test run IDs;
+- residual risks and review date;
+- affected Gate(s) and dependency rows;
+- explicit implementation permission (must remain NO until G15).
+
+## 4. Current approval state
+
+No G0–G14 gate is accepted by this PR. Existing architecture principles DEC-04 and DEC-19 remain accepted only within their previously recorded scope. DEC-03/DEC-14 remain OPEN; R535-OD3 remains proposed/unapproved; Product Code Freeze remains ACTIVE.
+
+## 5. Gate conclusion
+
+G15 remains BLOCKED. This matrix makes document ownership and evidence traceability explicit; it does not replace independent approval or test proof.
+
+## Change history
+
+- 2026-11-03: Initial pre-implementation document traceability matrix.
