@@ -30,14 +30,13 @@ on:
 concurrency:
   group: stem-lab-global-ci
   cancel-in-progress: false
-  queue: single
+  queue: max
 
 permissions: {}
 
 jobs:
   ci-admission:
     permissions:
-      actions: read
       contents: read
     runs-on: ubuntu-latest
     outputs:
@@ -47,28 +46,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - name: Verify CI admission policy and cooldown boundary tests
+      - name: Verify CI admission policy and regression tests
         run: |
           python scripts/validate_ci_workflow_policy.py
           python scripts/test_ci_admission.py
           python scripts/test_ci_result.py
           python scripts/test_ci_workflow_policy.py
-      - name: Enforce repository-wide 300-second CI admission gate
+      - name: Admit CI validation run
         id: admission
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          GITHUB_API_URL: ${{ github.api_url }}
         run: python scripts/ci_admission.py
-      - name: Persist repository-wide admission marker
-        if: steps.admission.outputs.admitted == 'true'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: stem-lab-ci-admission
-          path: .ci-admission/marker.json
-          if-no-files-found: error
-          retention-days: 1
 
   validate-contracts:
     permissions:

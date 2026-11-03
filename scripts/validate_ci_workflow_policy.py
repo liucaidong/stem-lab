@@ -67,7 +67,7 @@ def enforce_job_permissions(content: str, path: Path) -> None:
         fail(f"{path.relative_to(ROOT)} must set workflow-level permissions: {{}}")
     jobs = job_blocks(content)
     expected = {
-        "ci-admission": ("actions: read", "contents: read"),
+        "ci-admission": ("contents: read",),
         "validate-contracts": ("contents: read",),
         "tenant-ed25519-verifier": ("contents: read",),
         "ci-result": ("contents: read",),
@@ -83,14 +83,12 @@ def enforce_job_permissions(content: str, path: Path) -> None:
             fail(f"job {job_name!r} permissions must be exactly {scopes!r}; found {actual!r}")
 
 
-def enforce_artifact_retention(content: str, path: Path) -> None:
-    """Bound artifact retention to the documented operational windows."""
-    marker = re.search(r"(?s)- name: Persist repository-wide admission marker.*?with:\n(.*?)(?=\n  [a-z0-9_-]+:|\Z)", content)
-    if not marker or not re.search(r"(?m)^          retention-days: 1\s*$", marker.group(1)):
-        fail("CI admission marker artifact must declare retention-days: 1")
+def enforce_benchmark_artifact_retention(content: str, path: Path) -> None:
+    """Require the benchmark artifact's bounded retention period."""
     benchmark = re.search(r"(?s)- name: Upload Store driver benchmark smoke results.*?with:\n(.*?)(?=\n      - name:|\Z)", content)
     if not benchmark or not re.search(r"(?m)^          retention-days: 7\s*$", benchmark.group(1)):
         fail("benchmark artifact must declare retention-days: 7")
+
 
 def enforce_supply_chain_pins(content: str, path: Path) -> None:
     """Require immutable action refs and verified PostgreSQL/pgsodium inputs."""
@@ -216,17 +214,63 @@ def enforce_apt_dependency_lock(docker_override: str | None = None) -> None:
 
 
 def enforce_dependabot_config() -> None:
+    """Require staggered weekly UTC windows and one open version PR per ecosystem."""
     path = ROOT / ".github" / "dependabot.yml"
     if not path.is_file():
         fail("Dependabot configuration is required")
     content = path.read_text(encoding="utf-8")
-    for ecosystem in ("github-actions", "pip", "docker", "npm"):
-        if f'package-ecosystem: "{ecosystem}"' not in content:
-            fail(f"Dependabot ecosystem {ecosystem!r} is not configured")
-    if content.count('interval: "weekly"') != 4:
-        fail("all four Dependabot ecosystems must use the weekly cadence")
-    if content.count("open-pull-requests-limit: 2") != 4:
-        fail("Dependabot PR limits must remain bounded to two per ecosystem")
+    expected = {
+        "github-actions": "monday",
+        "pip": "tuesday",
+        "docker": "wednesday",
+        "npm": "thursday",
+    }
+    blocks = re.findall(
+        r'(?ms)^  - package-ecosystem: "([^"]+)"\n(.*?)(?=^  - package-ecosystem: |\Z)',
+        content,
+    )
+    actual = {name: block for name, block in blocks}
+    if set(actual) != set(expected):
+        fail(f"Dependabot ecosystems must be exactly {sorted(expected)}; found {sorted(actual)}")
+    for ecosystem, day in expected.items():
+        block = actual[ecosystem]
+        for token in (
+            'interval: "weekly"',
+            f'day: "{day}"',
+            'time: "02:00"',
+            'timezone: "Etc/UTC"',
+            "open-pull-requests-limit: 1",
+        ):
+            if token not in block:
+                fail(f"Dependabot {ecosystem!r} must contain {token!r}")
+        if 'update-types: ["minor", "patch"]' not in block:
+            fail(f"Dependabot {ecosystem!r} must retain minor/patch grouping")
+
+
+def enforce_concurrency_contract(content: str, path: Path) -> None:
+    """Enforce the global bounded queue and prevent pending-run replacement."""
+    concurrency = "\\n".join(top_level_block(content, "concurrency"))
+    if not concurrency:
+        fail(f"{path.relative_to(ROOT)} is missing workflow-level concurrency")
+    if not re.search(rf"(?m)^  group: {re.escape(GLOBAL_GROUP)}\\s*$", concurrency):
+        fail(f"{path.relative_to(ROOT)} must use concurrency group {GLOBAL_GROUP!r}")
+    if not re.search(r"(?m)^  cancel-in-progress: false\\s*$", concurrency):
+        fail(f"{path.relative_to(ROOT)} must set cancel-in-progress: false")
+    if not re.search(r"(?m)^  queue: max\\s*$", concurrency):
+        fail(f"{path.relative_to(ROOT)} must set queue: max")
+    for token in ("stem-lab-ci-admission", ".ci-admission/marker.json", "300-second"):
+        if token in content:
+            fail(f"{path.relative_to(ROOT)} still contains removed admission token {token!r}")
+
+
+def enforce_native_admission(workflow_content: str, admission_source: str) -> None:
+    """Reject any remaining artifact-marker or timed admission implementation."""
+    for token in ("COOLDOWN_SECONDS", "MARKER_ARTIFACT_NAME", "MARKER_PATH"):
+        if token in admission_source:
+            fail(f"removed admission implementation remains: {token}")
+    for token in ("stem-lab-ci-admission", ".ci-admission/marker.json", "300-second"):
+        if token in workflow_content:
+            fail(f"removed admission implementation remains: {token}")
 
 
 def main() -> int:
@@ -253,7 +297,7 @@ def main() -> int:
     path, content, events = root_workflows[0]
     enforce_supply_chain_pins(content, path)
     enforce_job_permissions(content, path)
-    enforce_artifact_retention(content, path)
+    enforce_benchmark_artifact_retention(content, path)
     enforce_python_dependency_lock(content, path)
     enforce_node_dependency_lock(content)
     enforce_apt_dependency_lock()
@@ -263,15 +307,7 @@ def main() -> int:
     if unexpected:
         fail(f"{relative} has disallowed trigger events: {sorted(unexpected)}")
 
-    concurrency = "\n".join(top_level_block(content, "concurrency"))
-    if not concurrency:
-        fail(f"{relative} is missing workflow-level concurrency")
-    if not re.search(rf"(?m)^  group: {re.escape(GLOBAL_GROUP)}\s*$", concurrency):
-        fail(f"{relative} must use concurrency group {GLOBAL_GROUP!r}")
-    if not re.search(r"(?m)^  cancel-in-progress: false\s*$", concurrency):
-        fail(f"{relative} must set cancel-in-progress: false")
-    if not re.search(r"(?m)^  queue: single\s*$", concurrency):
-        fail(f"{relative} must set queue: single")
+    enforce_concurrency_contract(content, path)
 
     jobs = job_blocks(content)
     gate = jobs.get("ci-admission")
@@ -286,15 +322,10 @@ def main() -> int:
         fail("ci-admission must run scripts/ci_admission.py")
     if "python scripts/test_ci_result.py" not in gate:
         fail("ci-admission must run scripts/test_ci_result.py")
-    if not all(
-        token in gate
-        for token in (
-            "- name: Persist repository-wide admission marker",
-            "if: steps.admission.outputs.admitted == 'true'",
-            "uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
-        )
-    ):
-        fail("ci-admission must upload the marker artifact only after admission")
+    if "python scripts/ci_admission.py" not in gate:
+        fail("ci-admission must execute the native admission output helper")
+    if "stem-lab-ci-admission" in content or ".ci-admission/marker.json" in content:
+        fail("artifact-based admission markers are forbidden")
 
     for job_name, block in jobs.items():
         if job_name in {"ci-admission", "ci-result"}:
@@ -326,12 +357,11 @@ def main() -> int:
         fail("ci-result must run scripts/ci_result.py")
 
     admission_source = (ROOT / "scripts" / "ci_admission.py").read_text(encoding="utf-8")
-    if not re.search(r"(?m)^COOLDOWN_SECONDS = 300$", admission_source):
-        fail("repository-wide CI admission cooldown must remain exactly 300 seconds")
+    enforce_native_admission(content, admission_source)
 
     print(
         f"CI workflow policy valid: one root workflow ({relative}), "
-        f"global lock {GLOBAL_GROUP}, 300-second admission gate, truthful CI result."
+        f"native queue {GLOBAL_GROUP}/max, truthful CI result."
     )
     return 0
 

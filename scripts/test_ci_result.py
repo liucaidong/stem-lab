@@ -15,15 +15,14 @@ class FinalCiDecisionTests(unittest.TestCase):
         self.assertTrue(passed)
         self.assertIn("CI PASSED", message)
 
-    def test_cooldown_rejection_is_deferred_and_non_successful(self):
+    def test_non_admitted_run_is_blocked_and_non_successful(self):
         passed, message = final_ci_decision(
             "success",
             "false",
             {"validate-contracts": "skipped", "tenant-ed25519-verifier": "skipped"},
         )
         self.assertFalse(passed)
-        self.assertIn("CI DEFERRED", message)
-        self.assertIn("300-second", message)
+        self.assertIn("CI BLOCKED", message)
 
     def test_admission_job_failure_blocks_validation(self):
         passed, message = final_ci_decision("failure", "", {})

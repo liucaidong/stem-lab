@@ -14,24 +14,14 @@ def final_ci_decision(
     admitted: str,
     validation_results: Mapping[str, str],
 ) -> tuple[bool, str]:
-    """Return whether the complete CI run passed and an operator-facing reason.
-
-    A cooldown rejection is deliberately non-successful: it must block a merge
-    until a later run performs the full validation suite. A skipped validation
-    job is never interpreted as a successful validation.
-    """
+    """Pass only when admission succeeded and every required validation succeeded."""
     if admission_result != "success":
         return False, f"CI BLOCKED: admission job concluded {admission_result!r}; validation was not authorized."
-
-    if admitted == "false":
-        return False, "CI DEFERRED: the repository-wide 300-second cooldown is active; rerun after it expires."
     if admitted != "true":
         return False, f"CI BLOCKED: admission output is missing or invalid ({admitted!r})."
-
     missing = [name for name in REQUIRED_VALIDATION_JOBS if name not in validation_results]
     if missing:
         return False, f"CI BLOCKED: missing validation job result(s): {', '.join(missing)}."
-
     non_success = [
         f"{name}={validation_results[name]}"
         for name in REQUIRED_VALIDATION_JOBS
@@ -39,8 +29,7 @@ def final_ci_decision(
     ]
     if non_success:
         return False, "CI FAILED: required validation job(s) did not succeed: " + ", ".join(non_success) + "."
-
-    return True, "CI PASSED: admission was granted and every required validation job succeeded."
+    return True, "CI PASSED: admission succeeded and every required validation job succeeded."
 
 
 def main() -> int:

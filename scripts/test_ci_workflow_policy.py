@@ -4,7 +4,8 @@ from pathlib import Path
 
 from validate_ci_workflow_policy import (
     enforce_apt_dependency_lock,
-    enforce_artifact_retention,
+    enforce_benchmark_artifact_retention,
+    enforce_concurrency_contract,
     enforce_dependabot_config,
     enforce_job_permissions,
     enforce_node_dependency_lock,
@@ -28,7 +29,8 @@ def rejected(label, callback):
 def main():
     content = WORKFLOW.read_text(encoding="utf-8")
     enforce_job_permissions(content, WORKFLOW)
-    enforce_artifact_retention(content, WORKFLOW)
+    enforce_benchmark_artifact_retention(content, WORKFLOW)
+    enforce_concurrency_contract(content, WORKFLOW)
     enforce_python_dependency_lock(content, WORKFLOW)
     enforce_node_dependency_lock(content)
     enforce_apt_dependency_lock()
@@ -38,8 +40,10 @@ def main():
     rejected("actions: write", lambda: enforce_job_permissions(bad, WORKFLOW))
     bad = content.replace("      contents: read\n", "", 1)
     rejected("missing contents: read", lambda: enforce_job_permissions(bad, WORKFLOW))
-    bad = content.replace("          retention-days: 1\n", "", 1)
-    rejected("unbounded marker retention", lambda: enforce_artifact_retention(bad, WORKFLOW))
+    bad = content.replace("  queue: max", "  queue: single", 1)
+    rejected("single-slot queue semantics", lambda: enforce_concurrency_contract(bad, WORKFLOW))
+    bad = content.replace("  cancel-in-progress: false", "  cancel-in-progress: true", 1)
+    rejected("cancellation of active required CI", lambda: enforce_concurrency_contract(bad, WORKFLOW))
     bad = content.replace("          retention-days: 7", "          retention-days: 30", 1)
     rejected("benchmark retention above seven days", lambda: enforce_artifact_retention(bad, WORKFLOW))
     bad = content.replace("--require-hashes", "", 1)
