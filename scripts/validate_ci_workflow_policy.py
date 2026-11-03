@@ -62,7 +62,7 @@ def job_blocks(content: str) -> dict[str, str]:
 
 def enforce_job_permissions(content: str, path: Path) -> None:
     """Require least-privilege GITHUB_TOKEN permissions at job scope."""
-    if not re.search(r"(?m)^permissions: \\{\\}\\s*$", content):
+    if not re.search(r"(?m)^permissions: \{\}\s*$", content):
         fail(f"{path.relative_to(ROOT)} must set workflow-level permissions: {{}}")
     jobs = job_blocks(content)
     expected = {
@@ -74,7 +74,7 @@ def enforce_job_permissions(content: str, path: Path) -> None:
     if set(jobs) != set(expected):
         fail(f"workflow job set changed unexpectedly: {sorted(jobs)}")
     for job_name, scopes in expected.items():
-        match = re.search(r"(?m)^    permissions:\\n((?:      [a-z_]+: [a-z]+\\n?)+)", jobs[job_name])
+        match = re.search(r"(?m)^    permissions:\n((?:      [a-z_]+: [a-z]+\n?)+)", jobs[job_name])
         if not match:
             fail(f"job {job_name!r} must declare explicit least-privilege permissions")
         actual = tuple(line.strip() for line in match.group(1).splitlines() if line.strip())
@@ -84,11 +84,11 @@ def enforce_job_permissions(content: str, path: Path) -> None:
 
 def enforce_artifact_retention(content: str, path: Path) -> None:
     """Bound artifact retention to the documented operational windows."""
-    marker = re.search(r"(?s)- name: Persist repository-wide admission marker.*?with:\\n(.*?)(?=\\n  [a-z0-9_-]+:|\\Z)", content)
-    if not marker or not re.search(r"(?m)^          retention-days: 1\\s*$", marker.group(1)):
+    marker = re.search(r"(?s)- name: Persist repository-wide admission marker.*?with:\n(.*?)(?=\n  [a-z0-9_-]+:|\Z)", content)
+    if not marker or not re.search(r"(?m)^          retention-days: 1\s*$", marker.group(1)):
         fail("CI admission marker artifact must declare retention-days: 1")
-    benchmark = re.search(r"(?s)- name: Upload Store driver benchmark smoke results.*?with:\\n(.*?)(?=\\n      - name:|\\Z)", content)
-    if not benchmark or not re.search(r"(?m)^          retention-days: 7\\s*$", benchmark.group(1)):
+    benchmark = re.search(r"(?s)- name: Upload Store driver benchmark smoke results.*?with:\n(.*?)(?=\n      - name:|\Z)", content)
+    if not benchmark or not re.search(r"(?m)^          retention-days: 7\s*$", benchmark.group(1)):
         fail("benchmark artifact must declare retention-days: 7")
 
 def enforce_supply_chain_pins(content: str, path: Path) -> None:
