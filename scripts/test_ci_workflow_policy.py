@@ -36,7 +36,7 @@ def main():
     enforce_apt_dependency_lock()
     enforce_dependabot_config()
 
-    bad = content.replace("      actions: read", "      actions: write", 1)
+    bad = content.replace("      contents: read", "      contents: write", 1)
     rejected("actions: write", lambda: enforce_job_permissions(bad, WORKFLOW))
     bad = content.replace("      contents: read\n", "", 1)
     rejected("missing contents: read", lambda: enforce_job_permissions(bad, WORKFLOW))
