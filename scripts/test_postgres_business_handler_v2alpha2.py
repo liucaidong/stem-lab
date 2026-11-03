@@ -241,6 +241,8 @@ def main() -> None:
         )
         conn.execute(f"REVOKE CREATE ON SCHEMA {SCHEMA} FROM {OWNER_ROLE}")
         conn.execute(f"GRANT USAGE ON SCHEMA {SCHEMA} TO {RUNTIME_ROLE}")
+        conn.execute(f"REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {SCHEMA} FROM PUBLIC")
+        conn.execute(f"REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {SCHEMA} FROM {RUNTIME_ROLE}")
         conn.execute(f"REVOKE ALL ON ALL TABLES IN SCHEMA {SCHEMA} FROM {RUNTIME_ROLE}")
         conn.execute(f"REVOKE ALL ON ALL SEQUENCES IN SCHEMA {SCHEMA} FROM {RUNTIME_ROLE}")
         conn.execute(
@@ -281,6 +283,18 @@ def main() -> None:
             "SELECT has_function_privilege(%s,%s,'EXECUTE')",
             (RUNTIME_ROLE, f"{SCHEMA}.apply_job_complete_v2alpha2(text,text,jsonb)"),
         ).fetchone()[0], "runtime role must execute the handler entry point"
+        assert conn.execute(
+            "SELECT has_function_privilege(%s,%s,'EXECUTE')",
+            (RUNTIME_ROLE, f"{SCHEMA}.reconcile_request_receipt_v2alpha2(text,text,jsonb)"),
+        ).fetchone()[0], "runtime role must execute the reconciliation entry point"
+        unexpected_exec = conn.execute(
+            """SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+                 WHERE n.nspname=%s
+                   AND p.proname NOT IN ('apply_job_complete_v2alpha2','reconcile_request_receipt_v2alpha2')
+                   AND has_function_privilege(%s,p.oid,'EXECUTE')""",
+            (SCHEMA, RUNTIME_ROLE),
+        ).fetchall()
+        assert unexpected_exec == [], f"runtime role has unexpected helper/function EXECUTE: {unexpected_exec}"
         print("PostgreSQL UOW owner/runtime least-privilege and RLS role setup: PASS")
 
         def runtime_connection():
