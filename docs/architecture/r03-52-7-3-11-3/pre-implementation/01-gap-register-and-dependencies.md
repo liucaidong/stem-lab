@@ -58,6 +58,13 @@ The repository currently has independently tested v2alpha2 primitives, not a bus
 | PostgreSQL test strategy | All contracts above + reusable fixture inventory | Integrated CI suite |
 | Complete vertical slice | G1–G11 accepted | PR for business implementation |
 | Remaining action designs | Complete slice template + action-specific differences | Subsequent handler increments |
+| Claim validation parity | Strict parser + schema + SQL/Python field/limit table | G1 acceptance |
+| Canonicalization size boundary | R535-OD3 candidate, action argument bounds and typed encoder parity | G1 acceptance |
+| Retry delay unit resolution | Existing Retry Policy Registry + legacy Store contract + v2alpha2 action schema | G4/G13 acceptance |
+| Receipt re-issuance and Nonce | R03.52.7.3.5 replay contract + Receipt uniqueness + cross-version threat model | G5/G6 acceptance |
+| Receipt Reconcile | Legacy/v2alpha2 Receipt store split + action/resource identity + target digest semantics | G5/G6/G9 acceptance |
+| Receipt helper security | Role/ownership/RLS design + exact typed binding + outcome schema | G5/G7/G9 acceptance |
+| Cross-version business idempotency | Legacy compatibility baseline + Nonce uniqueness + version dispatch | G2/G5/G6 acceptance |
 | Cross-audit / entry gate | All prior artifacts + independent review | G15 decision |
 
 ## 4. Current evidence versus inference
