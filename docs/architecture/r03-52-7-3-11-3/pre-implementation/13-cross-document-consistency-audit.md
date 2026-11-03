@@ -91,6 +91,14 @@ The Retry Policy Registry/legacy Store contract permits error_code up to 128 cha
 
 The digest codec recognizes `worker.dlq.replay` but assigns it an empty argument object. The R03.52.5 preflight requires request_id, reason, actor, replay number, authorization policy version and a distinct new Job ID; it is plan-only and lacks a production authorization issuer/UOW. This action must fail closed until its trusted field provenance, signed argument binding and atomic source-DLQ/new-Job/audit transaction are accepted. G2/G13 remain OPEN.
 
+### C-13 — Claim timestamp overflow and error normalization
+
+The v2alpha2 JSON Schema has no explicit upper bound for `iat`/`exp`, while the SQL verifier casts them to bigint. Values beyond bigint range can raise a database cast error instead of the stable invalid-claim error class. The normative Claim contract must choose exact numeric bounds for every timestamp/epoch field and normalize range failures without swallowing transaction errors. G1 remains OPEN.
+
+### C-14 — Receipt helper privilege model is not proven by helper CI
+
+The Receipt reserve/finalize functions have no SECURITY DEFINER clause and therefore execute as SECURITY INVOKER. Their test harness uses a privileged connection. The current evidence does not show whether the Runtime can invoke them without direct Receipt table INSERT/SELECT/UPDATE grants. The target must explicitly choose invoker + minimal grants/RLS or a capability-scoped definer owner; helper execution mode and grants require catalog/negative tests. G5/G9 remain OPEN.
+
 ## 4. No implicit acceptance
 
 This cross-audit is not an independent Security approval. It records consistency of the documents and explicitly retains the unresolved issues above. No proposal becomes ACCEPTED by being repeated in multiple documents.

@@ -145,6 +145,14 @@ The v2alpha2 digest action map currently recognizes `worker.dlq.replay` with an 
 
 This remains outside the current eight-action Handler slice and is not authorized by presence in the digest action registry.
 
+### REC-15 — Receipt helper privilege model
+
+The current Receipt helper functions are SECURITY INVOKER by default. The test harness uses a privileged connection, so it does not prove least-privileged Runtime invocation. Before implementation, explicitly choose either (a) invoker functions with minimum direct table privileges and RLS, or (b) capability-scoped SECURITY DEFINER functions with a NOLOGIN owner, fixed search_path, schema-qualified references, revoked PUBLIC EXECUTE and catalog/negative tests. Do not widen Runtime table grants merely to make helper tests pass; do not introduce SECURITY DEFINER as a convenience shortcut.
+
+### REC-16 — v2alpha2 Receipt Reconcile must use a read-only lookup
+
+Do not reuse `reserve_request_receipt_v2alpha2` for Reconcile. It is insert-first and creates a new pending Receipt when no row exists; the action contract is read-only. Provide a dedicated SELECT-only lookup by the approved target identity (candidate: tenant + operation_id), verify stored action/resource/idempotency/digest and actor policy, and return typed missing/pending/terminal/inconsistent outcomes. A missing target must not create a Receipt; Reconcile must not finalize or mutate business rows. The reconciliation assertion uses its own fresh nonce and its digest is not compared as if it were the original mutation digest. Recommended: commit that nonce with typed missing/pending/terminal read outcomes; roll it back only when the outer transaction aborts for authorization/infrastructure/transaction failure.
+
 ## 3. Decisions intentionally not made
 
 - Production Store Adapter, database driver, connection pool, PostgreSQL provider or deployment topology.
