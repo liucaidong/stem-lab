@@ -59,6 +59,38 @@ def job_blocks(content: str) -> dict[str, str]:
     return blocks
 
 
+
+def enforce_job_permissions(content: str, path: Path) -> None:
+    """Require least-privilege GITHUB_TOKEN permissions at job scope."""
+    if not re.search(r"(?m)^permissions: \\{\\}\\s*$", content):
+        fail(f"{path.relative_to(ROOT)} must set workflow-level permissions: {{}}")
+    jobs = job_blocks(content)
+    expected = {
+        "ci-admission": ("actions: read", "contents: read"),
+        "validate-contracts": ("contents: read",),
+        "tenant-ed25519-verifier": ("contents: read",),
+        "ci-result": ("contents: read",),
+    }
+    if set(jobs) != set(expected):
+        fail(f"workflow job set changed unexpectedly: {sorted(jobs)}")
+    for job_name, scopes in expected.items():
+        match = re.search(r"(?m)^    permissions:\\n((?:      [a-z_]+: [a-z]+\\n?)+)", jobs[job_name])
+        if not match:
+            fail(f"job {job_name!r} must declare explicit least-privilege permissions")
+        actual = tuple(line.strip() for line in match.group(1).splitlines() if line.strip())
+        if actual != scopes:
+            fail(f"job {job_name!r} permissions must be exactly {scopes!r}; found {actual!r}")
+
+
+def enforce_artifact_retention(content: str, path: Path) -> None:
+    """Bound artifact retention to the documented operational windows."""
+    marker = re.search(r"(?s)- name: Persist repository-wide admission marker.*?with:\\n(.*?)(?=\\n  [a-z0-9_-]+:|\\Z)", content)
+    if not marker or not re.search(r"(?m)^          retention-days: 1\\s*$", marker.group(1)):
+        fail("CI admission marker artifact must declare retention-days: 1")
+    benchmark = re.search(r"(?s)- name: Upload Store driver benchmark smoke results.*?with:\\n(.*?)(?=\\n      - name:|\\Z)", content)
+    if not benchmark or not re.search(r"(?m)^          retention-days: 7\\s*$", benchmark.group(1)):
+        fail("benchmark artifact must declare retention-days: 7")
+
 def enforce_supply_chain_pins(content: str, path: Path) -> None:
     """Require immutable action refs and verified PostgreSQL/pgsodium inputs."""
     action_refs = re.findall(r"(?m)^\s*uses:\s*([^\s#]+)", content)
@@ -115,6 +147,8 @@ def main() -> int:
 
     path, content, events = root_workflows[0]
     enforce_supply_chain_pins(content, path)
+    enforce_job_permissions(content, path)
+    enforce_artifact_retention(content, path)
     relative = path.relative_to(ROOT)
     unexpected = events - ALLOWED_ROOT_EVENTS
     if unexpected:
@@ -129,10 +163,6 @@ def main() -> int:
         fail(f"{relative} must set cancel-in-progress: false")
     if not re.search(r"(?m)^  queue: single\s*$", concurrency):
         fail(f"{relative} must set queue: single")
-
-    permissions = "\n".join(top_level_block(content, "permissions"))
-    if not re.search(r"(?m)^  actions: read\s*$", permissions):
-        fail(f"{relative} must grant actions: read for admission marker lookup")
 
     jobs = job_blocks(content)
     gate = jobs.get("ci-admission")
