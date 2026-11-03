@@ -10,7 +10,7 @@ The branch refs were fetched using the GitHub commit endpoint, and workflow runs
 
 | PR | Head branch | Head SHA | Latest observed run | Result | Notes |
 |---|---|---|---|---|---|
-| #13 | r03-52-7-3-6-resource-scoped-auth-reference | cd9005804d3d2ec64a7e076762e2e200606b12bd | #348 / 41483696637 (also #347) | SUCCESS | Original reference PR; remains OPEN/DRAFT |
+| #13 | r03-52-7-3-6-resource-auth-debug2 | c38f22d72a54934dbca80759db1dd85b3903163c | #416 / 41496714183 | SUCCESS | Original reference PR; remains OPEN/DRAFT |
 | #14 | r03-52-7-3-11-auth-boundary-review | cda9a05ea0ea06b4435fb05b5d3815e0913dd3ef | #420 / 41499382868 | SUCCESS | Authorization boundary and Store benchmark design |
 | #15 | r03-52-7-3-11-3-request-digest-v2alpha2 | f5484b719e38a3c7145af26cf8470aab282058bb | #429 / 41503109841 | FAILURE | tenant-ed25519-verifier failed at PostgreSQL independent Request Digest v2alpha2 vs Python golden vector; validate-contracts passed |
 | #16 | r03-52-7-3-11-3-remediation-gate | f3e90cd85a21744f2e99ba4c82bd05c4e57083d0 | #430 / 41503709136 | SUCCESS | Corrected PostgreSQL action/resource CASE expression |
