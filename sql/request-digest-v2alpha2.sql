@@ -325,8 +325,8 @@ BEGIN
   IF octet_length(payload_bytes) > 16384 OR octet_length(signature_bytes) <> 64 THEN
     RAISE EXCEPTION 'v2alpha2 assertion size or signature length invalid';
   END IF;
-  IF rtrim(translate(replace(encode(payload_bytes, 'base64'), E'\\n', ''), '+/', '-_'), '=') <> p_payload_b64url
-     OR rtrim(translate(replace(encode(signature_bytes, 'base64'), E'\\n', ''), '+/', '-_'), '=') <> p_signature_b64url THEN
+  IF rtrim(translate(replace(encode(payload_bytes, 'base64'), chr(10), ''), '+/', '-_'), '=') <> p_payload_b64url
+     OR rtrim(translate(replace(encode(signature_bytes, 'base64'), chr(10), ''), '+/', '-_'), '=') <> p_signature_b64url THEN
     RAISE EXCEPTION 'non-canonical base64url assertion encoding';
   END IF;
   raw_payload := convert_from(payload_bytes, 'UTF8');
@@ -455,8 +455,8 @@ $fn$;
   IF octet_length(payload_bytes) > 16384 OR octet_length(signature_bytes) <> 64 THEN
     RAISE EXCEPTION 'v2alpha2 assertion size or signature length invalid';
   END IF;
-  IF rtrim(translate(replace(encode(payload_bytes, 'base64'), E'\\n', ''), '+/', '-_'), '=') <> p_payload_b64url
-     OR rtrim(translate(replace(encode(signature_bytes, 'base64'), E'\\n', ''), '+/', '-_'), '=') <> p_signature_b64url THEN
+  IF rtrim(translate(replace(encode(payload_bytes, 'base64'), chr(10), ''), '+/', '-_'), '=') <> p_payload_b64url
+     OR rtrim(translate(replace(encode(signature_bytes, 'base64'), chr(10), ''), '+/', '-_'), '=') <> p_signature_b64url THEN
     RAISE EXCEPTION 'non-canonical base64url assertion encoding';
   END IF;
   raw_payload := convert_from(payload_bytes, 'UTF8');
