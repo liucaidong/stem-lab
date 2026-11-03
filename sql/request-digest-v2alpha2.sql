@@ -2,6 +2,63 @@
 -- Replace __SCHEMA__ with a unique schema before executing this file.
 CREATE SCHEMA IF NOT EXISTS __SCHEMA__;
 
+-- Parse the original JSON text before jsonb conversion so duplicate members remain observable.
+CREATE OR REPLACE FUNCTION __SCHEMA__.json_has_duplicate_keys_v2alpha2(p_value json, p_depth integer DEFAULT 0)
+RETURNS boolean
+LANGUAGE plpgsql
+IMMUTABLE
+STRICT
+SET search_path = pg_catalog
+AS $fn$
+DECLARE
+  child record;
+  duplicate_found boolean;
+BEGIN
+  IF p_depth > 32 THEN RAISE EXCEPTION 'request claim nesting depth exceeded'; END IF;
+  IF pg_catalog.json_typeof(p_value) = 'object' THEN
+    SELECT EXISTS (
+      SELECT 1 FROM (
+        SELECT key FROM pg_catalog.json_each(p_value)
+        GROUP BY key HAVING pg_catalog.count(*) > 1
+      ) duplicates
+    ) INTO duplicate_found;
+    IF duplicate_found THEN RETURN true; END IF;
+    FOR child IN SELECT value FROM pg_catalog.json_each(p_value) LOOP
+      IF __SCHEMA__.json_has_duplicate_keys_v2alpha2(child.value, p_depth + 1) THEN RETURN true; END IF;
+    END LOOP;
+  ELSIF pg_catalog.json_typeof(p_value) = 'array' THEN
+    FOR child IN SELECT value FROM pg_catalog.json_array_elements(p_value) LOOP
+      IF __SCHEMA__.json_has_duplicate_keys_v2alpha2(child.value, p_depth + 1) THEN RETURN true; END IF;
+    END LOOP;
+  END IF;
+  RETURN false;
+END;
+$fn$;
+
+CREATE OR REPLACE FUNCTION __SCHEMA__.parse_strict_json_object_v2alpha2(p_raw text)
+RETURNS jsonb
+LANGUAGE plpgsql
+IMMUTABLE
+STRICT
+SET search_path = pg_catalog
+AS $fn$
+DECLARE
+  parsed json;
+BEGIN
+  IF pg_catalog.octet_length(pg_catalog.convert_to(p_raw, 'UTF8')) > 16384 THEN
+    RAISE EXCEPTION 'request claim payload too large';
+  END IF;
+  parsed := p_raw::json;
+  IF pg_catalog.json_typeof(parsed) IS DISTINCT FROM 'object' THEN
+    RAISE EXCEPTION 'request claim must be a JSON object';
+  END IF;
+  IF __SCHEMA__.json_has_duplicate_keys_v2alpha2(parsed, 0) THEN
+    RAISE EXCEPTION 'duplicate JSON object key in request claim';
+  END IF;
+  RETURN parsed::jsonb;
+END;
+$fn$;
+
 CREATE OR REPLACE FUNCTION __SCHEMA__.encode_typed_value_v2alpha2(p_value jsonb, p_depth integer DEFAULT 0)
 RETURNS bytea
 LANGUAGE plpgsql
