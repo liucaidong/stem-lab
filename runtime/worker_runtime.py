@@ -101,6 +101,9 @@ class WorkerRuntime:
         heartbeat_interval_seconds: float = 10.0,
         poll_interval_seconds: float = 1.0,
     ) -> None:
+        from runtime.retry_policy import RetryPolicyRegistry
+        if type(retry_policy) is not RetryPolicyRegistry:
+            raise TypeError("WorkerRuntime requires the trusted RetryPolicyRegistry implementation")
         if not worker_id or lease_seconds <= 0 or heartbeat_interval_seconds <= 0:
             raise ValueError("worker_id and positive lease/heartbeat intervals are required")
         if heartbeat_interval_seconds >= lease_seconds:

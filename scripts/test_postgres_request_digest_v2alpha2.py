@@ -2,7 +2,10 @@
 from __future__ import annotations
 import base64, json, os, pathlib, time, uuid
 import psycopg
+import sys
 ROOT=pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from runtime.request_digest_v2alpha2 import request_digest
 DSN=os.environ.get("DATABASE_URL","postgresql://postgres:postgres@localhost:5432/stemlab_test")
 SCHEMA="request_digest_"+uuid.uuid4().hex[:12]
 VECTOR=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.golden.json").read_text())
@@ -105,6 +108,24 @@ def main() -> None:
         print("PostgreSQL tampered-argument rejection: PASS")
         print("PostgreSQL Unicode golden vector: PASS")
         print("PostgreSQL object-key order invariance: PASS")
+        fail_envelope=dict(envelope)
+        fail_envelope["action"]="worker.job.fail"
+        fail_envelope["operation_arguments"]={
+            "error_code":"DEPENDENCY_UNAVAILABLE","retryable":True,
+            "retry_delay_micros":1000000,"retry_policy_version":"2026-11-03.1",
+            "safe_message":"Dependency unavailable"
+        }
+        fail_digest=request_digest(fail_envelope)
+        fail_claim=dict(claim)
+        fail_claim.update({"action":"worker.job.fail","request_digest":fail_digest})
+        fail_args=fail_envelope["operation_arguments"]
+        assert conn.execute(call,(json.dumps(fail_claim),json.dumps(fail_args))).fetchone()[0] is True
+        missing_policy_version=dict(fail_args)
+        missing_policy_version.pop("retry_policy_version")
+        try: conn.execute(call,(json.dumps(fail_claim),json.dumps(missing_policy_version)))
+        except psycopg.Error: pass
+        else: raise AssertionError("PostgreSQL accepted fail action without retry_policy_version")
+        print("PostgreSQL fail action policy-version binding and validation: PASS")
         print("PostgreSQL invalid-argument rejection: PASS")
 
         # Sign and verify the exact decoded raw payload bytes.

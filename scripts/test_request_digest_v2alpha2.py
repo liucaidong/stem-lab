@@ -71,6 +71,17 @@ class RequestDigestTests(unittest.TestCase):
         e["operation_arguments"]={"delay_seconds":1,"error_code":"DEPENDENCY_UNAVAILABLE"}
         with self.assertRaises(RequestEncodingError):
             canonical_request_bytes(e)
+    def test_fail_action_binds_retry_policy_version_and_safe_message(self):
+        e=dict(VECTOR["envelope"])
+        e["action"]="worker.job.fail"
+        e["operation_arguments"]={"error_code":"DEPENDENCY_UNAVAILABLE","retryable":True,
+            "retry_delay_micros":1000000,"retry_policy_version":"2026-11-03.1",
+            "safe_message":"Dependency unavailable"}
+        self.assertTrue(request_digest(e).startswith("sha256:"))
+        e["operation_arguments"].pop("retry_policy_version")
+        with self.assertRaises(RequestEncodingError):
+            canonical_request_bytes(e)
+
     def test_dlq_replay_is_not_in_v2alpha2_executable_allowlist(self):
         e=dict(VECTOR["envelope"])
         e["action"]="worker.dlq.replay"
