@@ -1,6 +1,7 @@
-FROM postgres:17.11
+FROM postgres:17.11@sha256:0b81cec82228160abfa753aeaad0609b709eb26eeb950f2e404ad2326e1cc370
 
 ARG PGSODIUM_VERSION=3.1.11
+ARG PGSODIUM_SHA256=c8fef093d6d3afe859b03abcf7f598e9fce4298f7bfff283434bc300cba203ab
 ARG LIBSODIUM_VERSION=1.0.22
 ARG LIBSODIUM_SHA256=adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349
 
@@ -21,8 +22,9 @@ RUN apt-get update \
     && make -j2 \
     && make install \
     && ldconfig \
-    && curl -fsSL "https://api.pgxn.org/dist/pgsodium/${PGSODIUM_VERSION}/pgsodium-${PGSODIUM_VERSION}.zip" \
+    && curl -fsSL "https://github.com/michelp/pgsodium/releases/download/v${PGSODIUM_VERSION}/pgsodium-${PGSODIUM_VERSION}.zip" \
        -o /tmp/pgsodium.zip \
+    && echo "${PGSODIUM_SHA256}  /tmp/pgsodium.zip" | sha256sum -c - \
     && mkdir -p /tmp/pgsodium-src \
     && unzip -q /tmp/pgsodium.zip -d /tmp/pgsodium-src \
     && PGSODIUM_MAKEFILE="$(find /tmp/pgsodium-src -maxdepth 4 -name Makefile -print -quit)" \

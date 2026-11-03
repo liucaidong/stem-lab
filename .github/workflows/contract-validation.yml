@@ -43,7 +43,9 @@ jobs:
       admitted: ${{ steps.admission.outputs.admitted }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Verify CI admission policy and cooldown boundary tests
         run: |
           python scripts/validate_ci_workflow_policy.py
@@ -59,7 +61,7 @@ jobs:
         run: python scripts/ci_admission.py
       - name: Persist repository-wide admission marker
         if: steps.admission.outputs.admitted == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: stem-lab-ci-admission
           path: .ci-admission/marker.json
@@ -71,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        image: postgres:17.11@sha256:0b81cec82228160abfa753aeaad0609b709eb26eeb950f2e404ad2326e1cc370
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -85,9 +87,11 @@ jobs:
           --health-retries 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
           cache: pip
@@ -109,7 +113,7 @@ jobs:
         run: python scripts/validate_package_canonical_manifest.py
 
       - name: Set up Node.js for independent canonicalization vectors
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
           node-version: "22"
 
@@ -207,9 +211,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
       - name: Install pinned PostgreSQL client driver
@@ -233,7 +239,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_postgres_tenant_ed25519_verifier.py
       - name: Set up Node.js for node-postgres benchmark
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
         with:
           node-version: "24"
       - name: Install node-postgres benchmark dependency
@@ -247,7 +253,7 @@ jobs:
         run: python scripts/benchmark_store_driver_pool.py
       - name: Upload Store driver benchmark smoke results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: store-driver-pool-benchmark-smoke
           path: ${{ runner.temp }}/store-bench-results.json
@@ -274,6 +280,8 @@ jobs:
       CI_TENANT_ED25519_RESULT: ${{ needs.tenant-ed25519-verifier.result }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Enforce truthful final CI status
         run: python scripts/ci_result.py

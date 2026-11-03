@@ -59,6 +59,39 @@ def job_blocks(content: str) -> dict[str, str]:
     return blocks
 
 
+def enforce_supply_chain_pins(content: str, path: Path) -> None:
+    """Require immutable action refs and verified PostgreSQL/pgsodium inputs."""
+    action_refs = re.findall(r"(?m)^\s*uses:\s*([^\s#]+)", content)
+    if not action_refs:
+        fail(f"{path.relative_to(ROOT)} has no action references to verify")
+    for action_ref in action_refs:
+        if action_ref.startswith("./"):
+            continue
+        if not re.fullmatch(
+            r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}",
+            action_ref,
+        ):
+            fail(
+                f"{path.relative_to(ROOT)} uses a non-immutable action reference: "
+                f"{action_ref!r}; pin the verified full 40-character commit SHA"
+            )
+
+    postgres_ref = r"postgres:17\.11@sha256:[0-9a-f]{64}"
+    if not re.search(rf"(?m)^\s*image:\s*{postgres_ref}\s*$", content):
+        fail("PostgreSQL service image must use the approved version and SHA-256 digest")
+
+    dockerfile = ROOT / "scripts" / "docker" / "pgsodium-postgres17.Dockerfile"
+    if not dockerfile.is_file():
+        fail("pgsodium PostgreSQL Dockerfile is missing")
+    docker_content = dockerfile.read_text(encoding="utf-8")
+    if not re.search(rf"(?m)^FROM\s+{postgres_ref}\s*$", docker_content):
+        fail("pgsodium Dockerfile base image must use the approved PostgreSQL SHA-256 digest")
+    if not re.search(r"(?m)^ARG PGSODIUM_SHA256=[0-9a-f]{64}$", docker_content):
+        fail("pgsodium release asset must have an explicit SHA-256 lock")
+    if "sha256sum -c -" not in docker_content:
+        fail("pgsodium archive SHA-256 must be verified before extraction")
+
+
 def main() -> int:
     files = sorted(list(WORKFLOWS.glob("*.yml")) + list(WORKFLOWS.glob("*.yaml")))
     if not files:
@@ -81,6 +114,7 @@ def main() -> int:
         )
 
     path, content, events = root_workflows[0]
+    enforce_supply_chain_pins(content, path)
     relative = path.relative_to(ROOT)
     unexpected = events - ALLOWED_ROOT_EVENTS
     if unexpected:
@@ -118,7 +152,7 @@ def main() -> int:
         for token in (
             "- name: Persist repository-wide admission marker",
             "if: steps.admission.outputs.admitted == 'true'",
-            "uses: actions/upload-artifact@v4",
+            "uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
         )
     ):
         fail("ci-admission must upload the marker artifact only after admission")
