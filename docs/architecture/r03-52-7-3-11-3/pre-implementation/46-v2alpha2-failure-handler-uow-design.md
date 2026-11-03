@@ -53,7 +53,7 @@ The failure handler does not mutate Session state or revision. It must use the p
 
 - Job: `status='retry'`, `available_at=clock_timestamp()+delay`, error code/safe message/policy version stored, `lease_owner=NULL`, `lease_expires_at=NULL`.
 - Transition: `running → retry`, keyed by operation ID.
-- Outbox: stable event ID, type `worker.job.retry_scheduled`.
+- Outbox: stable event ID, type `job.retry_scheduled`.
 - Receipt: `succeeded` with outcome `RETRY_SCHEDULED`, next availability and attempt counters.
 
 ### Dead-lettered
@@ -61,7 +61,7 @@ The failure handler does not mutate Session state or revision. It must use the p
 - Job: `status='dead_lettered'`, error code/safe message/policy version stored, `lease_owner=NULL`, `lease_expires_at=NULL`.
 - DLQ: one row per tenant/job, exact terminal reason, error code, safe message, persisted attempt count and lease epoch.
 - Transition: `running → dead_lettered`, keyed by operation ID.
-- Outbox: stable event ID, type `worker.job.dead_lettered`.
+- Outbox: stable event ID, type `job.dead_lettered`.
 - Receipt: `succeeded` with outcome `DEAD_LETTERED`, terminal reason and DLQ identity.
 
 A unique conflict or any failure in any write must abort the whole transaction, including Nonce and Receipt reservation. No false/null return may be interpreted as a successful commit.
