@@ -26,7 +26,7 @@ Every test should retain the envelope alongside its digest and assertion.
 
 ## 3. Corrected acceptance vectors
 
-### V1 — Exact same-request replay
+### V1 — Same logical request re-issued with a fresh assertion nonce
 
 First request:
 - tenant = tenant-a
@@ -36,13 +36,21 @@ First request:
 - resource_type/resource_id = job/job-1
 - args = exact Complete args
 - digest = recomputed digest A
+- assertion nonce = nonce-A
 
-Retry:
-- all fields exactly identical, including operation_id and idempotency_key;
-- digest remains digest A;
-- expected: same Receipt ID, created=false, stored terminal outcome, no second business mutation.
+Retry/re-issuance:
+- the entire business Request Envelope remains identical, including operation_id, idempotency_key and operation_arguments;
+- digest remains digest A because nonce/iat/exp/signature are not Request Envelope fields;
+- assertion uses a fresh nonce-B, fresh iat/exp and a new signature over the new Claim payload;
+- expected: same Receipt ID, created=false, stored terminal outcome; nonce-B is consumed in the same transaction; no second business mutation.
 
-### V2 — Same idempotency key, different digest
+### V2 — Exact old assertion replay
+
+Submit the exact original signed payload and nonce-A again in a new transaction after nonce-A was committed.
+
+Expected: reject as ASSERTION_REPLAYED (or the explicitly approved read-only replay response), never execute a second mutation. This is not the canonical client retry path.
+
+### V3 — Same idempotency key, different digest
 
 First request uses key-conflict, operation-1, digest A.
 
@@ -53,7 +61,7 @@ Second request uses:
 
 Expected: IDEMPOTENCY_CONFLICT; existing Receipt unchanged; no Job/Session/Nonce/Transition/Outbox mutation.
 
-### V3 — Same operation ID, different idempotency key
+### V4 — Same operation ID, different idempotency key
 
 First request uses operation-unique-1 and key-one, digest A.
 
@@ -64,18 +72,19 @@ Second request uses:
 
 Expected: OPERATION_ID_CONFLICT; no second Receipt or business mutation.
 
-### V4 — Concurrent exact same first submission
+### V5 — Concurrent same logical request, fresh nonces
 
-Two independent connections submit the exact same envelope, same operation_id, same idempotency_key and same digest.
+Two independent connections submit the same business Request Envelope, same operation_id, same idempotency_key and same digest, but each has a distinct fresh assertion nonce and signature.
 
 Expected:
 - exactly one Receipt row;
-- one caller observes created=true;
-- other caller observes created=false after arbitration;
-- both return the same Receipt ID;
-- exactly one business mutation/Transition/Outbox effect after integrated UOW is tested.
+- one caller performs the business mutation;
+- the other observes the same terminal Receipt after arbitration;
+- both fresh nonces are consumed if both assertions are valid and accepted under the re-issuance policy;
+- both return the same Receipt ID/outcome;
+- exactly one Job/Session/Transition/Outbox effect after integrated UOW is tested.
 
-### V5 — Concurrent same key, different envelope
+### V6 — Concurrent same key, different envelope
 
 Two connections submit the same tenant/action/idempotency_key but different operation_id or arguments, each with its own correctly recomputed digest.
 
@@ -85,7 +94,7 @@ Expected:
 - no loser business mutation;
 - outcome is deterministic regardless of scheduling.
 
-### V6 — Digest/identity substitution
+### V7 — Digest/identity substitution
 
 Pass the digest from envelope A alongside a Receipt reserve call whose operation_id or resource identity comes from envelope B.
 
