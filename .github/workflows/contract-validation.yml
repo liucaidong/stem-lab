@@ -155,6 +155,11 @@ jobs:
       - name: Test experimental Request Digest v2alpha2 typed encoding and golden vectors
         run: python scripts/test_request_digest_v2alpha2.py
 
+      - name: Test PostgreSQL Request Digest v2alpha2 Receipt arbitration and concurrency
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_request_receipt_v2alpha2.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 
