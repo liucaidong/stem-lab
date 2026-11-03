@@ -2,6 +2,7 @@ name: Contract validation
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "contracts/**"
       - "sql/**"
@@ -26,11 +27,46 @@ on:
       - ".github/workflows/contract-validation.yml"
   workflow_dispatch:
 
+concurrency:
+  group: stem-lab-global-ci
+  cancel-in-progress: false
+  queue: single
+
 permissions:
+  actions: read
   contents: read
 
 jobs:
+  ci-admission:
+    runs-on: ubuntu-latest
+    outputs:
+      admitted: ${{ steps.admission.outputs.admitted }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Verify CI admission policy and cooldown boundary tests
+        run: |
+          python scripts/validate_ci_workflow_policy.py
+          python scripts/test_ci_admission.py
+      - name: Enforce repository-wide 600-second CI admission gate
+        id: admission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: python scripts/ci_admission.py
+      - name: Persist repository-wide admission marker
+        if: steps.admission.outputs.admitted == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stem-lab-ci-admission
+          path: .ci-admission/marker.json
+          if-no-files-found: error
+
   validate-contracts:
+    needs: ci-admission
+    if: needs.ci-admission.outputs.admitted == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -165,6 +201,8 @@ jobs:
         run: python scripts/validate_integration_audit.py
 
   tenant-ed25519-verifier:
+    needs: ci-admission
+    if: needs.ci-admission.outputs.admitted == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
