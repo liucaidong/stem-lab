@@ -98,6 +98,8 @@ class RequestDigestTests(unittest.TestCase):
         with self.assertRaises(RequestEncodingError): canonical_request_bytes(e)
         e=dict(VECTOR["envelope"]); e["action"]="worker.job.unknown"
         with self.assertRaises(RequestEncodingError): canonical_request_bytes(e)
+        e=dict(VECTOR["envelope"]); e["action"]=["worker.job.complete"]
+        with self.assertRaises(RequestEncodingError): canonical_request_bytes(e)
         e=dict(VECTOR["envelope"]); e["resource_id"]="other-job"
         with self.assertRaises(RequestEncodingError): canonical_request_bytes(e)
 if __name__=="__main__": unittest.main(verbosity=2)
