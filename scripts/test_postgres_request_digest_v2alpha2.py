@@ -13,17 +13,14 @@ def main() -> None:
     try:
         encoding=conn.execute('SHOW server_encoding').fetchone()[0]
         assert encoding.upper()=='UTF8', f'PostgreSQL database encoding must be UTF8, got {encoding}'
-        parts=SQL.split("CREATE OR REPLACE FUNCTION ")
-        assert len(parts)==7, f"expected schema + 6 function definitions, got {len(parts)}"
-        conn.execute(parts[0].strip())
+        conn.execute("CREATE SCHEMA " + SCHEMA)
         conn.execute("CREATE EXTENSION IF NOT EXISTS pgsodium")
         conn.execute("LOAD 'pgsodium'")
         public_key, private_key = conn.execute("SELECT public,secret FROM pgsodium.crypto_sign_new_keypair()").fetchone()
         conn.execute(f"CREATE TABLE {SCHEMA}.issuer_keys (kid text PRIMARY KEY, issuer text NOT NULL, public_key bytea NOT NULL, not_before timestamptz NOT NULL, not_after timestamptz, revoked_at timestamptz)")
         conn.execute(f"INSERT INTO {SCHEMA}.issuer_keys(kid,issuer,public_key,not_before) VALUES ('test-key','test-issuer',%s,clock_timestamp()-interval '1 day')",(public_key,))
-        for function_source in parts[1:]:
-            body=function_source.split("$fn$;",1)[0]
-            conn.execute("CREATE OR REPLACE FUNCTION "+body+"$fn$;")
+        # Execute the complete SQL asset as shipped; splitting functions masked malformed trailing fragments.
+        conn.execute(SQL, prepare=False)
         strict_parser=f"SELECT {SCHEMA}.parse_strict_json_object_v2alpha2(%s)"
         valid_raw='{"outer":[{"x":1,"y":2}]}'
         parsed=conn.execute(strict_parser,(valid_raw,)).fetchone()[0]
@@ -74,7 +71,13 @@ def main() -> None:
             try: conn.execute(call,(json.dumps(claim,ensure_ascii=False),json.dumps(bad_args,ensure_ascii=False)))
             except psycopg.Error: pass
             else: raise AssertionError(f"PostgreSQL accepted invalid arguments: {bad_args!r}")
+        oversized=dict(envelope)
+        oversized["operation_arguments"]={"expected_session_revision":7,"result_ref":"x"*70000}
+        try: conn.execute(f"SELECT {SCHEMA}.request_digest_v2alpha2(%s::jsonb)",(json.dumps(oversized),))
+        except psycopg.Error: pass
+        else: raise AssertionError("PostgreSQL accepted oversized request envelope")
         print("PostgreSQL Request Digest v2alpha2 golden vector: PASS")
+        print("PostgreSQL full SQL asset execution and 64 KiB request budget: PASS")
         print("PostgreSQL tampered-argument rejection: PASS")
         print("PostgreSQL Unicode golden vector: PASS")
         print("PostgreSQL object-key order invariance: PASS")

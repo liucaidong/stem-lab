@@ -19,16 +19,16 @@ class RetryPolicyTests(unittest.TestCase):
         decision = registry.decide("DEPENDENCY_UNAVAILABLE", 1, 5)
         self.assertTrue(decision.retryable)
         self.assertEqual(decision.error_code, "DEPENDENCY_UNAVAILABLE")
-        self.assertEqual(decision.retry_delay_seconds, 1.0)
+        self.assertEqual(decision.retry_delay_micros, 1000000)
 
     def test_full_jitter_exponential_ceiling_is_capped(self):
         registry = RetryPolicyRegistry.from_document(DOCUMENT, random_value=lambda: 1.0)
         first = registry.decide("RATE_LIMITED", 1, 10)
         third = registry.decide("RATE_LIMITED", 3, 10)
         ninth = registry.decide("RATE_LIMITED", 9, 10)
-        self.assertEqual(first.retry_delay_seconds, 5.0)
-        self.assertEqual(third.retry_delay_seconds, 20.0)
-        self.assertEqual(ninth.retry_delay_seconds, 300.0)
+        self.assertEqual(first.retry_delay_micros, 5000000)
+        self.assertEqual(third.retry_delay_micros, 20000000)
+        self.assertEqual(ninth.retry_delay_micros, 300000000)
 
     def test_non_retryable_and_attempt_exhaustion_fail_closed(self):
         registry = RetryPolicyRegistry.from_document(DOCUMENT, random_value=lambda: 0.4)
@@ -36,7 +36,7 @@ class RetryPolicyTests(unittest.TestCase):
         exhausted = registry.decide("DEPENDENCY_UNAVAILABLE", 5, 5)
         self.assertFalse(permanent.retryable)
         self.assertFalse(exhausted.retryable)
-        self.assertEqual(exhausted.retry_delay_seconds, 0)
+        self.assertEqual(exhausted.retry_delay_micros, 0)
 
     def test_unknown_code_maps_to_non_retryable_default_without_echo(self):
         registry = RetryPolicyRegistry.from_document(DOCUMENT)
@@ -65,13 +65,18 @@ class RetryPolicyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             RetryPolicyRegistry.from_document(duplicate)
 
+    def test_policy_version_is_required(self):
+        invalid = copy.deepcopy(DOCUMENT)
+        invalid.pop("policy_version")
+        with self.assertRaises(ValueError):
+            RetryPolicyRegistry.from_document(invalid)
     def test_registry_rejects_retryable_default_and_invalid_policy(self):
         with self.assertRaises(ValueError):
-            RetryPolicyRegistry({}, RetryPolicy("DEFAULT", True, 1, 2, "safe"))
+            RetryPolicyRegistry({}, RetryPolicy("DEFAULT", True, 1000000, 2000000, "safe"), "test-v1")
         with self.assertRaises(ValueError):
-            RetryPolicy("BAD", False, 1, 0, "safe")
+            RetryPolicy("BAD", False, 1000000, 0, "safe")
         with self.assertRaises(ValueError):
-            RetryPolicy("BAD", True, 2, 1, "safe")
+            RetryPolicy("BAD", True, 2000000, 1000000, "safe")
 
 
 if __name__ == "__main__":

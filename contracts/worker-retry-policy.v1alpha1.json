@@ -3,38 +3,46 @@
   "default_policy": {
     "error_code": "UNCLASSIFIED_ERROR",
     "retryable": false,
-    "base_delay_seconds": 0,
-    "max_delay_seconds": 0,
-    "safe_message": "The job failed due to an unclassified error."
+    "safe_message": "The job failed due to an unclassified error.",
+    "base_delay_micros": 0,
+    "max_delay_micros": 0
   },
   "policies": [
     {
       "error_code": "DEPENDENCY_UNAVAILABLE",
       "retryable": true,
-      "base_delay_seconds": 2,
-      "max_delay_seconds": 120,
-      "safe_message": "A required dependency is temporarily unavailable."
+      "safe_message": "A required dependency is temporarily unavailable.",
+      "base_delay_micros": 2000000,
+      "max_delay_micros": 120000000
     },
     {
       "error_code": "RATE_LIMITED",
       "retryable": true,
-      "base_delay_seconds": 5,
-      "max_delay_seconds": 300,
-      "safe_message": "A required dependency temporarily rate-limited the operation."
+      "safe_message": "A required dependency temporarily rate-limited the operation.",
+      "base_delay_micros": 5000000,
+      "max_delay_micros": 300000000
     },
     {
       "error_code": "INVALID_INPUT",
       "retryable": false,
-      "base_delay_seconds": 0,
-      "max_delay_seconds": 0,
-      "safe_message": "The submitted input did not pass validation."
+      "safe_message": "The submitted input did not pass validation.",
+      "base_delay_micros": 0,
+      "max_delay_micros": 0
     },
     {
       "error_code": "INTEGRITY_CHECK_FAILED",
       "retryable": false,
-      "base_delay_seconds": 0,
-      "max_delay_seconds": 0,
-      "safe_message": "The package integrity check failed."
+      "safe_message": "The package integrity check failed.",
+      "base_delay_micros": 0,
+      "max_delay_micros": 0
+    },
+    {
+      "error_code": "HANDLER_NOT_REGISTERED",
+      "retryable": false,
+      "safe_message": "No handler is registered for this job type.",
+      "base_delay_micros": 0,
+      "max_delay_micros": 0
     }
-  ]
+  ],
+  "policy_version": "2026-11-03.1"
 }

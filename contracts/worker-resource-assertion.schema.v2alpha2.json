@@ -1,23 +1,141 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://schemas.example.invalid/stem-lab/worker-resource-assertion/v2alpha2",
-  "title":"Worker Resource-Scoped Assertion Claims v2alpha2",
-  "description":"Experimental request-digest-bound assertion; proposal only, not production approved.",
-  "type":"object","additionalProperties":false,
-  "required":["v","contract_version","iss","kid","tenant_id","sub","aud","action","job_id","resource_type","resource_id","session_id","owner","epoch","operation_id","idempotency_key","request_digest","iat","exp","nonce"],
-  "properties":{
-    "v":{"const":2},"contract_version":{"const":"2alpha2"},
-    "iss":{"type":"string","minLength":1,"maxLength":256},
-    "kid":{"type":"string","minLength":1,"maxLength":128},"tenant_id":{"type":"string","minLength":1,"maxLength":256},
-    "sub":{"type":"string","minLength":1,"maxLength":256},"aud":{"type":"string","minLength":1,"maxLength":256},
-    "action":{"enum":["worker.job.renew","worker.job.complete","worker.job.fail","worker.job.retry","worker.job.dead_letter","worker.dlq.replay","worker.outbox.dispatch","worker.receipt.reconcile","worker.outbox.ack"]},
-    "job_id":{"type":"string","minLength":1,"maxLength":256},"session_id":{"type":"string","minLength":1,"maxLength":256},
-    "owner":{"type":"string","minLength":1,"maxLength":256},"epoch":{"type":"integer","minimum":1,"maximum":9007199254740991},
-    "operation_id":{"type":"string","minLength":1,"maxLength":256},"idempotency_key":{"type":"string","minLength":1,"maxLength":256},
-    "request_digest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$","minLength":71,"maxLength":71},
-    "iat":{"type":"integer","minimum":0,"maximum":9007199254740991},"exp":{"type":"integer","minimum":1,"maximum":9007199254740991},
-    "nonce":{"type":"string","minLength":16,"maxLength":256,"pattern":"^[A-Za-z0-9_-]+$"},
-    "resource_type":{"enum":["job","dlq_item","outbox_event","receipt"]},"resource_id":{"type":"string","minLength":1,"maxLength":256}
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/worker-resource-assertion/v2alpha2",
+  "title": "Worker Resource-Scoped Assertion Claims v2alpha2",
+  "description": "Experimental request-digest-bound assertion; proposal only, not production approved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "contract_version",
+    "iss",
+    "kid",
+    "tenant_id",
+    "sub",
+    "aud",
+    "action",
+    "job_id",
+    "resource_type",
+    "resource_id",
+    "session_id",
+    "owner",
+    "epoch",
+    "operation_id",
+    "idempotency_key",
+    "request_digest",
+    "iat",
+    "exp",
+    "nonce"
+  ],
+  "properties": {
+    "v": {
+      "const": 2
+    },
+    "contract_version": {
+      "const": "2alpha2"
+    },
+    "iss": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "kid": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "sub": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "aud": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "action": {
+      "enum": [
+        "worker.job.renew",
+        "worker.job.complete",
+        "worker.job.fail",
+        "worker.job.retry",
+        "worker.job.dead_letter",
+        "worker.outbox.dispatch",
+        "worker.receipt.reconcile",
+        "worker.outbox.ack"
+      ]
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "epoch": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "request_digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    },
+    "iat": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "exp": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "resource_type": {
+      "enum": [
+        "job",
+        "dlq_item",
+        "outbox_event",
+        "receipt"
+      ]
+    },
+    "resource_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
   },
-  "$comment":"contract_version is mandatory to isolate v2alpha2 from v2alpha1, even though both use numeric v=2. PostgreSQL must independently recalculate request_digest from exact operation parameters. JSON Schema validation is not digest verification."
+  "$comment": "contract_version is mandatory to isolate v2alpha2 from v2alpha1, even though both use numeric v=2. PostgreSQL must independently recalculate request_digest from exact operation parameters. JSON Schema validation is not digest verification."
 }

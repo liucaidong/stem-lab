@@ -7,7 +7,8 @@
   "required": [
     "schema_version",
     "default_policy",
-    "policies"
+    "policies",
+    "policy_version"
   ],
   "properties": {
     "schema_version": {
@@ -21,6 +22,11 @@
       "items": {
         "$ref": "#/$defs/policy"
       }
+    },
+    "policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
     }
   },
   "$defs": {
@@ -30,8 +36,8 @@
       "required": [
         "error_code",
         "retryable",
-        "base_delay_seconds",
-        "max_delay_seconds",
+        "base_delay_micros",
+        "max_delay_micros",
         "safe_message"
       ],
       "properties": {
@@ -44,18 +50,20 @@
         "retryable": {
           "type": "boolean"
         },
-        "base_delay_seconds": {
-          "type": "number",
-          "minimum": 0
-        },
-        "max_delay_seconds": {
-          "type": "number",
-          "minimum": 0
-        },
         "safe_message": {
           "type": "string",
           "minLength": 1,
           "maxLength": 512
+        },
+        "base_delay_micros": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000000
+        },
+        "max_delay_micros": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400000000
         }
       },
       "allOf": [
@@ -72,10 +80,10 @@
           },
           "then": {
             "properties": {
-              "base_delay_seconds": {
+              "base_delay_micros": {
                 "const": 0
               },
-              "max_delay_seconds": {
+              "max_delay_micros": {
                 "const": 0
               }
             }

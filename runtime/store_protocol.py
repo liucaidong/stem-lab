@@ -118,12 +118,15 @@ class ClaimedJobRecord:
     job_type: str
     payload: Mapping[str, object]
     attempt_count: int
+    maximum_attempts: int
 
     def __post_init__(self) -> None:
         if not self.job_type or len(self.job_type) > 128:
             raise ValueError("job_type must contain 1..128 characters")
-        if self.attempt_count < 1:
-            raise ValueError("attempt_count must be >= 1")
+        if type(self.attempt_count) is not int or type(self.maximum_attempts) is not int:
+            raise ValueError("attempt counters must be integers")
+        if self.attempt_count < 1 or self.maximum_attempts < 1 or self.attempt_count > self.maximum_attempts:
+            raise ValueError("attempt_count must be in [1, maximum_attempts]")
         payload_tenant = self.payload.get("tenant_id")
         if payload_tenant is not None and payload_tenant != self.lease.tenant_id:
             raise ValueError("payload tenant_id must match persisted Job tenant")
@@ -154,7 +157,8 @@ class FailJobCommand:
     error_code: str
     safe_message: str
     retryable: bool
-    retry_delay_seconds: float
+    retry_delay_micros: int
+    retry_policy_version: str
     idempotency_key: str
 
     def __post_init__(self) -> None:
@@ -162,8 +166,12 @@ class FailJobCommand:
             raise ValueError("error_code must be a stable uppercase code")
         if not self.safe_message or len(self.safe_message) > 512:
             raise ValueError("safe_message must contain 1..512 characters")
-        if not math.isfinite(self.retry_delay_seconds) or self.retry_delay_seconds < 0 or self.retry_delay_seconds > 86400:
-            raise ValueError("retry_delay_seconds must be in [0, 86400]")
+        if type(self.retry_delay_micros) is not int or not 0 <= self.retry_delay_micros <= 86400000000:
+            raise ValueError("retry_delay_micros must be integer microseconds in [0, 24h]")
+        if not self.retry_policy_version or len(self.retry_policy_version) > 128:
+            raise ValueError("retry_policy_version must contain 1..128 characters")
+        if not self.retryable and self.retry_delay_micros != 0:
+            raise ValueError("non-retryable failures must have zero delay")
         if not self.idempotency_key or len(self.idempotency_key) > 256:
             raise ValueError("idempotency_key must contain 1..256 characters")
 
