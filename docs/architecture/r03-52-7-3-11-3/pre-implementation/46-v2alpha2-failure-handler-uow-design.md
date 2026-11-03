@@ -41,11 +41,11 @@ Use the same v2alpha2 lock order as PR #23:
 4. Reserve/lock Receipt under `(tenant_id, action, idempotency_key)`; compare operation ID, resource identity and digest.
 5. Lock the exact Job row `FOR UPDATE`; verify tenant, job, session, owner, epoch, `running` state and `lease_expires_at > clock_timestamp()`.
 6. Read persisted attempt counters and derive the effective terminal/retry branch.
-7. Update Job fields and clear owner/lease. If terminal, insert the DLQ item. Append one Transition and one Outbox event.
+7. Update Job fields and clear owner/lease. If terminal, insert the DLQ item. Increment Job revision and append one Job Transition and one Job Outbox event.
 8. Finalize the Receipt with the immutable typed outcome.
 9. Return from the one PostgreSQL entry point; the caller commits the transaction.
 
-The failure handler does not mutate Session state or revision. It must use the persisted Job→Session relationship and composite tenant/job/session foreign keys for child rows. Do not lock Session unless a later action actually mutates or revision-fences Session state.
+The failure handler does not mutate Session state or revision. It must use the persisted Job→Session relationship and composite tenant/job/session foreign keys for child rows. It increments the locked Job revision and writes Job-specific history/outbox rows; it does not lock Session.
 
 ## 4.1 Blocking aggregate-sequence contract
 
@@ -59,25 +59,35 @@ The legacy R03.52.7.3.6 disposable authorization fixture uses a different Transi
 - **Option B — Aggregate-aware shared Outbox:** extend Outbox with explicit aggregate type/ID/sequence and tenant-aware FK/uniqueness rules, while retaining Session Transition for Session state changes and adding a Job Transition ledger.
 - **Option C — Session lifecycle coupling:** define a real Session state/revision transition for a Job failure. Use only if the domain state machine explicitly requires Session status to change; do not invent a same-state transition to allocate a sequence.
 
-Recommendation: evaluate Option B as the long-term model, with Option A as the smaller isolated reference increment if the shared Outbox migration is not yet approved. DEC-30 event delivery and migration decisions remain open. No option is selected by this design draft.
+**Reference implementation decision: select Option A for the next increment.** This preserves the existing R03.50 Session Transition/Outbox sequence contract and introduces a distinct Job aggregate event stream without pretending that a Job-only failure mutates Session state. This is a reference-schema decision only; production migration and relay approval remain under DEC-30.
 
-The failure Handler cannot be marked READY until the chosen aggregate sequence model, FK/tenant isolation, event IDs, relay scan order and rollback tests are specified. The 11-point fault matrix must include sequence allocation races and rollback of the Job event/Transition with the Job update.
+Option A requires:
+- Add `ingestion_jobs.revision` as a bounded monotonic Job aggregate revision, incremented under the locked Job row for each Job state transition.
+- Add append-only `job_transitions`, unique by `(tenant_id, job_id, sequence)`, with composite tenant/job/session binding and immutable command/digest/actor fields.
+- Add tenant-scoped `job_outbox`, unique by `(tenant_id, job_id, sequence)` and `(tenant_id, event_id)`, carrying the Job's Session ID as context. It is a transactional outbox only; no relay is included.
+- Use the new Job revision as the sequence for both Job Transition and Job Outbox rows. Keep the existing R03.50 Session Transition/Outbox tables and Session revision unchanged for Job-only failures.
+- Extend the PR #23 Complete handler to append a Job Transition/Job Outbox row for `running → succeeded` in addition to its existing Session transition/outbox writes. The Failure handler appends only Job aggregate rows.
+- Apply ENABLE + FORCE RLS, composite FKs and runtime no-direct-table-access to both new tables.
+
+Option B remains the future consolidation candidate if DEC-30 approves a shared aggregate-aware Outbox. Option C is rejected for this increment because a no-op or invented Session state transition would corrupt Session revision semantics.
+
+The failure Handler cannot be marked READY until the Job revision, Job Transition and Job Outbox schema, FK/tenant isolation, event IDs and rollback/concurrency tests are implemented. The 11-point fault matrix must include Job sequence allocation races and rollback of Job event/Transition with the Job update.
 
 ## 4. Persisted writes
 
 ### Retry scheduled
 
 - Job: `status='retry'`, `available_at=clock_timestamp()+delay`, error code/safe message/policy version stored, `lease_owner=NULL`, `lease_expires_at=NULL`.
-- Transition: `running → retry`, keyed by operation ID.
-- Outbox: stable event ID, type `job.retry_scheduled`.
+- Job Transition: `running → retry`, keyed by operation ID and Job revision.
+- Job Outbox: stable event ID, type `job.retry_scheduled`, sequence equal to the new Job revision.
 - Receipt: `succeeded` with outcome `RETRY_SCHEDULED`, next availability and attempt counters.
 
 ### Dead-lettered
 
 - Job: `status='dead_lettered'`, error code/safe message/policy version stored, `lease_owner=NULL`, `lease_expires_at=NULL`.
 - DLQ: one row per tenant/job, exact terminal reason, error code, safe message, persisted attempt count and lease epoch.
-- Transition: `running → dead_lettered`, keyed by operation ID.
-- Outbox: stable event ID, type `job.dead_lettered`.
+- Job Transition: `running → dead_lettered`, keyed by operation ID and Job revision.
+- Job Outbox: stable event ID, type `job.dead_lettered`, sequence equal to the new Job revision.
 - Receipt: `succeeded` with outcome `DEAD_LETTERED`, terminal reason and DLQ identity.
 
 A unique conflict or any failure in any write must abort the whole transaction, including Nonce and Receipt reservation. No false/null return may be interpreted as a successful commit.
