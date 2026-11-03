@@ -24,7 +24,7 @@ A passing CI run does not accept a protocol, security or production architecture
 | DEC-14 — Deployment/provider | OPEN | R03.20 decision register; deployment topology/provider not selected | No production PostgreSQL topology/provider choice |
 | DEC-19 — Tenant trust context | ACCEPTED target architecture only; production verification gates OPEN | R03.52.6 proposal and verification docs; decision owner names/sign-off not recorded in the proposal | Preserve target principles; do not infer production security acceptance |
 | R535-OD3 — Request digest/canonicalization | OPEN / PROPOSED | R03.52.7.3.11 document says exact canonicalization and signed Claim await approval | G1 blocked |
-| R535-OD1 / OD4 / OD5 / OD6 | OPEN in PR #14 recorded decision baseline | PR #14 body explicitly records OD1/OD3/OD4/OD5/OD6 as open; exact titles and current canonical register state still need source-path confirmation | Keep all related gates open until verified |
+| R535-OD1 / OD4 / OD6 | OPEN in PR #14 recorded decision baseline | PR #14 body explicitly records OD1/OD3/OD4/OD5/OD6 as open; exact titles and current canonical register state still need source-path confirmation | Keep all related gates open until verified |
 | R535-OD5 — Verifier helper-role boundary | OPEN | Prior authorization review requires capability-role experiment and catalog evidence | G9 blocked |
 | Product Code Freeze | ACTIVE | Repeatedly recorded in README, R03.52.6 verification and R03.52.7.3.11 docs; no separate signed freeze decision artifact identified in current audit | No business code implementation or P3.17 |
 | P3.17 | OUT OF SCOPE | Repeated project baseline constraint | Must not start |
