@@ -110,7 +110,7 @@ For each action, document all lock acquisitions and unique-index arbitration poi
 - Use bounded retry with jitter at the application transaction coordinator; the retry count/backoff policy remains a deferred operational decision.
 - Do not reduce isolation level to make a race disappear.
 - Unique constraints remain authoritative concurrency arbiters.
-- On retry, preserve operation_id, idempotency_key, request digest and exact typed arguments for the same signed operation.
+- On a deadlock/serialization retry, preserve the same immutable business Request Envelope (operation_id, idempotency_key, request_digest and exact typed arguments) but issue a fresh assertion with a fresh nonce, iat/exp and signature after the prior transaction is confirmed rolled back. Never reuse a committed nonce. For ambiguous commit, reconcile first; do not assume rollback.
 - A fresh assertion with a consumed nonce is not a valid retry merely because the client reused an idempotency key.
 - Capture the database error class and transaction attempt in telemetry without exposing assertion secrets.
 
