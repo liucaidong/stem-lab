@@ -1,0 +1,169 @@
+{
+  "fixture_version": "1alpha1",
+  "trust_registry": {
+    "keys": [
+      {
+        "key_id": "release-key-2026-a",
+        "signer_identity": "did:web:stemlab.example:release",
+        "algorithm": "ed25519",
+        "status": "active",
+        "valid_from": "2026-01-01T00:00:00Z",
+        "valid_until": "2027-01-01T00:00:00Z"
+      },
+      {
+        "key_id": "release-key-2025-retired",
+        "signer_identity": "did:web:stemlab.example:release",
+        "algorithm": "ed25519",
+        "status": "revoked",
+        "valid_from": "2025-01-01T00:00:00Z",
+        "valid_until": "2026-01-01T00:00:00Z",
+        "superseded_by": "release-key-2026-a"
+      }
+    ]
+  },
+  "policy": {
+    "policy_version": "draft-1",
+    "allowlist": [
+      "MIT",
+      "Apache-2.0",
+      "CC-BY-4.0",
+      "CC0-1.0"
+    ],
+    "denylist": [
+      "GPL-3.0-only"
+    ],
+    "exceptions": [
+      {
+        "exception_id": "EXC-001",
+        "status": "approved",
+        "scope_asset_id": "asset:licensed-font",
+        "expires_at": "2026-12-31T23:59:59Z"
+      }
+    ]
+  },
+  "package_subject": {
+    "package_id": "org.example.dc-series",
+    "package_version": "0.1.0",
+    "digest_profile": "candidate-jcs-v1",
+    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "attestation": {
+    "envelope_version": "1alpha1",
+    "package_subject": {
+      "package_id": "org.example.dc-series",
+      "package_version": "0.1.0",
+      "digest_profile": "candidate-jcs-v1",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "predicate_type": "https://stemlab.example/attestation/build/v1",
+    "predicate": {
+      "predicate_version": "1alpha1",
+      "builder_id": "ci:github-actions",
+      "build_type": "package-release",
+      "source": {
+        "repository": "https://github.com/liucaidong/stem-lab",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "materials": [
+        {
+          "resource_id": "model:dc",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "build_started_at": "2026-11-02T00:00:00Z",
+      "build_finished_at": "2026-11-02T00:01:00Z"
+    },
+    "signatures": [
+      {
+        "key_id": "release-key-2026-a",
+        "signer_identity": "did:web:stemlab.example:release",
+        "algorithm": "ed25519",
+        "signature_value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "signed_at": "2026-11-02T00:02:00Z"
+      }
+    ]
+  },
+  "license_record": {
+    "record_version": "1alpha1",
+    "asset_id": "asset:diagram",
+    "asset_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "license_expression": "CC-BY-4.0",
+    "source": {
+      "origin": "https://assets.example.invalid/diagram.svg",
+      "author_or_supplier": "STEM Lab content team",
+      "copyright_notice": "Copyright STEM Lab",
+      "modified": false
+    },
+    "rights_assertions": {
+      "commercial_use": true,
+      "redistribution": true,
+      "modification": true,
+      "attribution_required": true,
+      "attribution_text": "STEM Lab"
+    },
+    "evidence_ref": "evidence:license:diagram:v1",
+    "review": {
+      "status": "approved",
+      "reviewer_id": "reviewer:legal-01",
+      "approved_at": "2026-11-02T00:00:00Z",
+      "policy_version": "draft-1"
+    }
+  },
+  "invalid_cases": [
+    {
+      "case_id": "package-subject-mismatch",
+      "expected_error": "ATTESTATION_SUBJECT_MISMATCH",
+      "mutation": "subject"
+    },
+    {
+      "case_id": "revoked-key",
+      "expected_error": "SIGNING_KEY_REVOKED",
+      "mutation": "revoked-key"
+    },
+    {
+      "case_id": "unknown-key",
+      "expected_error": "UNKNOWN_SIGNING_KEY",
+      "mutation": "unknown-key"
+    },
+    {
+      "case_id": "signer-identity-mismatch",
+      "expected_error": "SIGNER_IDENTITY_MISMATCH",
+      "mutation": "identity"
+    },
+    {
+      "case_id": "signature-algorithm-mismatch",
+      "expected_error": "SIGNATURE_ALGORITHM_MISMATCH",
+      "mutation": "algorithm"
+    },
+    {
+      "case_id": "license-not-reviewed",
+      "expected_error": "LICENSE_REVIEW_REQUIRED",
+      "mutation": "pending-license"
+    },
+    {
+      "case_id": "denied-license",
+      "expected_error": "LICENSE_DENIED",
+      "mutation": "denied-license"
+    },
+    {
+      "case_id": "unknown-license",
+      "expected_error": "LICENSE_UNKNOWN",
+      "mutation": "unknown-license"
+    },
+    {
+      "case_id": "rights-insufficient",
+      "expected_error": "LICENSE_RIGHTS_INSUFFICIENT",
+      "mutation": "rights"
+    },
+    {
+      "case_id": "exception-expired",
+      "expected_error": "LICENSE_EXCEPTION_EXPIRED",
+      "mutation": "expired-exception"
+    },
+    {
+      "case_id": "asset-digest-mismatch",
+      "expected_error": "LICENSE_ASSET_DIGEST_MISMATCH",
+      "mutation": "asset-digest"
+    }
+  ]
+}

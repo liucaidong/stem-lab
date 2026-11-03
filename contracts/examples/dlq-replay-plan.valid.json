@@ -1,0 +1,11 @@
+{
+  "schema_version": "1alpha1",
+  "tenant_id": "tenant-a",
+  "source_job_id": "job-original",
+  "new_job_id": "job-replay-001",
+  "request_id": "replay-request-001",
+  "actor_id": "operator-7",
+  "reason": "Retry after dependency recovery",
+  "replay_number": 1,
+  "authorization_policy_version": "policy-2026-11"
+}

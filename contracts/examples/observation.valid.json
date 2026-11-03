@@ -1,0 +1,30 @@
+{
+  "apiVersion": "stemlab.example/v1alpha1",
+  "kind": "Observation",
+  "metadata": {
+    "observationId": "obs_fixture_dc_current_001",
+    "tenantId": "tenant_fixture",
+    "sessionId": "session_fixture",
+    "executionId": "execution_fixture",
+    "packageId": "org.example.dc-series-circuit",
+    "packageVersion": "0.1.0",
+    "modelId": "org.example.dc-series-model",
+    "modelVersion": "1.0.0",
+    "quantityId": "current",
+    "unit": "A",
+    "simulationTime": 0,
+    "simulationTimeUnit": "s",
+    "observedAt": "2026-11-02T08:00:00Z",
+    "source": {
+      "type": "model",
+      "id": "execution_fixture"
+    },
+    "qualityStatus": "valid",
+    "stateVersion": 3,
+    "schemaVersion": "1.0",
+    "createdAt": "2026-11-02T08:00:00Z"
+  },
+  "data": {
+    "value": 0.04
+  }
+}

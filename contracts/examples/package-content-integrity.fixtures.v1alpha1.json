@@ -1,0 +1,157 @@
+{
+  "fixture_version": "1alpha1",
+  "source_manifest": {
+    "package_id": "org.example.content-check",
+    "package_version": "1.0.0",
+    "size_bytes": 169,
+    "digest": "sha256:dc35699aa942aa18bdacf67b7e6f8e26266d1c830aa301f1af735580c8aba258",
+    "bytes_base64": "eyJhcGlWZXJzaW9uIjoic3RlbWxhYi5leGFtcGxlL3YxYWxwaGExIiwia2luZCI6IkV4cGVyaW1lbnRQYWNrYWdlIiwibWV0YWRhdGEiOnsiaWQiOiJvcmcuZXhhbXBsZS5jb250ZW50LWNoZWNrIiwidmVyc2lvbiI6IjEuMC4wIn0sInNwZWMiOnsidGl0bGUiOiJJbnRlZ3JpdHkgZml4dHVyZSJ9fQ=="
+  },
+  "resource_blobs": [
+    {
+      "resource_type": "model",
+      "resource_id": "org.example.dc-model",
+      "version": "1.0.0",
+      "canonical_path": "models/dc-model.json",
+      "size_bytes": 27,
+      "digest": "sha256:633aa1bc510b0454081c041ca838a8c84fcd295194813e9f942057a449354f62",
+      "bytes_base64": "eyJtb2RlbCI6ImRjIiwicmV2aXNpb24iOjF9"
+    },
+    {
+      "resource_type": "asset",
+      "resource_id": "org.example.diagram",
+      "version": "1.0.0",
+      "canonical_path": "assets/diagram.svg",
+      "size_bytes": 68,
+      "digest": "sha256:445c7f14b5f281f4b7fdfce66e6cea4f3d76d3027cdee08e5f829d878083f42c",
+      "bytes_base64": "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0aXRsZT5maXh0dXJlPC90aXRsZT48L3N2Zz4="
+    }
+  ],
+  "catalog_snapshot": {
+    "catalog_version": "1alpha2",
+    "snapshot_id": "catalog-snapshot-2026-11-02-001",
+    "policy": {
+      "external_host_allowlist": [],
+      "allow_restricted_references": false
+    },
+    "resources": [
+      {
+        "identity": {
+          "resource_type": "model",
+          "resource_id": "org.example.dc-model",
+          "version": "1.0.0",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "storage": "embedded",
+        "uri": "models/dc-model.json",
+        "media_type": "application/json",
+        "size_bytes": 2048,
+        "license_id": "internal",
+        "dependencies": [
+          {
+            "identity": {
+              "resource_type": "expression",
+              "resource_id": "org.example.ohms-law",
+              "version": "1.0.0",
+              "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "relation": "requires"
+          }
+        ],
+        "path": "models/dc-model.json"
+      },
+      {
+        "identity": {
+          "resource_type": "scene",
+          "resource_id": "org.example.dc-scene",
+          "version": "1.0.0",
+          "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "storage": "embedded",
+        "uri": "scenes/dc-scene.json",
+        "media_type": "application/json",
+        "size_bytes": 1024,
+        "license_id": "internal",
+        "dependencies": [],
+        "path": "scenes/dc-scene.json"
+      },
+      {
+        "identity": {
+          "resource_type": "instrument",
+          "resource_id": "org.example.voltmeter",
+          "version": "1.0.0",
+          "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "storage": "embedded",
+        "uri": "instruments/voltmeter.json",
+        "media_type": "application/json",
+        "size_bytes": 512,
+        "license_id": "internal",
+        "dependencies": [],
+        "path": "instruments/voltmeter.json"
+      },
+      {
+        "identity": {
+          "resource_type": "workflow",
+          "resource_id": "org.example.dc-workflow",
+          "version": "1.0.0",
+          "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "storage": "embedded",
+        "uri": "workflows/dc-workflow.json",
+        "media_type": "application/json",
+        "size_bytes": 768,
+        "license_id": "internal",
+        "dependencies": [],
+        "path": "workflows/dc-workflow.json"
+      },
+      {
+        "identity": {
+          "resource_type": "rubric",
+          "resource_id": "org.example.rubric",
+          "version": "1.0.0",
+          "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        },
+        "storage": "embedded",
+        "uri": "rubrics/science.json",
+        "media_type": "application/json",
+        "size_bytes": 384,
+        "license_id": "internal",
+        "dependencies": [],
+        "path": "rubrics/science.json"
+      },
+      {
+        "identity": {
+          "resource_type": "asset",
+          "resource_id": "org.example.diagram",
+          "version": "1.0.0",
+          "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "storage": "embedded",
+        "uri": "assets/diagram.svg",
+        "media_type": "image/svg+xml",
+        "size_bytes": 256,
+        "license_id": "CC-BY-4.0",
+        "dependencies": [],
+        "path": "assets/diagram.svg"
+      },
+      {
+        "identity": {
+          "resource_type": "expression",
+          "resource_id": "org.example.ohms-law",
+          "version": "1.0.0",
+          "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "storage": "embedded",
+        "uri": "expressions/ohms-law.json",
+        "media_type": "application/json",
+        "size_bytes": 256,
+        "license_id": "internal",
+        "dependencies": [],
+        "path": "expressions/ohms-law.json"
+      }
+    ],
+    "snapshot_digest": "sha256:5be5336626a5367c50b540fc7f5fe363770da676dac1181a5a7442aca7ed8674",
+    "snapshot_digest_profile": "rfc8785-jcs-candidate-v1"
+  }
+}

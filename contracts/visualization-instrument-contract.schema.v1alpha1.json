@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/visualization-instrument-contract/v1alpha1",
+  "title": "Visualization and Instrument Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "renderer",
+    "coordinate_system",
+    "scene_graph",
+    "timeline",
+    "instruments"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "1alpha1"
+    },
+    "renderer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "renderer_id",
+        "version",
+        "dimensions",
+        "capabilities"
+      ],
+      "properties": {
+        "renderer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dimensions": {
+          "enum": [
+            "2d",
+            "3d"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "scene-graph",
+              "camera",
+              "animation",
+              "interaction",
+              "instrument-overlay"
+            ]
+          }
+        }
+      }
+    },
+    "coordinate_system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handedness",
+        "up_axis",
+        "length_unit",
+        "origin"
+      ],
+      "properties": {
+        "handedness": {
+          "enum": [
+            "right-handed",
+            "left-handed"
+          ]
+        },
+        "up_axis": {
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ]
+        },
+        "length_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "scene_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root_node_id",
+        "nodes"
+      ],
+      "properties": {
+        "root_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node_id",
+              "node_type",
+              "parent_id",
+              "transform"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "node_type": {
+                "enum": [
+                  "root",
+                  "group",
+                  "mesh",
+                  "line",
+                  "label",
+                  "sprite",
+                  "instrument-anchor"
+                ]
+              },
+              "parent_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "transform": {
+                "type": "array",
+                "minItems": 16,
+                "maxItems": 16,
+                "items": {
+                  "type": "number"
+                }
+              },
+              "model_binding": {
+                "type": "string"
+              },
+              "interaction_binding": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_domain",
+        "duration",
+        "time_unit",
+        "tracks"
+      ],
+      "properties": {
+        "time_domain": {
+          "enum": [
+            "simulation",
+            "wall-clock"
+          ]
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0
+        },
+        "time_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tracks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "track_id",
+              "target_node_id",
+              "property",
+              "keyframes"
+            ],
+            "properties": {
+              "track_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target_node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "property": {
+                "enum": [
+                  "translation",
+                  "rotation",
+                  "scale",
+                  "visibility",
+                  "instrument-needle"
+                ]
+              },
+              "keyframes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "time",
+                    "value"
+                  ],
+                  "properties": {
+                    "time": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "value": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "instruments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "instrument_id",
+          "instrument_type",
+          "node_id",
+          "quantity_kind",
+          "unit_id",
+          "observation_source_type",
+          "sampling_interval",
+          "measurement_range",
+          "observation_binding"
+        ],
+        "properties": {
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrument_type": {
+            "enum": [
+              "voltmeter",
+              "ammeter",
+              "oscilloscope",
+              "thermometer",
+              "generic-meter"
+            ]
+          },
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity_kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observation_source_type": {
+            "const": "instrument"
+          },
+          "sampling_interval": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "measurement_range": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "number"
+            }
+          },
+          "observation_binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "session_id",
+              "quantity_id",
+              "unit_id"
+            ],
+            "properties": {
+              "session_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "quantity_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

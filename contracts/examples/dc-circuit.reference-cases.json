@@ -1,0 +1,81 @@
+{
+  "schema_version": "0.1-draft",
+  "model_id": "org.example.dc-series-model",
+  "assumptions": [
+    "ideal_constant_voltage_source",
+    "ideal_positive_resistors",
+    "ideal_wires",
+    "steady_state",
+    "no_instrument_loading"
+  ],
+  "cases": [
+    {
+      "case_id": "DC-001",
+      "source_voltage": { "value": 12, "unit": "V" },
+      "resistors": [
+        { "id": "R1", "value": 100, "unit": "ohm" },
+        { "id": "R2", "value": 200, "unit": "ohm" }
+      ],
+      "expected": {
+        "equivalent_resistance": { "value": 300, "unit": "ohm" },
+        "current": { "value": 0.04, "unit": "A" },
+        "voltage_drops": [
+          { "resistor_id": "R1", "value": 4, "unit": "V" },
+          { "resistor_id": "R2", "value": 8, "unit": "V" }
+        ],
+        "source_power": { "value": 0.48, "unit": "W" }
+      }
+    },
+    {
+      "case_id": "DC-002",
+      "source_voltage": { "value": 9, "unit": "V" },
+      "resistors": [
+        { "id": "R1", "value": 1000, "unit": "ohm" }
+      ],
+      "expected": {
+        "equivalent_resistance": { "value": 1000, "unit": "ohm" },
+        "current": { "value": 0.009, "unit": "A" },
+        "voltage_drops": [
+          { "resistor_id": "R1", "value": 9, "unit": "V" }
+        ],
+        "source_power": { "value": 0.081, "unit": "W" }
+      }
+    },
+    {
+      "case_id": "DC-003",
+      "source_voltage": { "value": 5, "unit": "V" },
+      "resistors": [
+        { "id": "R1", "value": 100, "unit": "ohm" },
+        { "id": "R2", "value": 100, "unit": "ohm" },
+        { "id": "R3", "value": 300, "unit": "ohm" }
+      ],
+      "expected": {
+        "equivalent_resistance": { "value": 500, "unit": "ohm" },
+        "current": { "value": 0.01, "unit": "A" },
+        "voltage_drops": [
+          { "resistor_id": "R1", "value": 1, "unit": "V" },
+          { "resistor_id": "R2", "value": 1, "unit": "V" },
+          { "resistor_id": "R3", "value": 3, "unit": "V" }
+        ],
+        "source_power": { "value": 0.05, "unit": "W" }
+      }
+    },
+    {
+      "case_id": "DC-004",
+      "source_voltage": { "value": 0, "unit": "V" },
+      "resistors": [
+        { "id": "R1", "value": 100, "unit": "ohm" },
+        { "id": "R2", "value": 200, "unit": "ohm" }
+      ],
+      "expected": {
+        "equivalent_resistance": { "value": 300, "unit": "ohm" },
+        "current": { "value": 0, "unit": "A" },
+        "voltage_drops": [
+          { "resistor_id": "R1", "value": 0, "unit": "V" },
+          { "resistor_id": "R2", "value": 0, "unit": "V" }
+        ],
+        "source_power": { "value": 0, "unit": "W" }
+      }
+    }
+  ]
+}

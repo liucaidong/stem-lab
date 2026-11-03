@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/package-resource-graph/v1alpha1",
+  "title": "Package Resource Graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "graph_version",
+    "root_resource_id",
+    "policy",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "graph_version": {
+      "const": "1alpha1"
+    },
+    "root_resource_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_host_allowlist",
+        "allow_restricted_references"
+      ],
+      "properties": {
+        "external_host_allowlist": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allow_restricted_references": {
+          "type": "boolean"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 50000,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_id",
+        "resource_type",
+        "version",
+        "digest",
+        "storage"
+      ],
+      "properties": {
+        "resource_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "resource_type": {
+          "enum": [
+            "package",
+            "model",
+            "scene",
+            "instrument",
+            "workflow",
+            "rubric",
+            "asset",
+            "dataset",
+            "solver-profile",
+            "other",
+            "expression"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "storage": {
+          "enum": [
+            "embedded",
+            "external",
+            "restricted"
+          ]
+        },
+        "uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "access_policy_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "relation"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation": {
+          "enum": [
+            "requires",
+            "embeds",
+            "uses",
+            "references"
+          ]
+        }
+      }
+    }
+  }
+}

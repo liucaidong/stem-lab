@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/dlq-replay-plan/v1alpha1",
+  "title": "DLQ Replay Plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tenant_id",
+    "source_job_id",
+    "new_job_id",
+    "request_id",
+    "actor_id",
+    "reason",
+    "replay_number",
+    "authorization_policy_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1alpha1"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "source_job_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "new_job_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "actor_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 512
+    },
+    "replay_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authorization_policy_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  }
+}

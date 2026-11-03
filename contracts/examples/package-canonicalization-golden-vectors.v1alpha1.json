@@ -1,0 +1,36 @@
+{
+  "vector_set_version": "1alpha1",
+  "vectors": [
+    {
+      "profile": "rfc8785-jcs",
+      "id": "utf16-property-order-and-unicode",
+      "input": {"z":"last","é":"accent","𝄞":"supplementary","a":"first","line":"a\nb","quote":"\""},
+      "canonical_json": "{\"a\":\"first\",\"line\":\"a\\nb\",\"quote\":\"\\\"\",\"z\":\"last\",\"é\":\"accent\",\"𝄞\":\"supplementary\"}",
+      "canonical_hex": "7b2261223a226669727374222c226c696e65223a22615c6e62222c2271756f7465223a225c22222c227a223a226c617374222c22c3a9223a22616363656e74222c22f09d849e223a22737570706c656d656e74617279227d",
+      "digest": "sha256:2873985c52ba6d6b0c69529f7e908681037f09f82efcc8e173f399223009f547"
+    },
+    {
+      "profile": "rfc8785-jcs",
+      "id": "ecmascript-number-serialization",
+      "input": {"values":[333333333.33333329,1e30,4.5,0.002,1e-27,-0,1e-6,1e-7,1e21,1e20]},
+      "canonical_json": "{\"values\":[333333333.3333333,1e+30,4.5,0.002,1e-27,0,0.000001,1e-7,1e+21,100000000000000000000]}",
+      "canonical_hex": "7b2276616c756573223a5b3333333333333333332e333333333333332c31652b33302c342e352c302e3030322c31652d32372c302c302e3030303030312c31652d372c31652b32312c3130303030303030303030303030303030303030305d7d",
+      "digest": "sha256:ce5fd23f59e57814981952ac9522beb58758089daf145270720d3dd3ba93684b"
+    },
+    {
+      "profile": "rfc8785-jcs",
+      "id": "nested-array-and-null-semantics",
+      "input": {"z":null,"a":[true,false,0,1.25,{"β":"μ","A":"ascii"}]},
+      "canonical_json": "{\"a\":[true,false,0,1.25,{\"A\":\"ascii\",\"β\":\"μ\"}],\"z\":null}",
+      "canonical_hex": "7b2261223a5b747275652c66616c73652c302c312e32352c7b2241223a226173636969222c22ceb2223a22cebc227d5d2c227a223a6e756c6c7d",
+      "digest": "sha256:298caa773116e0978349d198a2d9e4de85139a41853b3cd2f7cd1b5e7cf5822f"
+    },
+    {
+      "profile": "cbor-rfc8949-core",
+      "id": "core-deterministic-map-array-integers",
+      "input": {"z":null,"a":[true,false,0,1,24,256,-1,-25,{"β":"μ","A":"ascii"}]},
+      "canonical_hex": "a2616189f5f400011818190100203818a2614165617363696962ceb262cebc617af6",
+      "digest": "sha256:977cdec76ea0951037c6f7ae8f8f841984a25395d4836b916cf038282cde78f7"
+    }
+  ]
+}

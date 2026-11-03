@@ -1,0 +1,458 @@
+openapi: 3.1.0
+info:
+  title: STEM Lab API
+  version: 0.3.0-draft
+  description: >
+    Draft contract only. This document is not a production API declaration.
+    Tenant and actor identity are derived from the authenticated server context.
+servers:
+  - url: https://api.example.invalid/v1
+    description: Placeholder; replace before deployment.
+security:
+  - bearerAuth: []
+tags:
+  - name: Sessions
+    description: Authoritative experiment runtime session resources.
+  - name: Commands
+    description: State-changing operations processed by the Runtime Command Handler.
+  - name: Observations
+    description: Immutable, provenance-bearing scientific observations.
+paths:
+  /sessions:
+    post:
+      tags: [Sessions]
+      operationId: createSession
+      summary: Create an experiment runtime session
+      description: >
+        Creates a session from an authorized assignment and pins the resolved
+        immutable package/model versions. The client cannot supply tenant_id or actor_id.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          description: Stable key reused only for retries of the same request body.
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '201':
+          description: Session created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionReadModel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{session_id}:
+    get:
+      tags: [Sessions]
+      operationId: getSession
+      summary: Read the authoritative session state
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Authoritative session read model.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionReadModel'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{session_id}/commands:
+    post:
+      tags: [Commands]
+      operationId: submitRuntimeCommand
+      summary: Submit a state-changing Runtime command
+      description: >
+        Commands are processed by the authoritative Command Handler.
+        The If-Match value is the expected session state version.
+        Repeating the same idempotency key and request hash returns the original receipt.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - in: header
+          name: Idempotency-Key
+          required: true
+          description: Reuse with the identical request body for safe retries.
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 200
+        - in: header
+          name: If-Match
+          required: true
+          description: Expected session state version, represented as an opaque ETag.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeCommandRequest'
+      responses:
+        '200':
+          description: Command receipt; may represent an idempotent replay.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandReceipt'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: State version conflict or idempotency key reused with a different request hash.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /sessions/{session_id}/observations:
+    get:
+      tags: [Observations]
+      operationId: listSessionObservations
+      summary: List observations for a session
+      description: >
+        Returns a stable cursor-paginated page. Large time-series payloads may be
+        represented by a dataset reference rather than embedded values.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - in: query
+          name: cursor
+          required: false
+          description: Opaque server-issued continuation cursor. Snapshot binding, integrity protection, and expiry semantics are specified in R03.28 and remain open ADR decisions.
+          schema:
+            type: string
+            minLength: 1
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Observation page with an optional continuation cursor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObservationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    SessionId:
+      in: path
+      name: session_id
+      required: true
+      description: Opaque Runtime session identifier.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
+
+  schemas:
+    CreateSessionRequest:
+      type: object
+      additionalProperties: false
+      required: [assignment_id]
+      properties:
+        assignment_id:
+          type: string
+          minLength: 1
+        experiment_instance_id:
+          type: [string, 'null']
+          minLength: 1
+        client_context:
+          type: object
+          additionalProperties: true
+          description: Non-sensitive client context only; never identity or tenant claims.
+
+    SessionReadModel:
+      type: object
+      additionalProperties: false
+      required: [session_id, status, state_version, package_digest, model_version_id, created_at, correlation_id]
+      properties:
+        session_id:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          description: Runtime session state; enum is governed by the versioned state machine contract.
+        state_version:
+          type: integer
+          minimum: 0
+        package_digest:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        model_version_id:
+          type: string
+          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+        correlation_id:
+          type: string
+          minLength: 1
+
+    RuntimeCommandRequest:
+      type: object
+      additionalProperties: false
+      required: [command_type, schema_version, payload]
+      properties:
+        command_type:
+          type: string
+          enum: [Initialize, Start, Pause, Resume, Step, Reset, Cancel, SetParameter]
+        schema_version:
+          type: string
+          minLength: 1
+        payload:
+          type: object
+          description: Command-specific payload validated against the Package allow-list and command schema.
+
+    CommandReceipt:
+      type: object
+      additionalProperties: false
+      required: [command_receipt_id, command_id, outcome, session_status, state_version, accepted_at, correlation_id, replayed]
+      properties:
+        command_receipt_id:
+          type: string
+          minLength: 1
+        command_id:
+          type: string
+          minLength: 1
+        outcome:
+          type: string
+          enum: [accepted, rejected]
+        session_status:
+          type: string
+        state_version:
+          type: integer
+          minimum: 0
+        accepted_at:
+          type: string
+          format: date-time
+        correlation_id:
+          type: string
+          minLength: 1
+        replayed:
+          type: boolean
+
+    ObservationPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Observation'
+        next_cursor:
+          type: [string, 'null']
+
+    Observation:
+      type: object
+      additionalProperties: false
+      oneOf:
+        - required: [value]
+        - required: [value_ref]
+      required: [observation_id, session_id, quantity_id, unit, simulation_time, simulation_time_unit, observed_at, source_type, schema_version]
+      properties:
+        observation_id:
+          type: string
+          minLength: 1
+        session_id:
+          type: string
+          minLength: 1
+        execution_id:
+          type: [string, 'null']
+        quantity_id:
+          type: string
+          minLength: 1
+        value:
+          type: number
+        value_ref:
+          type: object
+          additionalProperties: false
+          required: [uri, digest, size_bytes]
+          properties:
+            uri:
+              type: string
+              format: uri
+            digest:
+              type: string
+              pattern: '^sha256:[a-f0-9]{64}$'
+            size_bytes:
+              type: integer
+              minimum: 0
+        unit:
+          type: string
+          minLength: 1
+        simulation_time:
+          type: number
+          minimum: 0
+        simulation_time_unit:
+          type: string
+          minLength: 1
+        observed_at:
+          type: string
+          format: date-time
+        source_type:
+          type: string
+          enum: [instrument, model, derived, imported]
+        source_id:
+          type: [string, 'null']
+        model_version_id:
+          type: [string, 'null']
+        quality_status:
+          type: string
+        schema_version:
+          type: string
+          minLength: 1
+
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message, correlation_id, retryable]
+      properties:
+        code:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+        correlation_id:
+          type: string
+          minLength: 1
+        retryable:
+          type: boolean
+        field_errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, code, message]
+            properties:
+              field: { type: string }
+              code: { type: string }
+              message: { type: string }
+        current_version:
+          type: integer
+          minimum: 0
+
+  responses:
+    BadRequest:
+      description: Invalid request syntax or request schema.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Unauthorized:
+      description: Authentication is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Forbidden:
+      description: Authenticated principal is not authorized for the resource or operation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFound:
+      description: Resource does not exist or is not visible to the caller.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Conflict:
+      description: Idempotency or domain state conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    UnprocessableEntity:
+      description: Request is structurally valid but violates a domain or scientific constraint.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    TooManyRequests:
+      description: Rate limit or tenant quota exceeded.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 0
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    InternalServerError:
+      description: Unexpected server failure; response must not expose internal implementation details.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'

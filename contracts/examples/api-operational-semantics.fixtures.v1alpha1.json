@@ -1,0 +1,344 @@
+{
+  "fixture_version": "1alpha1",
+  "command_registry": {
+    "registry_version": "1alpha1",
+    "commands": [
+      {
+        "command_type": "Initialize",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/initialize",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "not-applicable",
+        "side_effect_class": "session-state"
+      },
+      {
+        "command_type": "Start",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/start",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "cooperative",
+        "side_effect_class": "execution-control"
+      },
+      {
+        "command_type": "Pause",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/pause",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "not-applicable",
+        "side_effect_class": "session-state"
+      },
+      {
+        "command_type": "Resume",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/resume",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "not-applicable",
+        "side_effect_class": "session-state"
+      },
+      {
+        "command_type": "Step",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/step",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "cooperative",
+        "side_effect_class": "execution-control"
+      },
+      {
+        "command_type": "Reset",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/reset",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "not-applicable",
+        "side_effect_class": "session-state"
+      },
+      {
+        "command_type": "Cancel",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/cancel",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "not-applicable",
+        "side_effect_class": "session-state"
+      },
+      {
+        "command_type": "SetParameter",
+        "schema_version": "1.0",
+        "payload_schema_ref": "#/$defs/setParameter",
+        "allowed_actor_types": [
+          "teacher",
+          "learner"
+        ],
+        "idempotency_required": true,
+        "expected_state_version_required": true,
+        "timeout_seconds": 30,
+        "cancellation_policy": "not-applicable",
+        "side_effect_class": "session-state"
+      }
+    ]
+  },
+  "valid_payloads": {
+    "Initialize": {},
+    "Start": {},
+    "Pause": {},
+    "Resume": {},
+    "Step": {
+      "steps": 3
+    },
+    "Reset": {},
+    "Cancel": {},
+    "SetParameter": {
+      "parameter_id": "resistance-r1",
+      "value": 100,
+      "unit_id": "ohm"
+    }
+  },
+  "error_catalog": {
+    "catalog_version": "1alpha1",
+    "errors": [
+      {
+        "code": "BAD_REQUEST",
+        "http_status": 400,
+        "retryable": false,
+        "retry_after_allowed": false,
+        "client_action": "do-not-retry"
+      },
+      {
+        "code": "UNAUTHENTICATED",
+        "http_status": 401,
+        "retryable": false,
+        "retry_after_allowed": false,
+        "client_action": "do-not-retry"
+      },
+      {
+        "code": "FORBIDDEN",
+        "http_status": 403,
+        "retryable": false,
+        "retry_after_allowed": false,
+        "client_action": "do-not-retry"
+      },
+      {
+        "code": "NOT_FOUND",
+        "http_status": 404,
+        "retryable": false,
+        "retry_after_allowed": false,
+        "client_action": "do-not-retry"
+      },
+      {
+        "code": "STATE_VERSION_CONFLICT",
+        "http_status": 409,
+        "retryable": false,
+        "retry_after_allowed": false,
+        "client_action": "do-not-retry"
+      },
+      {
+        "code": "IDEMPOTENCY_KEY_CONFLICT",
+        "http_status": 409,
+        "retryable": false,
+        "retry_after_allowed": false,
+        "client_action": "do-not-retry"
+      },
+      {
+        "code": "VALIDATION_FAILED",
+        "http_status": 422,
+        "retryable": false,
+        "retry_after_allowed": false,
+        "client_action": "do-not-retry"
+      },
+      {
+        "code": "RATE_LIMITED",
+        "http_status": 429,
+        "retryable": true,
+        "retry_after_allowed": true,
+        "client_action": "retry-with-backoff"
+      },
+      {
+        "code": "INTERNAL_ERROR",
+        "http_status": 500,
+        "retryable": true,
+        "retry_after_allowed": false,
+        "client_action": "retry-with-backoff"
+      },
+      {
+        "code": "SERVICE_UNAVAILABLE",
+        "http_status": 503,
+        "retryable": true,
+        "retry_after_allowed": true,
+        "client_action": "retry-with-backoff"
+      }
+    ]
+  },
+  "security_cases": {
+    "jwt": {
+      "now": 1793600000,
+      "issuer": "https://issuer.example.invalid",
+      "audience": "stem-lab-api",
+      "valid": {
+        "iss": "https://issuer.example.invalid",
+        "aud": [
+          "stem-lab-api"
+        ],
+        "sub": "user-1",
+        "tenant_id": "tenant-a",
+        "iat": 1793599900,
+        "nbf": 1793599900,
+        "exp": 1793600300
+      },
+      "invalid": [
+        {
+          "case_id": "wrong-issuer",
+          "error": "JWT_ISSUER_INVALID",
+          "claims": {
+            "iss": "https://evil.invalid",
+            "aud": "stem-lab-api",
+            "sub": "u",
+            "iat": 1793599900,
+            "nbf": 1793599900,
+            "exp": 1793600300
+          }
+        },
+        {
+          "case_id": "wrong-audience",
+          "error": "JWT_AUDIENCE_INVALID",
+          "claims": {
+            "iss": "https://issuer.example.invalid",
+            "aud": "other",
+            "sub": "u",
+            "iat": 1793599900,
+            "nbf": 1793599900,
+            "exp": 1793600300
+          }
+        },
+        {
+          "case_id": "expired",
+          "error": "JWT_EXPIRED",
+          "claims": {
+            "iss": "https://issuer.example.invalid",
+            "aud": "stem-lab-api",
+            "sub": "u",
+            "iat": 1793599000,
+            "nbf": 1793599000,
+            "exp": 1793599999
+          }
+        },
+        {
+          "case_id": "not-yet-valid",
+          "error": "JWT_NOT_YET_VALID",
+          "claims": {
+            "iss": "https://issuer.example.invalid",
+            "aud": "stem-lab-api",
+            "sub": "u",
+            "iat": 1793600100,
+            "nbf": 1793600100,
+            "exp": 1793600300
+          }
+        },
+        {
+          "case_id": "missing-subject",
+          "error": "JWT_SUBJECT_REQUIRED",
+          "claims": {
+            "iss": "https://issuer.example.invalid",
+            "aud": "stem-lab-api",
+            "iat": 1793599900,
+            "nbf": 1793599900,
+            "exp": 1793600300
+          }
+        }
+      ]
+    },
+    "authorization": {
+      "valid": {
+        "tenant_id": "tenant-a",
+        "resource_tenant_id": "tenant-a",
+        "actor_roles": [
+          "teacher"
+        ],
+        "required_role": "teacher",
+        "action": "assignment.update"
+      },
+      "invalid": [
+        {
+          "case_id": "cross-tenant",
+          "error": "RESOURCE_TENANT_MISMATCH",
+          "tenant_id": "tenant-a",
+          "resource_tenant_id": "tenant-b",
+          "actor_roles": [
+            "teacher"
+          ],
+          "required_role": "teacher"
+        },
+        {
+          "case_id": "missing-role",
+          "error": "RESOURCE_ROLE_FORBIDDEN",
+          "tenant_id": "tenant-a",
+          "resource_tenant_id": "tenant-a",
+          "actor_roles": [
+            "learner"
+          ],
+          "required_role": "teacher"
+        }
+      ]
+    },
+    "idempotency": {
+      "same_key_same_hash": "replay-original-receipt",
+      "same_key_different_hash": "409-conflict"
+    },
+    "cursor": {
+      "secret": "test-only-secret-not-for-production",
+      "valid_payload": {
+        "v": 1,
+        "tenant_id": "tenant-a",
+        "resource": "observations",
+        "filter_hash": "f123",
+        "sort": [
+          "2026-11-02T00:00:00Z",
+          "obs-9"
+        ],
+        "watermark": 120,
+        "iat": 1793599900,
+        "exp": 1793600300
+      },
+      "now": 1793600000
+    }
+  }
+}

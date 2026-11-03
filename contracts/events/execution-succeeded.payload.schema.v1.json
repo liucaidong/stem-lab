@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/events/execution-succeeded/v1",
+  "title": "ExecutionSucceededPayload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "execution_id",
+    "output_digest",
+    "solver_id",
+    "solver_version",
+    "resulting_state_version",
+    "simulation_time",
+    "simulation_time_unit",
+    "observation_count"
+  ],
+  "properties": {
+    "execution_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "output_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "solver_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "solver_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resulting_state_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "simulation_time": {
+      "type": "number",
+      "minimum": 0
+    },
+    "simulation_time_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observation_count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.invalid/stem-lab/runtime-command-payloads/v1alpha1",
+  "title": "Runtime Command Payload Definitions",
+  "$defs": {
+    "initialize": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "start": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "pause": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "resume": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "steps"
+      ],
+      "properties": {
+        "steps": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    },
+    "reset": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "cancel": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "setParameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parameter_id",
+        "value",
+        "unit_id"
+      ],
+      "properties": {
+        "parameter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

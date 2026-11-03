@@ -1,0 +1,128 @@
+{
+  "fixture_version": "1alpha1",
+  "registry": {
+    "schema_version": "1.0",
+    "events": [
+      {
+        "event_type": "SessionStarted",
+        "schema_version": "1.0",
+        "payload_schema": "session-started.payload.schema.v1.json",
+        "fixture": "contracts/examples/runtime-event.valid.json",
+        "lifecycle": "active",
+        "compatibility": {
+          "change_class": "initial",
+          "compatible_with": []
+        },
+        "producer_ids": [
+          "runtime-command-handler"
+        ],
+        "consumer_ids": [
+          "runtime-worker",
+          "audit-projection"
+        ],
+        "ordering_scope": "aggregate",
+        "replay_policy": "allowed",
+        "retention_days": 365,
+        "data_classification": "confidential",
+        "poison_policy": {
+          "max_attempts": 8,
+          "retry_strategy": "exponential",
+          "dlq_required": true
+        }
+      },
+      {
+        "event_type": "ExecutionSucceeded",
+        "schema_version": "1.0",
+        "payload_schema": "execution-succeeded.payload.schema.v1.json",
+        "fixture": "contracts/examples/runtime-event.execution-succeeded.valid.json",
+        "lifecycle": "active",
+        "compatibility": {
+          "change_class": "initial",
+          "compatible_with": []
+        },
+        "producer_ids": [
+          "runtime-worker"
+        ],
+        "consumer_ids": [
+          "session-projection",
+          "observation-projector",
+          "audit-projection"
+        ],
+        "ordering_scope": "aggregate",
+        "replay_policy": "allowed",
+        "retention_days": 365,
+        "data_classification": "internal",
+        "poison_policy": {
+          "max_attempts": 8,
+          "retry_strategy": "exponential",
+          "dlq_required": true
+        }
+      },
+      {
+        "event_type": "ObservationRecorded",
+        "schema_version": "1.0",
+        "payload_schema": "observation-recorded.payload.schema.v1.json",
+        "fixture": "contracts/examples/runtime-event.observation-recorded.valid.json",
+        "lifecycle": "active",
+        "compatibility": {
+          "change_class": "initial",
+          "compatible_with": []
+        },
+        "producer_ids": [
+          "runtime-command-handler"
+        ],
+        "consumer_ids": [
+          "observation-projector",
+          "analytics-exporter"
+        ],
+        "ordering_scope": "aggregate",
+        "replay_policy": "requires-approval",
+        "retention_days": 3650,
+        "data_classification": "confidential",
+        "poison_policy": {
+          "max_attempts": 8,
+          "retry_strategy": "exponential",
+          "dlq_required": true
+        }
+      }
+    ],
+    "registry_version": "1alpha1"
+  },
+  "invalid_cases": [
+    {
+      "case_id": "duplicate-event-version",
+      "expected_error": "DUPLICATE_EVENT_VERSION",
+      "mutation": "duplicate"
+    },
+    {
+      "case_id": "missing-producer",
+      "expected_error": "PRODUCER_REQUIRED",
+      "mutation": "producer"
+    },
+    {
+      "case_id": "invalid-retention",
+      "expected_error": "INVALID_RETENTION",
+      "mutation": "retention"
+    },
+    {
+      "case_id": "invalid-additive-major",
+      "expected_error": "INCOMPATIBLE_VERSION_DECLARATION",
+      "mutation": "additive-major"
+    },
+    {
+      "case_id": "breaking-without-major-bump",
+      "expected_error": "INCOMPATIBLE_VERSION_DECLARATION",
+      "mutation": "breaking-major"
+    },
+    {
+      "case_id": "active-event-deprecated-date",
+      "expected_error": "INVALID_LIFECYCLE_METADATA",
+      "mutation": "active-deprecated"
+    },
+    {
+      "case_id": "unknown-replay-policy",
+      "expected_error": "INVALID_REPLAY_POLICY",
+      "mutation": "replay"
+    }
+  ]
+}
