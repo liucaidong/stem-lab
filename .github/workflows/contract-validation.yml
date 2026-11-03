@@ -48,6 +48,7 @@ jobs:
         run: |
           python scripts/validate_ci_workflow_policy.py
           python scripts/test_ci_admission.py
+          python scripts/test_ci_result.py
       - name: Enforce repository-wide 600-second CI admission gate
         id: admission
         env:
@@ -257,3 +258,22 @@ jobs:
       - name: Remove PostgreSQL verifier container
         if: always()
         run: docker rm -f stemlab-pgsodium || true
+
+  ci-result:
+    name: CI result
+    if: always()
+    needs:
+      - ci-admission
+      - validate-contracts
+      - tenant-ed25519-verifier
+    runs-on: ubuntu-latest
+    env:
+      CI_ADMISSION_RESULT: ${{ needs.ci-admission.result }}
+      CI_ADMITTED: ${{ needs.ci-admission.outputs.admitted }}
+      CI_VALIDATE_CONTRACTS_RESULT: ${{ needs.validate-contracts.result }}
+      CI_TENANT_ED25519_RESULT: ${{ needs.tenant-ed25519-verifier.result }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Enforce truthful final CI status
+        run: python scripts/ci_result.py
