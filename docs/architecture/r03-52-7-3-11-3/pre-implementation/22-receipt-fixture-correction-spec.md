@@ -48,7 +48,7 @@ Retry/re-issuance:
 
 Submit the exact original signed payload and nonce-A again in a new transaction after nonce-A was committed.
 
-Expected: reject as ASSERTION_REPLAYED (or the explicitly approved read-only replay response), never execute a second mutation. This is not the canonical client retry path.
+Expected at the integrated Handler/Nonce boundary: reject as ASSERTION_REPLAYED (or the explicitly approved read-only replay response), never execute a second mutation. This is not the canonical client retry path. The Receipt helper alone does not inspect Nonce and may return the existing Receipt; that helper-only result must not be mistaken for authorization to execute or return the operation at the Handler boundary.
 
 ### V3 — Same idempotency key, different digest
 
