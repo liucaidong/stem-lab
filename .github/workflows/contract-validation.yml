@@ -52,6 +52,7 @@ jobs:
           python scripts/test_ci_admission.py
           python scripts/test_ci_result.py
           python scripts/test_ci_workflow_policy.py
+          python scripts/test_ci_reconcile.py
       - name: Admit CI validation run
         id: admission
         run: python scripts/ci_admission.py

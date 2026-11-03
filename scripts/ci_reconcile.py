@@ -53,8 +53,8 @@ class GitHubReadOnly:
                 payload = json.loads(response.read().decode("utf-8"))
         except (HTTPError, URLError, TimeoutError, ValueError) as exc:
             raise ReconcileError(f"GitHub API read failed for {path}: {type(exc).__name__}") from None
-        if not isinstance(payload, dict):
-            raise ReconcileError(f"GitHub API returned a non-object response for {path}")
+        if not isinstance(payload, (dict, list)):
+            raise ReconcileError(f"GitHub API returned an unsupported response for {path}")
         return payload
 
     def list_all(self, path: str, key: str, query: dict[str, Any] | None = None) -> list[dict[str, Any]]:
@@ -63,7 +63,12 @@ class GitHubReadOnly:
             params = dict(query or {})
             params.update({"per_page": 100, "page": page})
             payload = self.get(path, params)
-            items = payload.get(key)
+            if isinstance(payload, list) and key == "items":
+                items = payload
+            elif isinstance(payload, dict):
+                items = payload.get(key)
+            else:
+                items = None
             if not isinstance(items, list):
                 raise ReconcileError(f"GitHub API response omitted {key!r} for {path}")
             results.extend(item for item in items if isinstance(item, dict))

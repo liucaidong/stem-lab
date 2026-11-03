@@ -322,6 +322,8 @@ def main() -> int:
         fail("ci-admission must execute the native admission output helper")
     if "python scripts/test_ci_result.py" not in gate:
         fail("ci-admission must run scripts/test_ci_result.py")
+    if "python scripts/test_ci_reconcile.py" not in gate:
+        fail("ci-admission must run scripts/test_ci_reconcile.py")
     if "stem-lab-ci-admission" in content or ".ci-admission/marker.json" in content:
         fail("artifact-based admission markers are forbidden")
 
