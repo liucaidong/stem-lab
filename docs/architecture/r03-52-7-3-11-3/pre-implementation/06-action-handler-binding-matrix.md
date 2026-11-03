@@ -17,7 +17,7 @@ For every action:
 7. Every mutation is fenced by the verified owner/epoch/revision where applicable.
 8. Receipt, Nonce and business writes follow the accepted single-transaction contract.
 9. Error mapping is deterministic; no broad catch-and-return behavior may hide partial writes.
-10. Same signed request replay returns the original outcome without repeating side effects.
+10. A client retry uses the same immutable business Request Envelope/digest under a fresh assertion nonce; Receipt may return the stored outcome without repeating side effects. Exact old signed assertion replay after committed nonce use is rejected as `ASSERTION_REPLAYED`.
 
 ## 2. Candidate action contract matrix
 
@@ -67,8 +67,8 @@ The v2alpha2 digest helper also maps `worker.dlq.replay` to `dlq_item`. This act
 | Session revision conflict | `SESSION_REVISION_CONFLICT` | Reload/recompute; new signed operation |
 | Same idempotency key, different digest | `IDEMPOTENCY_CONFLICT` | Do not retry unchanged |
 | Operation ID collision | `OPERATION_ID_CONFLICT` | New operation identity only for a genuinely new operation |
-| Nonce already consumed | `ASSERTION_REPLAYED` | Exact same request may only resolve through Receipt; no fresh mutation |
-| Deadlock / serialization failure | Database retryable transaction class | Roll back and retry whole transaction with same immutable operation |
+| Nonce already consumed | `ASSERTION_REPLAYED` | Exact old assertion is rejected; a client retry must use a fresh nonce and may then resolve through Receipt without repeating business mutation |
+| Deadlock / serialization failure | Database retryable transaction class | After confirmed rollback, retry whole transaction with the same immutable business Request Envelope/digest but a fresh assertion nonce, iat/exp and signature |
 | Internal write-set failure | `UOW_ABORTED` | Roll back entire transaction; operator diagnostics |
 
 This table is a candidate mapping. It must be reconciled with the repository's existing error catalog and transport contract before acceptance.

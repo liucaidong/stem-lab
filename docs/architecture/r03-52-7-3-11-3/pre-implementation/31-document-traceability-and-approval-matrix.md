@@ -14,7 +14,7 @@
 - **BLOCKED:** downstream gate cannot pass.
 - **ACCEPTED:** only when a named authority explicitly approves the exact scope and evidence.
 
-No document in this PR grants business Handler implementation permission. G15 remains BLOCKED.
+No document in this PR grants business Handler implementation permission. G15 remains BLOCKED. All numbered audit artifacts are pre-implementation evidence/design only; none is an implementation approval.
 
 ## 2. Document traceability matrix
 
@@ -51,6 +51,9 @@ No document in this PR grants business Handler implementation permission. G15 re
 | 28-receipt-storage-and-reconciliation-gap.md | OPEN | G5/G6/G9 | Legacy receipts vs request_receipts_v2alpha2 source | Receipt reconcile contract | Protocol + Database + Security | Correct versioned Receipt lookup and cross-version idempotency proven | NO |
 | 29-receipt-helper-contract-security-gaps.md | OPEN | G5/G7/G9/G10 | PR #19 Receipt SQL | Least-privilege and UOW design | Database + Security | Helper identity/tenant/outcome/permissions are enforced | NO |
 | 30-legacy-postgresql-role-grant-matrix.md | SOURCE-VERIFIED LEGACY FIXTURE | G9 | PR #13 role/grant/RLS source | v2alpha2 role design | Security + Database | Legacy baseline preserved; v2alpha2 target least-privilege tests pass | NO |
+| 31-document-traceability-and-approval-matrix.md | GOVERNANCE REGISTER / OPEN | G0–G15 | This PR's complete audit inventory | All numbered documents and approval records | Architecture governance | Every artifact has traceable owner, evidence, dependencies and explicit non-authorization status | NO |
+| 32-test-matrix-detail.md | PROPOSED | G11 | Existing helper CI and action test gaps | Integrated fixture design | Test + Database | Unit/PG/concurrency/security/rollback matrices implemented and pass | NO |
+| 33-retry-policy-authority-and-delay-unit-audit.md | SOURCE-VERIFIED GAP / NOT ACCEPTED | G1/G4/G13 | R03.52.4 Retry Policy Registry, v2alpha2 action codec/SQL and legacy Store protocol | Trusted policy authority, policy version and delay-unit decision | Worker + Protocol + Security + Database | Trusted source, pinned policy version, bounds and exact conversion accepted and tested | NO |
 
 ## 3. Approval record requirements
 
@@ -74,3 +77,4 @@ G15 remains BLOCKED. This matrix makes document ownership and evidence traceabil
 ## Change history
 
 - 2026-11-03: Initial pre-implementation document traceability matrix.
+- 2026-11-03: Added governance/test/retry-policy audit traceability rows.

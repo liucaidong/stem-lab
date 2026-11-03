@@ -40,6 +40,9 @@ The repository currently has independently tested v2alpha2 primitives, not a bus
 | GAP-25 | SQL asset integrity | Digest SQL file has six function declarations but nine function terminators; test extractor ignores trailing orphan bodies | Clean SQL asset and parse/run complete file in disposable PostgreSQL | High | OPEN |
 | GAP-26 | Retry delay unit contract | Legacy Store uses retry_delay_seconds; v2alpha2 Fail digest uses retry_delay_micros | Canonical internal unit, checked conversion and policy bounds | High | OPEN |
 | GAP-27 | Receipt fixture reissue coverage | PR #19 helper tests change operation_id while reusing literal digest; no fresh-nonce same-business-envelope test | Correct fixtures with recomputed digests and fresh assertion nonce semantics | High | OPEN |
+| GAP-28 | Retry-policy authority | Fail/Retry digest args contain retryable/delay/safe_message values, but R03.52.4 defines policy-derived outputs from error_code and persisted attempt budget; trusted producer is unspecified | Approved source of policy decision, pinned policy version, persisted attempt inputs and digest-to-mutation binding | Critical | OPEN |
+| GAP-29 | Retry-policy global bounds | Retry Policy Registry schema/runtime has no absolute maximum for max_delay_seconds; sample 120/300 second values are illustrative | Approved global/per-code upper bounds and boundary tests | High | OPEN |
+| GAP-30 | Retry delay conversion | Registry uses float seconds, v2alpha2 Fail uses integer microseconds, v2alpha2 Retry uses integer seconds, legacy Store uses float seconds | Canonical unit, exact conversion/rounding/overflow rule and shared vectors | High | OPEN |
 
 ## 3. Dependency Matrix
 
@@ -61,6 +64,8 @@ The repository currently has independently tested v2alpha2 primitives, not a bus
 | Claim validation parity | Strict parser + schema + SQL/Python field/limit table | G1 acceptance |
 | Canonicalization size boundary | R535-OD3 candidate, action argument bounds and typed encoder parity | G1 acceptance |
 | Retry delay unit resolution | Existing Retry Policy Registry + legacy Store contract + v2alpha2 action schema | G4/G13 acceptance |
+| Retry-policy authority and version pinning | R03.52.4 policy registry + v2alpha2 Fail/Retry action map + persisted attempt budget | G4/G13 acceptance |
+| Retry-policy numeric bounds and conversion | Registry schema/runtime + seconds/microseconds action contracts | G1/G4/G13 acceptance |
 | Receipt re-issuance and Nonce | R03.52.7.3.5 replay contract + Receipt uniqueness + cross-version threat model | G5/G6 acceptance |
 | Receipt Reconcile | Legacy/v2alpha2 Receipt store split + action/resource identity + target digest semantics | G5/G6/G9 acceptance |
 | Receipt helper security | Role/ownership/RLS design + exact typed binding + outcome schema | G5/G7/G9 acceptance |

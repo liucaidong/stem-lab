@@ -20,7 +20,7 @@ This document defines candidate invariants and the proof obligations. It does no
 | Job Retry | Job retry state, available_at, lease/owner/attempt fields | Reserve + finalize | Consume | Append | Append retry-scheduled event | No |
 | Job Renew | Job lease expiry under owner/epoch fence | Reserve + finalize or explicitly accepted no-receipt policy | Consume | Only if contract requires lease event | Only if contract requires event | No |
 | Job Dead Letter | Job terminal state and lease release | Reserve + finalize | Consume | Append | Append terminal event | Insert DLQ item |
-| Receipt Reconcile | Receipt lookup / immutable outcome read; any repair write must be separately specified | Read/reconcile | Must not silently consume a new mutation nonce unless contract says so | No by default | No | No |
+| Receipt Reconcile | Receipt lookup / immutable outcome read; any repair write must be separately specified | Read/reconcile | Fresh reconciliation assertion nonce is expected to be consumed in the read transaction; exact read/nonce transaction rule requires approval | No by default | No | No |
 | Outbox Dispatch | Outbox dispatch lease/owner/epoch/attempt state | Action receipt only if accepted; otherwise separate dispatch dedup contract | Consume | No Job transition by default | Mutate dispatch state | No |
 | Outbox Ack | Outbox acknowledged/dispatched state under dispatch owner/epoch fence | Action receipt only if accepted; otherwise separate ack dedup contract | Consume | No Job transition by default | Update exact event | No |
 
@@ -71,7 +71,7 @@ Candidate v2alpha2 rule:
 - The top-level action entry must not swallow an error and return a success-shaped or ambiguous false/null result while leaving the transaction committable.
 - If an API needs a structured failure response, the caller must roll back the transaction before translating the error into a response.
 - A terminal business failure that should be persisted as an outcome is not the same as an infrastructure/atomicity failure. Its transaction and Receipt semantics must be explicit.
-- Deadlock and serialization failures are retryable at the transaction boundary only when the whole operation can be retried with the same immutable signed request and idempotency identity.
+- Deadlock and serialization failures are retryable only after confirmed rollback; retry preserves the immutable business Request Envelope/idempotency identity but uses a fresh assertion nonce, iat/exp and signature.
 - Never automatically retry a non-idempotent external side effect inside the database transaction.
 
 ## 5. Candidate lock discipline
@@ -106,7 +106,7 @@ For each action, document all lock acquisitions and unique-index arbitration poi
 
 ## 6. Deadlock and serialization policy
 
-- Deadlocks (SQLSTATE 40P01) and serialization failures (40001) are transaction-level failures; retry only the entire operation after rollback.
+- Deadlocks (SQLSTATE 40P01) and serialization failures (40001) are transaction-level failures; retry only the entire operation after confirmed rollback and with a fresh assertion nonce.
 - Use bounded retry with jitter at the application transaction coordinator; the retry count/backoff policy remains a deferred operational decision.
 - Do not reduce isolation level to make a race disappear.
 - Unique constraints remain authoritative concurrency arbiters.
@@ -135,10 +135,10 @@ For each injected failure, compare primary keys and row contents, not only row c
 | Parse/signature/version/auth failure before transaction | No business table changes |
 | Resource missing / tenant mismatch / owner or epoch mismatch | No Receipt, Nonce or business writes committed |
 | Session revision conflict | No partial Job/Receipt/Nonce/Transition/Outbox changes |
-| Receipt same-key/same-digest replay | Return stored terminal result; no second mutation |
+| Receipt same-key/same-digest business retry under a fresh assertion nonce | Consume the fresh nonce and return stored terminal result; no second business mutation |
 | Receipt same-key/different-digest | Conflict; no business write |
 | Operation ID conflict | Conflict; no business write |
-| Nonce replay | Reject; no second mutation |
+| Exact old assertion/nonce replay | Reject as `ASSERTION_REPLAYED`; Receipt lookup cannot override committed nonce collision |
 | Job mutation failure | Entire write set absent after rollback |
 | Transition insert failure | Job/Receipt/Nonce/Outbox/DLQ changes absent after rollback |
 | Outbox insert failure | Job/Receipt/Nonce/Transition/DLQ changes absent after rollback |
@@ -146,7 +146,7 @@ For each injected failure, compare primary keys and row contents, not only row c
 | Receipt finalization failure | All business writes absent after rollback |
 | Deadlock / serialization failure | Entire attempt rolled back; bounded full-transaction retry only |
 | Outer caller rollback | All durable rows from the action absent |
-| Commit outcome ambiguous | Reconcile using same signed operation identity; never blindly repeat mutation |
+| Commit outcome ambiguous | Issue a fresh reconciliation assertion/nonce, reconcile by stable business operation identity and digest; never reuse the old nonce or blindly repeat mutation |
 
 The final matrix must specify whether a business rejection is represented as a committed terminal Receipt or a rolled-back operation. The current helper code does not decide that.
 

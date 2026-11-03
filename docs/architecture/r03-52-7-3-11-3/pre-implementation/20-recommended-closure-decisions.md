@@ -1,4 +1,4 @@
-# Recommended Closure Decisions for G1–G10
+# Recommended Closure Decisions for G1–G13
 
 **Version:** 0.1.0  
 **Status:** RECOMMENDATIONS ONLY / NOT ACCEPTED  
@@ -75,7 +75,7 @@ Never accept separate tenant_id, job_id, session_id, owner, epoch, resource_id o
 - (tenant_id, operation_id).
 
 Store the digest, resource type/id, terminal outcome and immutable result reference. On same idempotency key:
-- same digest and same immutable identity -> return stored Receipt/outcome, no business mutation;
+- same digest and same immutable identity under a fresh assertion nonce -> consume the fresh nonce and return stored Receipt/outcome, no business mutation;
 - different digest -> IDEMPOTENCY_CONFLICT;
 - any inconsistent stored operation/resource identity -> reject as invariant violation even if helper input digest matches.
 
@@ -85,7 +85,7 @@ A new idempotency key is a new signed envelope and therefore a newly computed di
 
 **Recommendation:** preserve the legacy unique key scope (issuer, kid, nonce) as the cross-version uniqueness domain. Add version/operation/digest metadata without changing legacy validation semantics, or introduce a common unique registry that both legacy and v2alpha2 paths must consult atomically.
 
-Do not use separate per-version unique namespaces unless a formal threat model proves cross-version replay impossible. Nonce consumption occurs in the same transaction as Receipt arbitration and the business write set. Exact same signed request replay returns the existing terminal Receipt without a second mutation; a fresh operation reusing the nonce is rejected.
+Do not use separate per-version unique namespaces unless a formal threat model proves cross-version replay impossible. Nonce consumption occurs in the same transaction as Receipt arbitration and the business write set. Reusing the exact signed assertion after its nonce committed is rejected as `ASSERTION_REPLAYED`; Receipt lookup must not override the nonce collision. A client retry preserves the immutable business Request Envelope and digest but uses a fresh assertion nonce/signature; Receipt arbitration may then return the existing terminal outcome without a second business mutation.
 
 ### REC-08 — Atomic Unit-of-Work
 
@@ -121,11 +121,19 @@ Do not widen Runtime direct table grants or weaken RLS to simplify Handler integ
 ### REC-12 — Business rejection versus infrastructure abort
 
 **Recommendation:** define three separate outcomes:
-1. exact idempotent replay -> return stored outcome, no mutation;
+1. same business Request Envelope re-issued with a fresh assertion nonce and a matching terminal Receipt -> return stored outcome, no business mutation; exact old signed assertion replay is `ASSERTION_REPLAYED`;
 2. valid but business-rejected request -> explicit policy whether a terminal failed Receipt/Nonce commits, with no partial Job/Transition/Outbox effects;
 3. infrastructure/write-set failure -> full transaction rollback, no partial durable outcome.
 
 Do not let a broad exception handler return false/null after partial writes. The transaction coordinator must treat typed errors as rollback-required.
+
+### REC-13 — Retry Policy authority, version and units
+
+**Recommendation:** treat the R03.52.4 Retry Policy Registry as the source of retryability, safe message and delay decisions. Resolve the policy from a trusted, version-pinned registry using the locked persisted Job attempt_count/maximum_attempts and stable error_code. Do not treat worker/caller-supplied retryable, safe_message or delay as authoritative merely because those values are signed.
+
+The exact policy version (or immutable policy digest) and the derived values must be bound through the same typed action binding used for Digest and SQL mutation. Define a global/per-code maximum, a canonical internal delay unit, checked conversions and explicit rounding/overflow behavior. Fail and Retry must not compute contradictory scheduling decisions. The existing registry's float-seconds fields and sample policy do not constitute an approved production maximum or conversion rule.
+
+This is a recommendation only. Worker, Protocol, Security and Database owners must approve the authority, policy pinning, bounds and conversion before G1/G4/G13 acceptance.
 
 ## 3. Decisions intentionally not made
 

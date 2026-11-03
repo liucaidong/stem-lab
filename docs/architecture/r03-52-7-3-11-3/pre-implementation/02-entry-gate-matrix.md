@@ -12,11 +12,11 @@ G0–G14 must each be explicitly ACCEPTED with source/document evidence, applica
 
 | Gate | Required deliverable | Current evidence | Current state | Minimum acceptance criteria |
 |---|---|---|---|---|
-| G0 | GitHub/source/decision baseline + Gap Register | PR #13–#20 search, PR #20 HEAD/files/run #439, source inventory; additional DEC/freeze verification pending | IN_PROGRESS | All PR states/heads/files/CI and decision/freeze records verified; PR #13 immutability proven |
+| G0 | GitHub/source/decision baseline + Gap Register | PR #13–#21 metadata/head chain, PR #21 Run #485, R03.20 DEC register, R03.52.7.3.5 R535 decision table and repository Product Code Freeze statements checked; named sign-off/authority record and full source inventory remain open | IN_PROGRESS | All PR states/heads/files/CI and canonical decision/freeze records verified; named approval/authority evidence or explicit absence recorded; PR #13 immutability proven |
 | G1 | Assertion / Digest Contract | PR #15 Python/SQL codec, schema, vectors; PR #17 strict parser; PR #18 verifier | OPEN | Exact payload/signature/digest bytes and all boundary rules approved; cross-language vectors pass |
 | G2 | Version Compatibility Contract | Legacy v2alpha1 path and v2alpha2 candidate discriminator documented | OPEN | Explicit fail-closed dispatch; no downgrade/cross-version replay; old behavior regression tests |
 | G3 | Trusted Signer / Key Trust Boundary | Disposable issuer key lookup and Ed25519 verifier | OPEN | Trusted issuer provenance, key lifecycle, revocation, role access and failure mapping accepted |
-| G4 | Action-Specific Typed Binding | PR #20 binding proposal for nine action names | OPEN | Every field sourced once from verified Claim or typed operation args; digest and mutation use same values |
+| G4 | Action-Specific Typed Binding | PR #20 binding proposal for nine action names; Retry Policy Registry/action argument audit | OPEN | Every field sourced once from verified Claim or typed operation args; policy-derived retryability/delay/safe_message have an approved trusted source and policy version; digest and mutation use same values |
 | G5 | Receipt / Idempotency | PR #19 helper + two-connection arbitration/rollback tests | OPEN | Identity-consistent replay, conflict semantics, pending visibility and business UOW integration proven |
 | G6 | Nonce / Cross-Version Replay | Legacy nonce ledger reference only | OPEN | v2alpha2 durable uniqueness, consumption/rollback/retention and cross-version matrix accepted |
 | G7 | Atomic Unit-of-Work | No integrated v2alpha2 complete write set | OPEN | Job/Session/Receipt/Nonce/Transition/Outbox/(DLQ) atomicity proven at outer transaction boundary |
@@ -25,7 +25,7 @@ G0–G14 must each be explicitly ACCEPTED with source/document evidence, applica
 | G10 | Failure / Persisted-State Contract | Failure categories listed in task; no full state snapshots | OPEN | Every failure class maps to exact allowed/forbidden persisted changes |
 | G11 | PostgreSQL Test Strategy | Existing CI + independent helper harnesses | OPEN | Reusable fixture, multi-connection, outer tx, snapshot, catalog and RLS test plan approved |
 | G12 | Complete Vertical Slice Design | Action argument candidate fields in PR #20 audit | OPEN | Sequence/state diagrams, mutation inventory, locks, errors, persisted-state and file plan complete |
-| G13 | Remaining Action Designs | Candidate action list exists | OPEN | Fail/Retry/Renew/Dead Letter/Receipt reconcile/Outbox Dispatch/Ack each has explicit delta contract |
+| G13 | Remaining Action Designs | Candidate action list exists; Retry Policy Registry semantics audited | OPEN | Fail/Retry/Renew/Dead Letter/Receipt reconcile/Outbox Dispatch/Ack each has explicit delta contract, including authoritative retry-policy outputs and exact delay units |
 | G14 | Architecture/Security Cross-Audit | PR #20 source audit exists | OPEN | Independent review closes contradictions, risks and deferred decisions without weakening constraints |
 | G15 | Code Implementation Entry Gate | This matrix | BLOCKED | G0–G14 all ACCEPTED; no critical OPEN/BLOCKED/DEFERRED item; explicit approval recorded |
 
@@ -39,10 +39,11 @@ G0–G14 must each be explicitly ACCEPTED with source/document evidence, applica
 | PR #20 changed files | PASS | One documentation file only |
 | PR #20 CI | PASS | Workflow run #439 / ID `41578429173` completed success |
 | PR #13 reference unchanged | PASS for PR #21 diff | PR #21 changed-file list contains only new Markdown audit documents; no PR #13 reference implementation path is modified |
-| DEC-03 / DEC-14 / R535-OD3 current authoritative records | PARTIAL | R03.20 decision register and PR #15/#20 bodies confirm DEC-03/DEC-14 OPEN and R535-OD3 OPEN/PROPOSED; named approval/sign-off evidence still needs inventory |
+| DEC-03 / DEC-14 / R535-OD3 current authoritative records | STATUS SOURCE-VERIFIED; SIGN-OFF NOT FOUND | R03.20 records DEC-03/DEC-14 OPEN; R03.52.7.3.5 records R535-OD3 PROPOSED (and OD4/OD5 OPEN); no named approval/sign-off record was found in the inspected canonical artifacts |
 | Product Code Freeze | PARTIAL | README and R03.52.7.3.11 docs record ACTIVE; exact governing freeze artifact still needs identification |
 | Existing SQL/test/worker docs inventory | PARTIAL | Key PR #13/#15/#18/#19 assets fetched; complete repository-wide inventory remains |
 | v1alpha1/v2alpha1 compatibility baseline | PARTIAL | Legacy verifier and nonce source inspected; full behavior matrix remains |
+| Product Code Freeze | STATUS SOURCE-VERIFIED; AUTHORITY RECORD NOT LOCATED | README and R03.52 architecture records state ACTIVE and P3.17 OUT OF SCOPE; no separate named/signed freeze authorization artifact identified |
 
 G0 remains IN_PROGRESS until all subchecks are closed.
 

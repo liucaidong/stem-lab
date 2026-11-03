@@ -30,7 +30,7 @@
 | PR #13 immutability | PASS for PR #21 diff | PR #21 changed-file list contains only new documentation under the pre-implementation directory |
 | Legacy compatibility | PASS as a constraint; proof OPEN | All documents prohibit changing v1alpha1/v2alpha1 behavior; complete regression matrix remains required |
 | Digest/mutation binding | CONSISTENTLY BLOCKED | Every relevant document treats same typed binding as mandatory and not yet implemented |
-| Receipt semantics | CONSISTENTLY OPEN | Same-key replay must preserve same signed envelope; current fixture identity defect is explicitly recorded |
+| Receipt semantics | CONSISTENTLY OPEN | Same-key business retry preserves the Request Envelope/digest but re-issues a fresh assertion nonce; exact old assertion replay is rejected; current fixture identity defect is explicitly recorded |
 | Nonce semantics | CONSISTENTLY OPEN | Legacy ledger is not represented as v2alpha2 integration; cross-version policy remains unresolved |
 | Atomic UOW | CONSISTENTLY PROPOSED | Mutating write set belongs to one outer transaction; exact per-action mutation/lock order remains open |
 | Lock order | OPEN | No document promotes PR #20's candidate order to accepted normative rule |
@@ -70,6 +70,14 @@ If nonce insertion rolls back with the entire UOW, the assertion can be retried 
 ### C-07 — SQL file cleanliness
 
 The digest test harness parses each declared function body separately and ignores trailing orphan fragments. The complete SQL asset must be cleaned and validated as a whole before it is considered a stable source artifact.
+
+### C-08 — Assertion replay versus business idempotency
+
+The upstream R03.52.7.3.5 contract is explicit: a committed nonce collision is rejected; the Receipt must not override that authorization failure. The supported client retry is a new assertion (fresh nonce/iat/exp/signature) over the same immutable business Request Envelope and digest. A fresh assertion may then resolve the existing Receipt without repeating the mutation. Any statement that an exact old signed assertion returns a Receipt is inconsistent and must be removed.
+
+### C-09 — Retry-policy authority and unit mismatch
+
+The v2alpha2 Fail/Retry digest arguments include retryability and delay values, while R03.52.4 defines those values as outputs of a versioned policy registry based on error code and persisted attempt budget. The registry schema/runtime has no global maximum delay, and the sample policy is illustrative. Fail uses integer microseconds, Retry uses integer seconds, and the legacy Store API uses floating-point seconds. No accepted rule currently establishes who computes these values, which policy version is pinned, or the exact conversion/rounding/bounds. G1/G4/G13 remain OPEN until the same policy result is bound to digest and mutation.
 
 ## 4. No implicit acceptance
 
