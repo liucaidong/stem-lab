@@ -27,22 +27,28 @@ sequenceDiagram
     V->>V: resolve exactly one version verifier; verify issuer/key/signature
     V->>H: verified Claim (immutable identity)
     H->>H: validate action schema and build one typed binding
+    H->>H: derive canonical digest from same typed binding used by mutations
+    H->>H: compare computed digest with signed request_digest
     H->>DB: BEGIN (caller-owned transaction)
-    H->>DB: lock Job + validate tenant/session/owner/epoch/status/lease
-    H->>DB: lock Session + validate expected revision
+    H->>DB: lock Job + Session; validate tenant/job/session relationship
     H->>DB: Receipt reserve/replay arbitration
-    H->>DB: consume Nonce under cross-version uniqueness contract
-    H->>H: derive digest from same typed binding used by mutations
-    H->>DB: compare signed request_digest
-    H->>DB: mutate Job and accepted Session fields
-    H->>DB: insert Transition + Outbox
-    H->>DB: finalize Receipt with immutable outcome
+    alt Existing terminal Receipt, same key + digest + identity
+        H->>DB: consume fresh assertion Nonce
+        DB-->>H: stored outcome; no business mutation
+    else No Receipt
+        H->>DB: validate owner/epoch/status/DB-clock lease + Session revision
+        H->>DB: reserve pending Receipt
+        H->>DB: consume Nonce under cross-version uniqueness contract
+        H->>DB: mutate Job and accepted Session fields
+        H->>DB: insert Transition + Outbox
+        H->>DB: finalize Receipt with immutable outcome
+    end
     DB-->>H: operation result (not committed by helper)
     H-->>C: result; caller commits once
     Note over C,DB: Any failure aborts the whole outer transaction; broker delivery is after commit.
 ```
 
-This sequence is illustrative. Digest verification must occur before any durable state mutation; the precise position relative to resource locks and Receipt/Nonce arbitration remains OPEN until the final lock graph is accepted. No helper may commit independently.
+Digest construction and comparison occur before BEGIN, using the immutable typed binding that will later drive SQL mutations. The transaction then locks Job/Session before Receipt arbitration, consistent with the R03.52.7.3.5 deadlock correction. The existing Receipt replay branch is distinct from a new mutation: a re-issued assertion with a fresh nonce may return the stored terminal outcome and consume that fresh nonce, but must not repeat Job/Session/Transition/Outbox effects. Replaying the exact same nonce in a new transaction remains an assertion replay and must be rejected. The active Job owner/epoch/lease and Session revision fences apply to a new mutation; a terminal Receipt replay must validate immutable tenant/resource/operation/digest and actor binding without requiring the already-completed Job to remain running. Exact actor-binding fields stored with Receipt remain an open contract question. No helper may commit independently.
 
 ## 3. Candidate state transition
 
