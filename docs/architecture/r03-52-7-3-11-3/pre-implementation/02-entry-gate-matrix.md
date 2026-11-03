@@ -33,12 +33,13 @@ G0–G14 must each be explicitly ACCEPTED with source/document evidence, applica
 
 | G0 subcheck | Result | Evidence / limitation |
 |---|---|---|
-| PR #13–#20 existence and open/draft status | PASS (search evidence) | GitHub search query `is:open is:draft` returned all eight; closed search did not return them |
+| PR #13–#20 existence and open/draft status | PASS | PR object metadata checked individually; all eight OPEN, DRAFT=true, merged=false |
+| PR #13–#20 exact head/base chain | PASS | Exact PR-object head SHA, head branch, base branch and base SHA fetched for all eight; PR #13 → #14 → #15 → #16 → #17 → #18 → #19 → #20 stacked chain confirmed |
 | PR #20 HEAD | PASS | `a9394870164bba5971ffa82b15c83d7e9b9cfc47` fetched |
 | PR #20 changed files | PASS | One documentation file only |
 | PR #20 CI | PASS | Workflow run #439 / ID `41578429173` completed success |
-| PR #13 reference unchanged | NOT YET PROVEN FOR THIS BRANCH | Must compare PR #13 reference head and changed paths after every audit commit |
-| DEC-03 / DEC-14 / R535-OD3 current authoritative records | PARTIAL | R03.20 register and R03.52.7.3.11 docs confirm OPEN; exact decision records/approvals still need inventory |
+| PR #13 reference unchanged | PASS for PR #21 diff | PR #21 changed-file list contains only new Markdown audit documents; no PR #13 reference implementation path is modified |
+| DEC-03 / DEC-14 / R535-OD3 current authoritative records | PARTIAL | R03.20 decision register and PR #15/#20 bodies confirm DEC-03/DEC-14 OPEN and R535-OD3 OPEN/PROPOSED; named approval/sign-off evidence still needs inventory |
 | Product Code Freeze | PARTIAL | README and R03.52.7.3.11 docs record ACTIVE; exact governing freeze artifact still needs identification |
 | Existing SQL/test/worker docs inventory | PARTIAL | Key PR #13/#15/#18/#19 assets fetched; complete repository-wide inventory remains |
 | v1alpha1/v2alpha1 compatibility baseline | PARTIAL | Legacy verifier and nonce source inspected; full behavior matrix remains |
