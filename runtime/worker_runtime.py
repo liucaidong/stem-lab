@@ -26,8 +26,10 @@ class ClaimedJob:
     def __post_init__(self) -> None:
         if type(self.attempt_count) is not int or type(self.maximum_attempts) is not int:
             raise ValueError("attempt counters must be integers")
-        if self.attempt_count < 1 or self.maximum_attempts < 1 or self.attempt_count > self.maximum_attempts:
-            raise ValueError("attempt_count must be in [1, maximum_attempts]")
+        if self.attempt_count < 1 or self.maximum_attempts < 1 or self.maximum_attempts > 100 or self.attempt_count > self.maximum_attempts:
+            raise ValueError("attempt_count and maximum_attempts must be within [1, 100]")
+        if type(self.lease_epoch) is not int or not 1 <= self.lease_epoch <= 9007199254740991:
+            raise ValueError("lease_epoch must be a positive JSON-safe integer")
 
 
 @dataclass(frozen=True)
@@ -41,8 +43,11 @@ class FailureDecision:
     def __post_init__(self) -> None:
         if type(self.retryable) is not bool:
             raise ValueError("retryable must be boolean")
-        if not self.error_code or len(self.error_code) > 128 or not self.safe_message or len(self.safe_message) > 512:
-            raise ValueError("failure code/message length invalid")
+        import re
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", self.error_code):
+            raise ValueError("error_code must be a stable uppercase code of at most 64 characters")
+        if not self.safe_message or len(self.safe_message) > 512:
+            raise ValueError("safe_message must contain 1..512 characters")
         if type(self.retry_delay_micros) is not int or not 0 <= self.retry_delay_micros <= 86400000000:
             raise ValueError("retry_delay_micros must be integer microseconds in [0, 24h]")
         if not self.retryable and self.retry_delay_micros != 0:
