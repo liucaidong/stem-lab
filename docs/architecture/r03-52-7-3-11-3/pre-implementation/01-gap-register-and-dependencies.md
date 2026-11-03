@@ -69,6 +69,12 @@ The repository currently has independently tested v2alpha2 primitives, not a bus
 - Existing legacy action paths use `verify_v2` / `authorize_v2`; PR #20 audit reports no calls from these paths to the v2alpha2 verifier or Receipt functions.
 - Existing legacy nonce ledger has a primary key `(issuer, kid, nonce)` and binds rows to transaction/token context in the reference fixture.
 - The workflow invokes the helper suites but does not contain an end-to-end v2alpha2 Handler/UOW test.
+- v2alpha2 uses a separate request_receipts_v2alpha2 table; legacy receipt reconciliation reads the PR #13 receipts table.
+- The v2alpha2 Receipt finalization helper takes receipt_id only; the helper SQL does not define an accepted RLS/role/outcome-schema boundary.
+- The SQL digest asset contains orphan repeated function-body fragments after the active verifier definition; the current harness extracts declared function bodies and does not parse the trailing content.
+- Claim Schema string/numeric limits are not all mirrored by the SQL verifier; the Python codec validates Request Envelopes/action arguments, not the complete Claim.
+- PR #19 Receipt fixtures vary operation_id while reusing a literal digest; R03.52.7.3.5 distinguishes exact assertion replay from fresh-nonce retry of the same business envelope.
+- The legacy Store Fail signature has no action arguments, while v2alpha2 Fail digest arguments include error_code/retryable/retry_delay_micros/safe_message; legacy Retry uses seconds.
 
 ### Design implications (not yet accepted decisions)
 - A v2alpha2 Handler should construct digest arguments from the same typed local variables passed to mutation statements.
