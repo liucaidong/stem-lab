@@ -47,6 +47,22 @@ Use the same v2alpha2 lock order as PR #23:
 
 The failure handler does not mutate Session state or revision. It must use the persisted Job→Session relationship and composite tenant/job/session foreign keys for child rows. Do not lock Session unless a later action actually mutates or revision-fences Session state.
 
+## 4.1 Blocking aggregate-sequence contract
+
+The existing R03.50 reference schema makes `transitions.sequence` and `outbox.sequence` unique per `(tenant_id, session_id)`, with child rows tied to Session. The proposed failure Handler changes Job state but does not change Session status or revision. Therefore it cannot safely invent `session.revision + 1`, reuse an existing Session sequence, or write a no-op Session transition merely to satisfy the current schema.
+
+The legacy R03.52.7.3.6 disposable authorization fixture uses a different Transition/Outbox shape (Job-rooted rows without the R03.50 Session revision sequence). It is not proof that the R03.50 production-facing schema supports Job lifecycle events.
+
+**This is an implementation blocker.** Before coding the failure handler, select and document one aggregate event model:
+
+- **Option A — Job-specific ledgers:** add append-only `job_transitions` and a Job-scoped Outbox table keyed by tenant/job/sequence; the relay consumes both Session and Job outboxes.
+- **Option B — Aggregate-aware shared Outbox:** extend Outbox with explicit aggregate type/ID/sequence and tenant-aware FK/uniqueness rules, while retaining Session Transition for Session state changes and adding a Job Transition ledger.
+- **Option C — Session lifecycle coupling:** define a real Session state/revision transition for a Job failure. Use only if the domain state machine explicitly requires Session status to change; do not invent a same-state transition to allocate a sequence.
+
+Recommendation: evaluate Option B as the long-term model, with Option A as the smaller isolated reference increment if the shared Outbox migration is not yet approved. DEC-30 event delivery and migration decisions remain open. No option is selected by this design draft.
+
+The failure Handler cannot be marked READY until the chosen aggregate sequence model, FK/tenant isolation, event IDs, relay scan order and rollback tests are specified. The 11-point fault matrix must include sequence allocation races and rollback of the Job event/Transition with the Job update.
+
 ## 4. Persisted writes
 
 ### Retry scheduled
@@ -106,6 +122,7 @@ No generic handler fallback is permitted for reserved actions.
 Before code:
 - Confirm the exact Job/DLQ/Transition/Outbox schema columns and constraints against R03.51 reference DDL.
 - Add a bounded persisted `retry_policy_version` field to Job if absent; no caller-supplied attempt count may enter the SQL API.
+- Resolve the blocking Job-vs-Session Transition/Outbox aggregate sequence model in Section 4.1 before writing SQL.
 - Ensure the trusted issuer binds `retry_policy_version`, retryability, delay and safe message into the signed assertion digest.
 - Add a typed `FailJobCommand` adapter path using one connection and one transaction.
 - Preserve the PR #23 runtime/function-owner privilege model and helper EXECUTE allowlist.
