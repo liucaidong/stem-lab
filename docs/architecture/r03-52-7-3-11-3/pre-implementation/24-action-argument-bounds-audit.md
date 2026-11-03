@@ -42,6 +42,8 @@ Python and SQL currently agree on the eight requested action argument names/type
 5. error_code uses a regex rather than a versioned closed error registry. The repository has a Worker Error Taxonomy and Retry Policy Registry; the action binding must reference the same canonical registry/version.
 6. terminal_reason is a closed enum, but no proof is shown that max_attempts/non_retryable matches persisted attempt/error policy.
 7. String encoding permits long values up to the generic encoder length limit. The raw Assertion payload limit does not automatically bound separately supplied operation_arguments.
+8. The v2alpha2 Fail/Retry payload contains policy outputs (`retryable`, delay, `safe_message`) while R03.52.4 defines these as registry-derived decisions based on error code and persisted attempt budget. No accepted contract identifies the trusted producer, pins a policy version, or prevents a caller from supplying inconsistent outputs.
+9. The Retry Policy Registry schema/runtime has no global upper bound for `max_delay_seconds`; the sample 120/300 second values are illustrative only. The current registry is not evidence of an approved maximum or canonical microseconds conversion.
 
 ## 4. Recommended limits and cross-field rules (proposed)
 
@@ -49,12 +51,12 @@ These are candidate defaults for review, not accepted policy:
 - result_ref: non-empty UTF-8 string, <= 256 bytes, must reference an artifact owned by the same tenant/session and immutable after completion.
 - safe_message: UTF-8 <= 1024 bytes, reject control characters except explicitly permitted whitespace, redact secrets and credentials before signing.
 - error_code: resolve against the canonical versioned Worker Error Taxonomy, not regex alone.
-- retry_delay_micros: bounded by the Retry Policy Registry; if retryable=false, require zero delay. If retryable=true, require an allowed positive bounded delay or a documented immediate-retry value.
+- retry_delay_micros: do not claim a bound until an approved policy registry version defines one; require exact conversion from the policy result and, if retryable=false, zero delay. If retryable=true, require a policy-authorized bounded delay or a documented immediate-retry value.
 - expected_session_revision: non-negative int64 and must be representable by the persisted Session column; require exact equality under lock.
 - terminal_reason=max_attempts only when persisted attempt_count >= maximum_attempts; non_retryable only when the accepted error policy classifies the error as non-retryable.
 - lease_seconds: retain 5..3600 as codec bounds, then apply any stricter per-job/dispatcher policy inside the locked transaction.
 
-Do not introduce these limits until reconciled with the existing retry policy and result/artifact domain contracts.
+Do not introduce these limits until reconciled with the existing retry policy and result/artifact domain contracts. The trusted issuer/handler must derive retryability, safe_message and delay from the versioned policy using persisted attempt_count/maximum_attempts; caller-supplied values must not become authoritative merely because they are covered by a valid digest. The protocol owner must decide whether the digest binds policy inputs, derived outputs, or both, and how policy version changes affect retries.
 
 ## 5. Cross-layer parity tests
 
@@ -65,6 +67,8 @@ For each argument:
 - same value through Python typed binding and PostgreSQL typed parameters;
 - changed value after digest generation;
 - cross-field combinations (retryable/delay, terminal_reason/attempt_count, error_code/retryability);
+- policy version pinning, unknown error_code fallback, attempt_count/max_attempts boundary, safe_message provenance and registry-derived output tampering;
+- exact conversion between policy float seconds, v2alpha2 integer microseconds and Store retry_delay_seconds, including rounding, overflow and maximum delay.
 - actual SQL mutation receives the exact same typed value.
 
 ## 6. Gate conclusion

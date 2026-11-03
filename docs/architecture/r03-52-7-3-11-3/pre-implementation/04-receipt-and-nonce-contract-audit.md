@@ -56,7 +56,7 @@ No v2alpha2 Handler currently inserts a durable nonce row. The Receipt helper do
 - **Tenant/subject binding:** store tenant and subject for audit/correlation while defining the uniqueness scope explicitly.
 - **Operation binding:** retain version, action, resource type/id, operation ID and digest for forensic checks.
 - **Consumption:** after cryptographic and authorization validation, in the same transaction as the business write set; never commit nonce consumption separately before the business operation.
-- **Replay result:** exact same signed operation retry returns stored Receipt outcome without a second mutation; a fresh assertion reusing a nonce is rejected.
+- **Replay result:** reusing the exact signed assertion after its nonce committed is rejected as `ASSERTION_REPLAYED`. A client retry re-issues the same immutable business Request Envelope (same operation_id, idempotency_key, action/resource and arguments, therefore the same digest) under a fresh nonce and signature; Receipt arbitration then returns the stored terminal outcome without repeating business mutation.
 - **Rollback:** nonce insert rolls back with the UOW unless a separate anti-replay persistence policy is formally accepted and its consequences proven.
 - **Concurrency:** unique constraint arbitrates same nonce on independent connections and across different actions/resources.
 - **Retention:** define validity window, replay window, cleanup safety margin, key revocation interaction, audit retention and deletion authority.
@@ -74,7 +74,7 @@ No v2alpha2 Handler currently inserts a durable nonce row. The Receipt helper do
 | Same idempotency key, different digest | IDEMPOTENCY_CONFLICT | Receipt integration test |
 | Same operation ID, different key | OPERATION_ID_CONFLICT | Receipt integration test |
 | Same nonce/token in one transaction for another operation | Must not authorize second operation | Handler/nonce call graph test |
-| Same signed request retried after ambiguous response | Return stored outcome; no duplicate mutation | Full UOW replay test |
+| Same business request retried after ambiguous response | Use a fresh reconciliation assertion nonce; return stored outcome only after matching Receipt/digest is found; never replay the old nonce | Full UOW replay test |
 | Nonce cleanup races delayed retry | No replay acceptance outside documented policy | Retention/concurrency test |
 
 ## 8. Candidate transactional invariant

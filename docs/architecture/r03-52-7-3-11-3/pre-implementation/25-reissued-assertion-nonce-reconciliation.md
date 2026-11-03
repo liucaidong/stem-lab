@@ -12,7 +12,7 @@ R03.52.7.3.5 Section 8 explicitly distinguishes:
 - reuse inside one transaction: same token may authorize multiple statements in one UOW;
 - reuse across transactions: deny after committed nonce use;
 - client retry: new assertion nonce, same business idempotency key/digest;
-- idempotent request replay: same operation key and same digest returns original durable outcome without duplicate effects;
+- idempotent business retry: same operation key and same digest, presented with a fresh assertion nonce, returns the original durable outcome without duplicate effects; exact old assertion nonce reuse is rejected;
 - idempotency conflict: same key, different digest rejects;
 - ambiguous commit: reconcile by durable operation Receipt, do not blindly replay.
 
@@ -25,12 +25,9 @@ It also states that nonce consumption and protected business writes commit atomi
 Same payload bytes, signature, nonce, operation_id, idempotency_key and request_digest are submitted again in a new transaction after the first transaction committed.
 
 Expected:
-- signature and claim scope can be revalidated;
-- Receipt lookup must identify the exact same business operation;
-- committed nonce already exists;
-- the token must not authorize a second mutation;
-- returning a previously committed terminal Receipt may be permitted as a read-only replay response only if the action contract explicitly allows it; otherwise return ASSERTION_REPLAYED.
-- no Job/Session/Transition/Outbox side effect is repeated.
+- the committed nonce already exists, so the authorization boundary rejects the request as `ASSERTION_REPLAYED`;
+- Receipt lookup must not override the committed nonce collision or convert exact-token replay into a read-only replay response;
+- no Receipt-based success response or business mutation is authorized by this exact old assertion.
 
 This path is not the normal client retry mechanism.
 
@@ -105,7 +102,7 @@ The precise mapping of original action/idempotency key to target Receipt must be
 
 ## 5. Required acceptance vectors
 
-- Exact old assertion replay after committed nonce: no second mutation; defined read-only replay result.
+- Exact old assertion replay after committed nonce: reject `ASSERTION_REPLAYED`; Receipt lookup must not override nonce failure.
 - Same logical request with fresh nonce: Receipt returns stored outcome; nonce row for fresh assertion commits; no second mutation.
 - Same business key with changed args and recomputed digest: IDEMPOTENCY_CONFLICT.
 - Same business key with changed args but old digest: reject at digest verifier before Receipt mutation.

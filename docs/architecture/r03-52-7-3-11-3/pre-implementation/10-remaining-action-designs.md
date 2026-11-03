@@ -30,7 +30,8 @@ Candidate preconditions:
 - Job remains running and lease is valid under DB clock;
 - attempt count and retry policy version are read from persisted state;
 - error_code is from a closed error catalog;
-- retryable and delay values are consistent with the persisted retry policy.
+- retryable, delay and safe_message are derived by the trusted versioned Retry Policy Registry, not caller-authoritative inputs;
+- the exact policy result and version are bound to the digest and the SQL mutation through one typed binding.
 
 Candidate outcomes:
 - retryable failure schedules a retry and releases/updates lease under the accepted policy;
@@ -38,7 +39,7 @@ Candidate outcomes:
 - append one Transition and one Outbox event for the actual state transition;
 - insert DLQ only if the terminal reason/policy requires it.
 
-Open: whether Fail and Retry are one atomic action or separate commands; how `retry_delay_micros` maps to persisted scheduling; whether a terminal failed state always creates a DLQ row.
+Open: whether Fail and Retry are one atomic action or separate commands; which trusted component evaluates/pins the Retry Policy Registry; how `retry_delay_micros` maps to persisted scheduling; global/per-code delay bounds; whether a terminal failed state always creates a DLQ row.
 
 ## 3. worker.job.retry
 
@@ -50,7 +51,8 @@ Candidate preconditions:
 - Job is in a retry-eligible state;
 - maximum attempts not exceeded;
 - delay within accepted bounds;
-- retry policy and error_code agree.
+- retry policy and error_code agree;
+- delay is derived from the same pinned trusted policy and persisted attempt budget, not accepted as an arbitrary caller override.
 
 Candidate writes:
 - set retry/queued state according to accepted lifecycle;
@@ -60,7 +62,7 @@ Candidate writes:
 - append Transition and Outbox event;
 - Receipt and Nonce in same transaction if required by action policy.
 
-Open: whether attempt_count increments at retry scheduling or next claim; exact delay unit and rounding; retry event payload/version.
+Open: whether attempt_count increments at retry scheduling or next claim; exact delay unit and rounding; retry event payload/version; policy version pinning and Fail/Retry policy-decision consistency.
 
 ## 4. worker.job.renew
 

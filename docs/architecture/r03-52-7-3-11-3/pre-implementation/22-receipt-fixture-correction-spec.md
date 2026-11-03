@@ -48,7 +48,7 @@ Retry/re-issuance:
 
 Submit the exact original signed payload and nonce-A again in a new transaction after nonce-A was committed.
 
-Expected at the integrated Handler/Nonce boundary: reject as ASSERTION_REPLAYED (or the explicitly approved read-only replay response), never execute a second mutation. This is not the canonical client retry path. The Receipt helper alone does not inspect Nonce and may return the existing Receipt; that helper-only result must not be mistaken for authorization to execute or return the operation at the Handler boundary.
+Expected at the integrated Handler/Nonce boundary: reject as `ASSERTION_REPLAYED`; a committed nonce collision must not fall through to Receipt lookup or be converted into a read-only replay response. Never execute a second mutation. This is not the canonical client retry path. The Receipt helper alone does not inspect Nonce and may return the existing Receipt; that helper-only result must not be mistaken for authorization to execute or return the operation at the Handler boundary.
 
 ### V3 — Same idempotency key, different digest
 
@@ -127,7 +127,7 @@ Expected at the integrated Handler boundary: reject before durable Receipt/Nonce
 
 - All fixture digests are generated from the exact canonical envelope.
 - No test changes operation_id/idempotency_key/resource/arguments while reusing the original digest.
-- Same-request replay preserves the entire signed payload and nonce.
+- Exact old assertion replay preserves the payload/nonce and must be rejected after committed nonce use; the supported client retry preserves the business Request Envelope/digest but uses a fresh nonce, iat/exp and signature.
 - Different-envelope conflict tests recompute the digest and sign the new payload.
 - Handler tests prove the Receipt helper receives values from the verified typed binding.
 - UOW tests prove one durable business effect despite concurrent identical submissions.

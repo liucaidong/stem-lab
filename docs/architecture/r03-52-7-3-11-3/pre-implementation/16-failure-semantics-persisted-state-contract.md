@@ -35,10 +35,10 @@ Compare primary-key sets and exact row values, not only counts. Read after-state
 | Authorization Failure | Reject tenant/subject/action/resource mismatch | Unchanged | No new row | No new row | Unchanged |
 | Resource Lock Failure | Return typed missing/lock/timeout/fence failure | Unchanged | No new row or rolled back | No new row or rolled back | Unchanged |
 | Session Revision Conflict | Return revision conflict | Unchanged | No new row or rolled back | No new row or rolled back | Unchanged |
-| Receipt Reservation — same key/same digest terminal | Return stored outcome; no mutation | Unchanged | Existing terminal row unchanged | No fresh nonce consumption for a replay path unless explicit contract requires a read-only audit record | Unchanged |
+| Receipt Reservation — same key/same digest terminal under a fresh assertion | Return stored outcome; no business mutation | Unchanged | Existing terminal row unchanged | Consume and commit the fresh assertion nonce in the same transaction; exact old assertion nonce is rejected before Receipt replay | Unchanged |
 | Receipt Reservation — same key/different digest | IDEMPOTENCY_CONFLICT | Unchanged | Existing Receipt unchanged | No new nonce | Unchanged |
 | Receipt Reservation — operation ID conflict | OPERATION_ID_CONFLICT | Unchanged | Existing Receipt unchanged | No new nonce | Unchanged |
-| Nonce Replay | ASSERTION_REPLAYED or exact Receipt replay | Unchanged | Existing Receipt unchanged | Existing nonce row unchanged | Unchanged |
+| Nonce Replay | `ASSERTION_REPLAYED`; do not let Receipt lookup override a committed nonce collision | Unchanged | Existing Receipt unchanged | Existing nonce row unchanged | Unchanged |
 | Job Mutation Failure | UOW_ABORTED; outer transaction rolled back | Job/Session changes absent | New Receipt reservation absent or unchanged existing Receipt | New nonce absent | All inserts absent |
 | Transition Insert Failure | UOW_ABORTED; outer transaction rolled back | Job/Session changes absent | New Receipt reservation/finalization absent | New nonce absent | Transition/Outbox/DLQ inserts absent |
 | Outbox Insert Failure | UOW_ABORTED; outer transaction rolled back | Job/Session changes absent | New Receipt reservation/finalization absent | New nonce absent | Transition/Outbox/DLQ inserts absent |
@@ -60,7 +60,7 @@ A transport failure after sending COMMIT is not proof of rollback. The client mu
 - reuse a consumed nonce in a new mutation path;
 - blindly execute the business mutation again.
 
-Instead, the caller retries/reconciles with the same signed operation identity and idempotency key. The service returns the stored terminal outcome if the transaction committed; if it did not commit, the retry follows the accepted nonce/retry policy and executes at most once.
+Instead, the caller retries/reconciles with the same immutable business Request Envelope and idempotency key under a fresh assertion nonce/signature. The service returns the stored terminal outcome if the transaction committed; if it did not commit, the retry follows the accepted nonce/retry policy and executes at most once. Reusing the old committed assertion nonce is rejected.
 
 The exact recovery rule depends on the final Receipt/Nonce model and must be proven before COMMIT fault injection.
 
@@ -81,7 +81,7 @@ For each failure case:
 
 Do not conflate:
 - **Business rejection:** a valid request that cannot transition state (for example stale epoch or Session revision conflict). The API may return a stable rejection; whether a failed Receipt is committed is an explicit action contract decision.
-- **Idempotent replay:** an exact same signed request whose Receipt already has a terminal outcome; return stored outcome without mutation.
+- **Idempotent business retry:** the same immutable business Request Envelope is re-issued under a fresh assertion nonce; if its Receipt is terminal, return the stored outcome without business mutation. An exact old signed assertion/nonce replay is `ASSERTION_REPLAYED`.
 - **Infrastructure/write-set failure:** database/constraint/serialization/insert/finalization failure; abort the whole transaction.
 - **Ambiguous commit:** client does not know the outcome; reconcile by immutable operation identity.
 

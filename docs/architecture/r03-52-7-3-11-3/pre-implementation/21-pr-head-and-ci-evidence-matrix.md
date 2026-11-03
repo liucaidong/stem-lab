@@ -1,4 +1,4 @@
-# PR #13–#20 Head SHA and CI Evidence Matrix
+# PR #13–#21 Head SHA and CI Evidence Matrix
 
 **Version:** 0.1.0  
 **Status:** G0 EVIDENCE UPDATE / PARTIAL  
@@ -19,6 +19,8 @@ The branch refs were fetched using the GitHub commit endpoint, and workflow runs
 | #19 | r03-52-7-3-11-3-receipt-arbitration | 8fb7dc5edc5954cd8b5ffc50bcce6833310550f6 | #438 / 41577279984 | SUCCESS | Receipt arbitration helper |
 | #20 | r03-52-7-3-11-3-handler-integration-audit | a9394870164bba5971ffa82b15c83d7e9b9cfc47 | #439 / 41578429173 | SUCCESS | Source audit only |
 
+| #21 | r03-52-7-3-11-3-preimplementation-closure | da06f11e309d31f2cf963307901dca4b03772a5d | #485 / 41585399419 | SUCCESS | Pre-batch PR #21 head; both validate-contracts and tenant-ed25519-verifier jobs completed successfully; 33 Markdown files at that snapshot |
+
 ## 2. Interpretation
 
 - PR #15 had a real failing PostgreSQL digest conformance run. PR #16's corrected branch then passed. The failure is historical evidence and must not be erased from the audit trail.
@@ -29,14 +31,15 @@ The branch refs were fetched using the GitHub commit endpoint, and workflow runs
 
 ## 3. G0 remaining work
 
-- Verify authoritative decision artifacts and named sign-offs for DEC-03, DEC-14, R535-OD3 and Product Code Freeze.
+- Named approval/sign-off evidence for DEC-03, DEC-14 and R535-OD3 was not located in the inspected canonical decision artifacts; obtain the required owner approvals or record the formal approval route. Product Code Freeze is stated ACTIVE in README/R03.52 records, but a separate named/signed freeze-authority artifact was not located.
 - Complete repository-wide SQL/Worker Handler/document inventory beyond the PR #13–#20 changed-file inventory.
 - Verify CI on the latest PR #21 head after all documentation-only additions.
 
 ## 4. Gate conclusion
 
-This closes the head SHA lookup for the corresponding working branches and adds the per-branch CI evidence. G0 remains IN_PROGRESS until exact PR-object head mapping and governance artifact/sign-off checks are complete.
+This closes the PR #13–#21 head mapping for the pre-batch snapshot and records Run #485 on the exact PR #21 HEAD. Later staged audit changes are not covered by Run #485 and will be validated by the single CI run after the batched commit. G0 remains IN_PROGRESS until governance artifact/sign-off checks are complete.
 
 ## Change history
 
 - 2026-11-03: Added per-branch head SHA and workflow evidence.
+- 2026-11-03: Added PR #21 exact pre-batch HEAD and completed Run #485 evidence.

@@ -16,6 +16,7 @@
 | UT-05 | Claim schema | Every Claim field/limit and version discriminator | Schema validator | SQL verifier parity unless cross-run |
 | UT-06 | Version classifier | One exact verifier family selected; no fallback | Pure dispatch rules | Actual operation entry wiring |
 | UT-07 | Error mapping | Stable codes for each parse/claim/action conflict | Error translation | Outer transaction rollback |
+| UT-08 | Retry policy binding | Trusted policy version, persisted attempt budget, retryable/delay/safe_message derivation and checked seconds↔microseconds conversion | Policy evaluation and action binding | Production policy approval or Handler transaction correctness |
 
 ## 2. PostgreSQL Integration Test Matrix
 
@@ -35,8 +36,8 @@
 
 | ID | Race | Expected result | Required evidence |
 |---|---|---|---|
-| CC-01 | Two fresh assertions, same business envelope/key/digest, different nonces | One mutation, one Receipt, both return same outcome; both valid nonces consumed | Independent connections, barrier, row snapshots |
-| CC-02 | Same key, different digest | One winner; loser IDEMPOTENCY_CONFLICT | Unique-key wait observation |
+| CC-01 | Two fresh assertions, same business envelope/key/digest, different nonces | One mutation and one Receipt; both fresh valid nonces are consumed/committed; both return the same stored outcome | Independent connections, barrier, nonce/Receipt/Job snapshots |
+| CC-02 | Same key, different digest under fresh assertions | One winner; loser IDEMPOTENCY_CONFLICT; accepted loser assertion nonce is consumed atomically with the conflict result only if that business-rejection policy is approved | Unique-key wait observation and nonce snapshot |
 | CC-03 | Same operation_id, different idempotency key | OPERATION_ID_CONFLICT | Unique index arbitration |
 | CC-04 | Same nonce across two transactions/actions/versions | Exactly one nonce insert succeeds | Shared uniqueness domain |
 | CC-05 | Complete vs Fail/Renew/Retry/Dead Letter | One valid state transition; stale competitor rejected | Job row locks + epoch/lease snapshots |
@@ -67,6 +68,7 @@
 | SEC-13 | Revoked/expired/unknown key | Fail closed |
 | SEC-14 | Duplicate JSON key / unknown field | Reject before jsonb digest path |
 | SEC-15 | Outbox stale dispatcher ack | Reject by owner/epoch fence |
+| SEC-16 | Exact old signed assertion replay after committed nonce | `ASSERTION_REPLAYED`; Receipt lookup cannot override the nonce collision |
 
 ## 5. Rollback Test Matrix
 
@@ -93,7 +95,7 @@ Formal commit-boundary failure injection is excluded from this phase. RB-10 is a
 - PR #19: Receipt helper uniqueness, finalization, concurrent first use and Receipt-only rollback.
 - PR #13: legacy resource authorization, RLS, nonce, lease fencing, Outbox/DLQ, concurrency and rollback reference suite.
 
-Existing tests cover portions of UT/PG/SEC/CC for their isolated reference helpers. They do not cover PG-07, PG-09, CC-01/04/05/06/07/08/09/10 in the integrated v2alpha2 path, or the full RB matrix.
+Existing tests cover portions of UT/PG/SEC/CC for their isolated reference helpers. They do not cover UT-08 policy-to-Handler binding, PG-07, PG-09, CC-01/04/05/06/07/08/09/10 in the integrated v2alpha2 path, or the full RB matrix.
 
 ## 7. Gate conclusion
 
