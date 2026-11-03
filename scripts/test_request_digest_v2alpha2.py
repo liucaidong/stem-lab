@@ -3,7 +3,7 @@ from __future__ import annotations
 import json, pathlib, sys, unittest, jsonschema
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from runtime.request_digest_v2alpha2 import RequestEncodingError, canonical_request_bytes, canonical_bytes_base64url, parse_json_strict, request_digest
+from runtime.request_digest_v2alpha2 import RequestEncodingError, canonical_request_bytes, canonical_bytes_base64url, parse_json_strict, request_digest, MAX_REQUEST_JSON_BYTES
 VECTOR=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.golden.json").read_text())
 UNICODE_VECTOR=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.unicode.golden.json").read_text())
 SCHEMA=json.loads((ROOT/"contracts/worker-resource-assertion.schema.v2alpha2.json").read_text())
@@ -53,6 +53,32 @@ class RequestDigestTests(unittest.TestCase):
         from runtime.request_digest_v2alpha2 import _value
         _value(2**63-1); _value(-(2**63))
         with self.assertRaises(RequestEncodingError): _value(2**63)
+    def test_raw_json_size_budget(self):
+        with self.assertRaises(RequestEncodingError):
+            parse_json_strict(b" " * (MAX_REQUEST_JSON_BYTES + 1))
+        with self.assertRaises(RequestEncodingError):
+            parse_json_strict(" " * (MAX_REQUEST_JSON_BYTES + 1))
+    def test_canonical_request_size_budget(self):
+        e=dict(VECTOR["envelope"])
+        e["operation_arguments"]={"expected_session_revision":7,"result_ref":"x" * 70000}
+        with self.assertRaises(RequestEncodingError):
+            canonical_request_bytes(e)
+    def test_retry_action_uses_integer_microseconds(self):
+        e=dict(VECTOR["envelope"])
+        e["action"]="worker.job.retry"
+        e["operation_arguments"]={"delay_micros":1000000,"error_code":"DEPENDENCY_UNAVAILABLE"}
+        self.assertTrue(request_digest(e).startswith("sha256:"))
+        e["operation_arguments"]={"delay_seconds":1,"error_code":"DEPENDENCY_UNAVAILABLE"}
+        with self.assertRaises(RequestEncodingError):
+            canonical_request_bytes(e)
+    def test_dlq_replay_is_not_in_v2alpha2_executable_allowlist(self):
+        e=dict(VECTOR["envelope"])
+        e["action"]="worker.dlq.replay"
+        e["resource_type"]="dlq_item"
+        e["resource_id"]="dlq-1"
+        e["operation_arguments"]={}
+        with self.assertRaises(RequestEncodingError):
+            canonical_request_bytes(e)
     def test_version_action_and_resource_binding_rejected(self):
         e=dict(VECTOR["envelope"]); e["contract_version"]="2alpha1"
         with self.assertRaises(RequestEncodingError): canonical_request_bytes(e)

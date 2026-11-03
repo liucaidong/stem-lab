@@ -37,18 +37,18 @@ def expect_error(conn, sql: str, params: tuple, expected: str) -> None:
 def main() -> None:
     conn = psycopg.connect(DSN, autocommit=True)
     try:
-        conn.execute(SQL)
+        conn.execute(SQL, prepare=False)
         reserve_sql = f"SELECT * FROM {SCHEMA}.reserve_request_receipt_v2alpha2(%s,%s,%s,%s,%s,%s,%s)"
 
         first = reserve(conn, "key-replay", "operation-1")
         assert first[1] is True and first[2] == "pending" and first[3] == DIGEST_A
         finalized = conn.execute(
-            f"SELECT * FROM {SCHEMA}.finalize_request_receipt_v2alpha2(%s,%s,%s::jsonb)",
-            (first[0], "succeeded", json.dumps({"result_ref": "artifact:stable"})),
+            f"SELECT * FROM {SCHEMA}.finalize_request_receipt_v2alpha2(%s,%s,%s,%s,%s,%s,%s::jsonb)",
+            (first[0], "tenant-a", "worker.job.complete", "key-replay", DIGEST_A, "succeeded", json.dumps({"result_ref": "artifact:stable"})),
         ).fetchone()
         assert finalized[1] == "succeeded"
 
-        replay = reserve(conn, "key-replay", "operation-retry")
+        replay = reserve(conn, "key-replay", "operation-1")
         assert replay[0] == first[0] and replay[1] is False
         assert replay[2] == "succeeded" and replay[4] == "operation-1"
         assert replay[5] == {"result_ref": "artifact:stable"}
@@ -66,16 +66,26 @@ def main() -> None:
             "OPERATION_ID_CONFLICT",
         )
 
+        lookup_sql = f"SELECT * FROM {SCHEMA}.lookup_request_receipt_v2alpha2(%s,%s,%s,%s,%s,%s,%s)"
+        looked_up = conn.execute(lookup_sql, ("tenant-a","worker.job.complete","key-replay","operation-1",DIGEST_A,"job","job-1")).fetchone()
+        assert looked_up[0] == first[0] and looked_up[2] == "succeeded"
+        missing = conn.execute(lookup_sql, ("tenant-a","worker.job.complete","missing-key","operation-missing",DIGEST_A,"job","job-1")).fetchall()
+        assert missing == [], missing
+        count_missing = conn.execute(f"SELECT count(*) FROM {SCHEMA}.request_receipts_v2alpha2 WHERE idempotency_key='missing-key'").fetchone()[0]
+        assert count_missing == 0, "read-only lookup created a Receipt"
+        expect_error(conn, lookup_sql,
+            ("tenant-a","worker.job.complete","key-replay","operation-other",DIGEST_A,"job","job-1"),
+            "IDEMPOTENCY_CONFLICT")
         # Same finalization is idempotent; a conflicting terminal result is not.
         same_finalize = conn.execute(
-            f"SELECT * FROM {SCHEMA}.finalize_request_receipt_v2alpha2(%s,%s,%s::jsonb)",
-            (first[0], "succeeded", json.dumps({"result_ref": "artifact:stable"})),
+            f"SELECT * FROM {SCHEMA}.finalize_request_receipt_v2alpha2(%s,%s,%s,%s,%s,%s,%s::jsonb)",
+            (first[0], "tenant-a", "worker.job.complete", "key-replay", DIGEST_A, "succeeded", json.dumps({"result_ref": "artifact:stable"})),
         ).fetchone()
         assert same_finalize[1] == "succeeded"
         expect_error(
             conn,
-            f"SELECT * FROM {SCHEMA}.finalize_request_receipt_v2alpha2(%s,%s,%s::jsonb)",
-            (first[0], "failed", json.dumps({"error": "different"})),
+            f"SELECT * FROM {SCHEMA}.finalize_request_receipt_v2alpha2(%s,%s,%s,%s,%s,%s,%s::jsonb)",
+            (first[0], "tenant-a", "worker.job.complete", "key-replay", DIGEST_A, "failed", json.dumps({"error": "different"})),
             "RECEIPT_ALREADY_FINALIZED",
         )
 
@@ -87,7 +97,7 @@ def main() -> None:
                 return reserve(c, "key-race", op_id)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-            outcomes = list(pool.map(contender, ("operation-race-a", "operation-race-b")))
+            outcomes = list(pool.map(contender, ("operation-race", "operation-race")))
         assert sorted(bool(row[1]) for row in outcomes) == [False, True], outcomes
         assert outcomes[0][0] == outcomes[1][0], outcomes
         assert outcomes[0][3] == outcomes[1][3] == DIGEST_A
@@ -106,7 +116,18 @@ def main() -> None:
         ).fetchone()[0]
         assert remaining == 0
 
+        public_exec = conn.execute("""
+            SELECT EXISTS (
+              SELECT 1 FROM pg_proc p
+              JOIN pg_namespace n ON n.oid=p.pronamespace
+              CROSS JOIN LATERAL aclexplode(COALESCE(p.proacl, acldefault('f',p.proowner))) a
+              WHERE n.nspname=%s AND a.grantee=0 AND a.privilege_type='EXECUTE'
+            )
+        """,(SCHEMA,)).fetchone()[0]
+        assert public_exec is False, "Receipt functions still grant EXECUTE to PUBLIC"
         print("Receipt same-key/same-digest replay returns original receipt and outcome: PASS")
+        print("Receipt SELECT-only lookup, missing-key no-write and identity binding: PASS")
+        print("Receipt PUBLIC EXECUTE revoked: PASS")
         print("Receipt same-key/different-digest deterministic conflict: PASS")
         print("Receipt operation_id uniqueness: PASS")
         print("Receipt terminal finalization idempotency and conflict: PASS")
