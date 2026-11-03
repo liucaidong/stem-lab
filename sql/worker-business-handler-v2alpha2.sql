@@ -42,9 +42,10 @@ BEGIN
   PERFORM pg_catalog.set_config('app.tenant_id',v_tenant,true);
   BEGIN
     INSERT INTO __SCHEMA__.request_nonce_ledger_v2alpha2
-      (tenant_id,issuer,kid,nonce,operation_id,request_digest,action,resource_type,resource_id)
+      (tenant_id,issuer,kid,nonce,operation_id,request_digest,action,resource_type,resource_id,assertion_expires_at)
     VALUES (v_tenant,v_claim->>'iss',v_claim->>'kid',v_nonce,v_operation_id,
-      v_digest,v_claim->>'action',v_claim->>'resource_type',v_claim->>'resource_id');
+      v_digest,v_claim->>'action',v_claim->>'resource_type',v_claim->>'resource_id',
+      to_timestamp((v_claim->>'exp')::bigint));
   EXCEPTION WHEN unique_violation THEN
     RAISE EXCEPTION USING ERRCODE='P0001',MESSAGE='NONCE_REPLAY';
   END;
@@ -119,10 +120,11 @@ BEGIN
   PERFORM pg_catalog.set_config('app.tenant_id',v_claim->>'tenant_id',true);
   BEGIN
     INSERT INTO __SCHEMA__.request_nonce_ledger_v2alpha2
-      (tenant_id,issuer,kid,nonce,operation_id,request_digest,action,resource_type,resource_id)
+      (tenant_id,issuer,kid,nonce,operation_id,request_digest,action,resource_type,resource_id,assertion_expires_at)
     VALUES (v_claim->>'tenant_id',v_claim->>'iss',v_claim->>'kid',v_claim->>'nonce',
       v_claim->>'operation_id',v_claim->>'request_digest',v_claim->>'action',
-      v_claim->>'resource_type',v_claim->>'resource_id');
+      v_claim->>'resource_type',v_claim->>'resource_id',
+      to_timestamp((v_claim->>'exp')::bigint));
   EXCEPTION WHEN unique_violation THEN
     RAISE EXCEPTION USING ERRCODE='P0001',MESSAGE='NONCE_REPLAY';
   END;

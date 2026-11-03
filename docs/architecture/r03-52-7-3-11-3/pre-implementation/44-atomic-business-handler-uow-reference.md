@@ -25,7 +25,7 @@ The reconciliation assertion uses action worker.receipt.reconcile, resource type
 
 ## Tenant isolation and privilege model
 
-- Receipt and Nonce Ledger tables use ENABLE + FORCE ROW LEVEL SECURITY.
+- Receipt and Nonce Ledger tables use ENABLE + FORCE ROW LEVEL SECURITY. Nonce uniqueness is tenant + issuer + nonce (not key ID), and assertion expiry is persisted for safe retention; purge only after expiry plus the configured clock-skew/operational grace period.
 - The handler/reconciliation functions are SECURITY DEFINER and must be owned by a dedicated NOLOGIN, NOSUPERUSER, NOBYPASSRLS role.
 - The runtime role receives EXECUTE only on the two entry points; it receives no direct table or sequence privileges.
 - The function owner has only the required table DML/SELECT privileges and remains subject to FORCE RLS.

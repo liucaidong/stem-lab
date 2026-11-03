@@ -11,10 +11,13 @@ CREATE TABLE __SCHEMA__.request_nonce_ledger_v2alpha2 (
   resource_type text NOT NULL CHECK (length(resource_type) BETWEEN 1 AND 128),
   resource_id text NOT NULL CHECK (length(resource_id) BETWEEN 1 AND 256),
   consumed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-  PRIMARY KEY (tenant_id, issuer, kid, nonce)
+  assertion_expires_at timestamptz NOT NULL CHECK (assertion_expires_at > consumed_at),
+  PRIMARY KEY (tenant_id, issuer, nonce)
 );
 CREATE INDEX request_nonce_ledger_v2alpha2_operation_idx
   ON __SCHEMA__.request_nonce_ledger_v2alpha2 (tenant_id, operation_id);
+CREATE INDEX request_nonce_ledger_v2alpha2_expiry_idx
+  ON __SCHEMA__.request_nonce_ledger_v2alpha2 (assertion_expires_at);
 ALTER TABLE __SCHEMA__.request_nonce_ledger_v2alpha2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE __SCHEMA__.request_nonce_ledger_v2alpha2 FORCE ROW LEVEL SECURITY;
 CREATE POLICY request_nonce_ledger_v2alpha2_tenant_isolation

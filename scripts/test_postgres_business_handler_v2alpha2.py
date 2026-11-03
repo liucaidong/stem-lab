@@ -202,7 +202,10 @@ def main() -> None:
             sequence integer NOT NULL,event_type text NOT NULL,payload jsonb NOT NULL,
             PRIMARY KEY(tenant_id,event_id),UNIQUE(tenant_id,session_id,sequence),
             FOREIGN KEY(tenant_id,session_id) REFERENCES {SCHEMA}.sessions(tenant_id,session_id));
-        """)
+        """, prepare=False)
+        # pgsodium 3.1.11 installs a DDL event trigger that reads this custom GUC.
+        # The test schema uses ordinary bytea/public-key tables, not pgsodium masks.
+        conn.execute("SELECT set_config('pgsodium.enable_event_trigger','off',false)")
         worker_sql = (ROOT / "sql/package-ingestion-worker/R03.51-ingestion-worker.sql").read_text().replace("stemlab_ingest", SCHEMA)
         conn.execute(worker_sql, prepare=False)
         receipt_sql = (ROOT / "sql/request-receipt-v2alpha2.sql").read_text().replace("__SCHEMA__", SCHEMA)
