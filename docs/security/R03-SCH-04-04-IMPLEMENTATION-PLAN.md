@@ -2,13 +2,13 @@
 
 ## 1. Status and authorization
 
-**Architecture direction accepted; U0–U4 implemented on the SCH.04 working branch. U5 read-only reconciliation is now being added. PR #33 remains unmerged.**
+**Architecture direction accepted; U0–U4 implemented on the SCH.04 working branch. U5 manual read-only reconciliation and offline tests are implemented, awaiting validation on the consolidated head. PR #33 remains unmerged.**
 
 Approved direction:
 - remove the global 300-second cooldown and artifact-marker admission delay;
 - use GitHub Actions native `queue: max` for the custom required-validation workflow;
 - retain `cancel-in-progress: false` and the global concurrency group;
-- add bounded current-head reconciliation and recovery;
+- add bounded current-head read-only reconciliation; defer write-capable recovery to a separately authorized phase;
 - shape Dependabot arrival rate;
 - keep Ruleset #26463757 and required check `CI result` unchanged.
 
@@ -95,18 +95,17 @@ Scheduled/manual reconciler
 - Validate YAML and Dependabot configuration semantics.
 - Update static dependency-policy fixtures only in the same reviewed change as the corresponding legitimate dependency change; do not weaken digest/SHA/hash enforcement.
 
-### U5 — Bounded reconciliation and recovery
-- Initial phase is a manual read-only CLI; do not add a scheduled workflow until actual report volume and API cost justify it.
-- Inspect all open PR current head SHAs and current main SHA.
+### U5 — Manual read-only reconciliation (implemented; CI validation pending)
+- Implement a manual CLI that inspects every open PR current head SHA and current main SHA.
 - Inspect workflow runs and exact `CI result` checks for those SHAs.
 - Classify each target as covered-success, active, recovery-required, or unknown.
-- Never recover a target already active or already covered by exact-SHA success.
+- Select only the latest relevant run for each exact SHA and required workflow; an older success must never mask a newer failure, cancellation, or active run.
+- Require the latest run and its same-run `CI result` check to agree on exact SHA, workflow run ID, check name, and GitHub Actions app ID 15368.
+- Never trigger duplicate work for a target already active or covered by latest-run exact-SHA success.
 - Treat unknown/API errors as unknown, not success.
-- Initial phase performs no rerun or dispatch. Add write-capable recovery only after read-only classification is validated and separately authorized.
-- If a no-job cancelled run cannot be rerun, test the alternative recovery route in isolation before enabling it.
-- Bound attempts, apply backoff, respect API rate limits, and emit an audit record with target SHA/run ID/attempt/reason/conclusion.
-- Do not create an external App check. The GitHub Actions workflow remains the required-check producer.
-- Keep reconciliation cadence low and configurable; initial candidate is every 15 minutes plus manual dispatch, subject to run-volume testing.
+- Current U5 performs no rerun, dispatch, cancellation, or other write; no scheduled workflow is added.
+- Any write-capable recovery is deferred to a later phase and requires separate review and explicit authorization.
+- Offline regression tests are included in required CI.
 
 ### U6 — PR #29–#32 disposition
 - Keep all four PRs unmerged until their current head SHAs have complete successful required checks and independent compatibility review.
@@ -136,9 +135,9 @@ Scheduled/manual reconciler
 | `scripts/validate_ci_workflow_policy.py` | enforce native queue and no cooldown |
 | `scripts/test_ci_workflow_policy.py` | regression tests for queue and required-check contract |
 | `.github/dependabot.yml` | stagger schedules; PR limit 1/ecosystem |
-| `scripts/ci_reconcile.py` (implemented read-only) | inspect current-head coverage and recovery decisions |
-| `.github/workflows/ci-reconciliation.yml` (candidate) | scheduled/manual bounded reconciliation |
-| `scripts/test_ci_reconcile.py` (implemented) | exact SHA, active-run dedupe, unknown state, recovery bounds |
+| `scripts/ci_reconcile.py` (implemented read-only) | inspect current-head coverage; report recovery-required targets without writing |
+| `.github/workflows/ci-reconciliation.yml` (deferred) | not in current scope; no scheduled reconciliation workflow |
+| `scripts/test_ci_reconcile.py` (implemented) | exact SHA, latest-run precedence, same-run check binding, active-run dedupe |
 
 The reconciler and offline tests are implemented in the SCH.04 working branch; no scheduled workflow has been added.
 

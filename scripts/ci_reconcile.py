@@ -39,7 +39,7 @@ class GitHubReadOnly:
     def __init__(self, token: str | None, api_root: str = API_ROOT, timeout: int = 20):
         self.api_root, self.timeout, self.token = api_root.rstrip("/"), timeout, token
 
-    def get(self, path: str, query: dict[str, Any] | None = None) -> dict[str, Any]:
+    def get(self, path: str, query: dict[str, Any] | None = None) -> dict[str, Any] | list[dict[str, Any]]:
         url = self.api_root + path
         if query:
             url += "?" + urlencode(query)
@@ -81,34 +81,48 @@ def run_id_from_details_url(value: str) -> int | None:
     return int(match.group(1)) if match else None
 
 def classify_target(target: Target, workflow_runs: list[dict[str, Any]], check_runs: list[dict[str, Any]]) -> Finding:
-    relevant = [r for r in workflow_runs if r.get("head_sha") == target.sha and r.get("path") == WORKFLOW_PATH]
-    active_runs = [r for r in relevant if r.get("status") in ACTIVE_STATUSES]
-    if active_runs:
-        selected = max(active_runs, key=lambda r: int(r.get("run_attempt") or 1))
-        return Finding(target.kind, target.name, target.number, target.sha, ACTIVE, selected.get("id"),
-                       "matching required workflow run is queued or in progress")
-    by_id = {r.get("id"): r for r in relevant if isinstance(r.get("id"), int)}
-    successful_ids = {rid for rid, r in by_id.items()
-                      if r.get("status") == "completed" and r.get("conclusion") == "success"}
-    matching_checks = [
-        c for c in check_runs
-        if c.get("name") == REQUIRED_CHECK and isinstance(c.get("app"), dict)
-        and c["app"].get("id") == REQUIRED_APP_ID and c.get("status") == "completed"
-        and c.get("conclusion") == "success"
+    relevant = [
+        r for r in workflow_runs
+        if r.get("head_sha") == target.sha and r.get("path") == WORKFLOW_PATH
     ]
-    for check in matching_checks:
-        rid = run_id_from_details_url(str(check.get("details_url") or ""))
-        if rid in successful_ids:
-            return Finding(target.kind, target.name, target.number, target.sha, SUCCESS, rid,
-                           "exact-SHA CI result succeeded under the required GitHub Actions integration")
-    if relevant:
-        latest = max(relevant, key=lambda r: (str(r.get("created_at") or ""), int(r.get("run_attempt") or 1)))
-        reason = ("workflow run completed without a matching successful CI result check"
-                  if latest.get("conclusion") == "success"
-                  else f"latest matching workflow run is {latest.get('status')}/{latest.get('conclusion')}")
-        return Finding(target.kind, target.name, target.number, target.sha, RECOVERY, latest.get("id"), reason)
-    return Finding(target.kind, target.name, target.number, target.sha, RECOVERY, None,
-                   "no run for the required workflow was found for this exact SHA")
+    if not relevant:
+        return Finding(target.kind, target.name, target.number, target.sha, RECOVERY, None,
+                       "no run for the required workflow was found for this exact SHA")
+
+    # Only the latest relevant run is authoritative. Older successful runs must
+    # never mask a later failed, cancelled, or active attempt.
+    latest = max(
+        relevant,
+        key=lambda r: (
+            str(r.get("created_at") or ""),
+            int(r.get("run_attempt") or 1),
+            int(r.get("id") or 0),
+        ),
+    )
+    run_id = latest.get("id")
+    if latest.get("status") in ACTIVE_STATUSES:
+        return Finding(target.kind, target.name, target.number, target.sha, ACTIVE, run_id,
+                       "latest matching required workflow run is queued or in progress")
+
+    if latest.get("status") == "completed" and latest.get("conclusion") == "success":
+        for check in check_runs:
+            if (
+                check.get("name") == REQUIRED_CHECK
+                and isinstance(check.get("app"), dict)
+                and check["app"].get("id") == REQUIRED_APP_ID
+                and check.get("status") == "completed"
+                and check.get("conclusion") == "success"
+                and check.get("head_sha") == target.sha
+                and run_id_from_details_url(str(check.get("details_url") or "")) == run_id
+            ):
+                return Finding(target.kind, target.name, target.number, target.sha, SUCCESS, run_id,
+                               "latest exact-SHA workflow run and its same-run required CI result both succeeded")
+
+        return Finding(target.kind, target.name, target.number, target.sha, RECOVERY, run_id,
+                       "latest workflow run succeeded but has no matching successful exact-SHA CI result check")
+
+    return Finding(target.kind, target.name, target.number, target.sha, RECOVERY, run_id,
+                   f"latest matching workflow run is {latest.get('status')}/{latest.get('conclusion')}")
 
 def discover_targets(api: GitHubReadOnly, owner: str, repo: str, base: str) -> list[Target]:
     branch = api.get(f"/repos/{owner}/{repo}/branches/{base}")

@@ -2,7 +2,7 @@
 
 ## 1. Status
 
-**Approved target contract; implementation not yet performed.**
+**Approved contract; native queue migration and manual read-only reconciler implemented on the SCH.04 working branch; PR #33 remains unmerged pending final validation.**
 
 This contract supersedes the prior external-scheduler task-ledger contract. Scheduling is GitHub-native. There is no external queue, webhook ingress, task database, lease service, or 300-second delay.
 
@@ -77,21 +77,21 @@ The initial read-only reconciler MUST cover:
 - current main SHA;
 - the workflow run and exact required check associated with each target.
 
-For each target, classify:
+For each target, select the latest relevant workflow run for the exact SHA (ordered by created_at, run_attempt, then run ID) and classify:
 - `COVERED_SUCCESS`: exact SHA has successful required `CI result`;
 - `ACTIVE`: exact SHA has a queued or in-progress authoritative run;
 - `RECOVERY_REQUIRED`: run is cancelled/failed/timed out, or required check is missing/incomplete;
 - `UNKNOWN`: API/permission/rate-limit state prevents a safe conclusion.
 
 Rules:
-1. `UNKNOWN` is never success.
-2. Do not dispatch when a matching run is active.
-3. Do not dispatch when exact-SHA `COVERED_SUCCESS` exists.
-4. Recover only the current open PR head or current main SHA; do not replay obsolete PR heads by default.
-5. The read-only phase does not recover; it reports RECOVERY_REQUIRED. Any later write-capable recovery must bound attempts and apply backoff for API/rate-limit failures.
-6. Record target SHA, run ID, run attempt, recovery reason, and final conclusion in the read-only report; later recovery must preserve an audit record.
-7. Any later recovery operation must preserve or prove the exact SHA and required-check association.
-8. If exact association cannot be proven, classify UNKNOWN and require operator intervention.
+1. `UNKNOWN` is never success.\n2. An older successful run or check MUST NOT mask a newer failed, cancelled, or active run.\n3. `COVERED_SUCCESS` requires the latest run to be completed-success and a same-run successful `CI result` check with exact SHA, workflow run ID, check name, and Actions app ID 15368.
+4. Do not dispatch when a matching run is active.
+5. Do not dispatch when exact-SHA `COVERED_SUCCESS` exists.
+6. Recover only the current open PR head or current main SHA; do not replay obsolete PR heads by default.
+7. The current read-only phase does not recover; it reports RECOVERY_REQUIRED. Any later write-capable recovery requires separate review and explicit authorization, bounded attempts, and backoff for API/rate-limit failures.
+8. Record target SHA, run ID, run attempt, recovery reason, and final conclusion in the read-only report; later recovery must preserve an audit record.
+9. Any later recovery operation must preserve or prove the exact SHA and required-check association.
+10. If exact association cannot be proven, classify UNKNOWN and require operator intervention.
 
 ## 7. Dependabot governance contract
 
