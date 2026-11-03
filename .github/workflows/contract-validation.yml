@@ -209,6 +209,10 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_postgres_request_digest_v2alpha2.py
+      - name: Test PostgreSQL v2alpha2 atomic Business Handler, Unit of Work and reconciliation
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_business_handler_v2alpha2.py
 
       - name: Test PostgreSQL Job-rooted resource authorization, RLS and nonce replay
         env:

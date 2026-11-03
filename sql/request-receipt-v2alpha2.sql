@@ -24,6 +24,13 @@ CREATE TABLE __SCHEMA__.request_receipts_v2alpha2 (
     CHECK (request_digest ~ '^sha256:[0-9a-f]{64}$')
 );
 
+ALTER TABLE __SCHEMA__.request_receipts_v2alpha2 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE __SCHEMA__.request_receipts_v2alpha2 FORCE ROW LEVEL SECURITY;
+CREATE POLICY request_receipts_v2alpha2_tenant_isolation
+  ON __SCHEMA__.request_receipts_v2alpha2
+  USING (tenant_id = current_setting('app.tenant_id', true))
+  WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
+
 CREATE OR REPLACE FUNCTION __SCHEMA__.reserve_request_receipt_v2alpha2(
   p_tenant_id text,
   p_action text,
