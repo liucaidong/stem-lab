@@ -315,7 +315,8 @@ BEGIN
      OR length(p_payload_b64url) NOT BETWEEN 1 AND 21846
      OR p_payload_b64url !~ '^[A-Za-z0-9_-]+$'
      OR length(p_signature_b64url) <> 86
-     OR p_signature_b64url !~ '^[A-Za-z0-9_-]+
+     OR p_signature_b64url !~ '^[A-Za-z0-9_-]+$' THEN
+    RAISE EXCEPTION 'invalid v2alpha2 compact assertion encoding';
   END IF;
   payload_bytes := decode(rpad(translate(p_payload_b64url, '-_', '+/'),
     ((length(p_payload_b64url) + 3) / 4) * 4, '='), 'base64');
