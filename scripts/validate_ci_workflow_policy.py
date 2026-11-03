@@ -249,7 +249,7 @@ def enforce_dependabot_config() -> None:
 
 def enforce_concurrency_contract(content: str, path: Path) -> None:
     """Enforce the global bounded queue and prevent pending-run replacement."""
-    concurrency = "\\n".join(top_level_block(content, "concurrency"))
+    concurrency = "\n".join(top_level_block(content, "concurrency"))
     if not concurrency:
         fail(f"{path.relative_to(ROOT)} is missing workflow-level concurrency")
     if not re.search(rf"(?m)^  group: {re.escape(GLOBAL_GROUP)}\\s*$", concurrency):
@@ -319,11 +319,9 @@ def main() -> int:
     ):
         fail("ci-admission must export steps.admission.outputs.admitted")
     if "python scripts/ci_admission.py" not in gate:
-        fail("ci-admission must run scripts/ci_admission.py")
+        fail("ci-admission must execute the native admission output helper")
     if "python scripts/test_ci_result.py" not in gate:
         fail("ci-admission must run scripts/test_ci_result.py")
-    if "python scripts/ci_admission.py" not in gate:
-        fail("ci-admission must execute the native admission output helper")
     if "stem-lab-ci-admission" in content or ".ci-admission/marker.json" in content:
         fail("artifact-based admission markers are forbidden")
 

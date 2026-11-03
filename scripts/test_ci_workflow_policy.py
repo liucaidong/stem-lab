@@ -45,7 +45,7 @@ def main():
     bad = content.replace("  cancel-in-progress: false", "  cancel-in-progress: true", 1)
     rejected("cancellation of active required CI", lambda: enforce_concurrency_contract(bad, WORKFLOW))
     bad = content.replace("          retention-days: 7", "          retention-days: 30", 1)
-    rejected("benchmark retention above seven days", lambda: enforce_artifact_retention(bad, WORKFLOW))
+    rejected("benchmark retention above seven days", lambda: enforce_benchmark_artifact_retention(bad, WORKFLOW))
     bad = content.replace("--require-hashes", "", 1)
     rejected("Python install without hash enforcement", lambda: enforce_python_dependency_lock(bad, WORKFLOW))
     bad = content.replace("npm ci --ignore-scripts --no-audit --no-fund", "npm install pg", 1)
