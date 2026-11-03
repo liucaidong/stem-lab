@@ -29,8 +29,8 @@ The branch refs were fetched using the GitHub commit endpoint, and workflow runs
 
 ## 3. G0 remaining work
 
-- Verify each PR head branch is the current head of the corresponding PR object, not merely a similarly named branch; normalized PR search does not expose PR head refs.
 - Verify authoritative decision artifacts and named sign-offs for DEC-03, DEC-14, R535-OD3 and Product Code Freeze.
+- Complete repository-wide SQL/Worker Handler/document inventory beyond the PR #13–#20 changed-file inventory.
 - Verify CI on the latest PR #21 head after all documentation-only additions.
 
 ## 4. Gate conclusion
