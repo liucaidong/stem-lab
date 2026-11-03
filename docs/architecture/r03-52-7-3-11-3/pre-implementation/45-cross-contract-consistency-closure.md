@@ -16,6 +16,7 @@ This delta closes inconsistencies exposed while integrating the first v2alpha2 B
 | Retry attempts | 1–100 | Maximum 100 | Persisted Job remains authoritative | Runtime and registry tests |
 | Lease epoch | Positive JSON-safe integer | Maximum 9007199254740991 | Claim verifier enforces same safe-integer ceiling | Runtime/store tests |
 | Session revision | 0–2147483646 | Same | Same | Request Digest tests |
+| Result reference | 1–1024 characters | Same | Same | Python + PostgreSQL negative boundary tests |
 | Job lease renewal | Integer seconds, 5–300 | Request Digest contract | Same | Python + PostgreSQL |
 | Outbox dispatch lease | Integer seconds, 5–3600 | Request Digest contract | Same | Python + PostgreSQL |
 

@@ -60,6 +60,9 @@ class RequestDigestTests(unittest.TestCase):
             parse_json_strict(" " * (MAX_REQUEST_JSON_BYTES + 1))
     def test_canonical_request_size_budget(self):
         e=dict(VECTOR["envelope"])
+        e["operation_arguments"]={"expected_session_revision":7,"result_ref":"x" * 1025}
+        with self.assertRaises(RequestEncodingError):
+            canonical_request_bytes(e)
         e["operation_arguments"]={"expected_session_revision":7,"result_ref":"x" * 70000}
         with self.assertRaises(RequestEncodingError):
             canonical_request_bytes(e)
