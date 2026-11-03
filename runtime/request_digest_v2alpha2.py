@@ -84,7 +84,7 @@ def validate_envelope(e: dict[str,Any]) -> None:
     if not isinstance(e,dict): raise RequestEncodingError("envelope must be object")
     if set(e) != set(ENVELOPE_FIELDS)|{"operation_arguments"}: raise RequestEncodingError("missing or unknown envelope fields")
     if e["contract_version"]!="2alpha2": raise RequestEncodingError("unsupported contract version")
-    if e["action"] not in ACTIONS: raise RequestEncodingError("unsupported action")
+    if not isinstance(e["action"],str) or e["action"] not in ACTIONS: raise RequestEncodingError("unsupported action")
     for field in ENVELOPE_FIELDS:
         if not isinstance(e[field],str) or not ID_RE.fullmatch(e[field]): raise RequestEncodingError("invalid "+field)
     if e["resource_type"] != RESOURCE_FOR_ACTION[e["action"]]: raise RequestEncodingError("action/resource_type mismatch")

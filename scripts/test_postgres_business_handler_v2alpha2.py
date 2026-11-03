@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import pathlib
@@ -346,6 +347,50 @@ def main() -> None:
         assert duplicate_state[0:2] == state[0:2]
         assert duplicate_state[2][0:3] == state[2][0:3]
         print("PostgreSQL fresh-nonce exact operation retry returns terminal Receipt without remutation: PASS")
+
+        # Force the first transaction to hold the Job lock while a second fresh-nonce
+        # request races on the same Receipt idempotency key.
+        insert_session_and_job(conn, "job-concurrent", "session-concurrent")
+        concurrent_env = complete_envelope(
+            "job-concurrent", "session-concurrent", "op-concurrent", "idem-concurrent"
+        )
+        concurrent_a = sign_claim(conn, private_key, concurrent_env)
+        concurrent_b = sign_claim(conn, private_key, concurrent_env)
+        conn.execute(f"""
+          CREATE FUNCTION {SCHEMA}.delay_concurrent_job_update() RETURNS trigger
+          LANGUAGE plpgsql AS $trigger$
+          BEGIN
+            IF NEW.job_id='job-concurrent' THEN PERFORM pg_catalog.pg_sleep(0.25); END IF;
+            RETURN NEW;
+          END;
+          $trigger$;
+          CREATE TRIGGER delay_concurrent_job_update
+            BEFORE UPDATE ON {SCHEMA}.ingestion_jobs
+            FOR EACH ROW EXECUTE FUNCTION {SCHEMA}.delay_concurrent_job_update();
+        """, prepare=False)
+        try:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = [
+                    executor.submit(store.apply_job_complete, concurrent_a[0], concurrent_a[1], concurrent_env["operation_arguments"]),
+                    executor.submit(store.apply_job_complete, concurrent_b[0], concurrent_b[1], concurrent_env["operation_arguments"]),
+                ]
+                concurrent_results = [future.result(timeout=10) for future in futures]
+        finally:
+            conn.execute(f"DROP TRIGGER IF EXISTS delay_concurrent_job_update ON {SCHEMA}.ingestion_jobs")
+            conn.execute(f"DROP FUNCTION IF EXISTS {SCHEMA}.delay_concurrent_job_update()")
+        concurrent_statuses = sorted(result["status"] for result in concurrent_results)
+        assert concurrent_statuses == ["applied", "duplicate"], concurrent_results
+        concurrent_state = snapshot(conn, "session-concurrent", "job-concurrent")
+        assert concurrent_state[0] == ("validated", 8), concurrent_state
+        assert concurrent_state[1][0] == "succeeded", concurrent_state
+        assert concurrent_state[2][0:2] == (1, 1), concurrent_state
+        assert conn.execute(
+            f"SELECT count(*) FROM {SCHEMA}.request_receipts_v2alpha2 WHERE operation_id='op-concurrent'"
+        ).fetchone()[0] == 1
+        assert conn.execute(
+            f"SELECT count(*) FROM {SCHEMA}.request_nonce_ledger_v2alpha2 WHERE operation_id='op-concurrent'"
+        ).fetchone()[0] == 2
+        print("PostgreSQL concurrent fresh-nonce duplicate requests serialize to one atomic mutation: PASS")
 
         before_reconcile = snapshot(conn, "session-1", "job-1")
         rec_env = reconcile_envelope("job-1", "session-1", "op-01", "idem-01")

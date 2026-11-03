@@ -33,6 +33,8 @@ These changes strengthen reference contracts and test coverage. They do not add 
 - Python Store Protocol, Worker Runtime, Retry Policy and Request Digest tests.
 - Complete Request Digest SQL asset execution on PostgreSQL 17.11 with pgsodium.
 - Positive and negative PostgreSQL `worker.job.fail` canonical argument tests.
+- Concurrent fresh-nonce duplicate Business Handler requests serialize to one Job/Session/Transition/Outbox mutation.
+- Runtime catalog checks prove only the two approved entry points are executable by the runtime role.
 - Existing atomic Business Handler/UOW PostgreSQL tests.
 
 A green CI run is necessary but not sufficient for merge or production readiness. Independent review and owner/security approvals remain mandatory.

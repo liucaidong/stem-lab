@@ -39,6 +39,8 @@ The PostgreSQL conformance harness tests:
 - tenant GUC spoofing resistance and runtime direct-table privilege denial;
 - pending, missing and terminal reconciliation outcomes;
 - an Outbox-trigger failure after earlier writes, proving full transaction rollback;
+- concurrent fresh-nonce requests with the same Receipt identity, proving one mutation and one terminal duplicate;
+- runtime-role catalog inspection proving helper functions are not executable by the runtime role;
 - a simulated lost COMMIT acknowledgement after server commit, followed by fresh-nonce reconciliation to the terminal Receipt.
 
 ## Explicit limitations
