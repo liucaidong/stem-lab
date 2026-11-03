@@ -116,7 +116,18 @@ An INSERT can block on an uncommitted conflicting unique key even without an exp
 - Inject lock timeout/deadlock and verify whole transaction rollback.
 - Inspect pg_locks/wait events during deterministic barriers to compare observed waits with the graph.
 
-## 8. Gate conclusion
+## 8. Prior PostgreSQL deadlock evidence
+
+The main-branch R03.20 technical decision register records a directly relevant earlier PostgreSQL concurrency incident:
+- Runs #208/#210 found a lock-upgrade deadlock when Receipt INSERT (whose composite foreign key acquired KEY SHARE on the parent resource) occurred before Session FOR UPDATE.
+- The correction was to lock Session first, re-check the idempotency Receipt, validate the expected revision, and only then insert the Receipt.
+- Run #212 passed after that ordering correction and schema-qualified test query fix.
+
+This is strong evidence for the local ordering Job -> Session -> Receipt lookup/reservation in the relevant Job/Session transaction. It does not prove the expanded v2alpha2 order once Nonce, DLQ, Transition and Outbox uniqueness/FK edges are included. Those additional edges still require source inventory and multi-connection tests.
+
+The same upstream R03.52.7.3.5 contract states that one assertion may authorize multiple SQL statements within one transaction; nonce consumption is a transaction-level authorization step, not a per-statement policy check. Therefore no RLS policy/trigger may attempt to consume the same nonce independently on every row operation.
+
+## 9. Gate conclusion
 
 G8 remains OPEN. The candidate order provides a review framework, not proof. No lock order is accepted until every action's source SQL, implicit FK/unique-index edge and concurrency behavior has been reviewed.
 
