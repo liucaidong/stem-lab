@@ -55,6 +55,16 @@ No document in this PR grants business Handler implementation permission. G15 re
 | 32-test-matrix-detail.md | PROPOSED | G11/G13 | Existing helper CI, action test gaps and R03.52.5 replay preflight | Integrated fixture design | Test + Database | Unit/PG/concurrency/security/rollback matrices pass, including PG-11 DLQ replay atomicity and SEC-17 unsupported-action fail-closed behavior | NO |
 | 33-retry-policy-authority-and-delay-unit-audit.md | SOURCE-VERIFIED GAP / NOT ACCEPTED | G1/G4/G13 | R03.52.4 Retry Policy Registry, v2alpha2 action codec/SQL and legacy Store protocol | Trusted policy authority, policy version and delay-unit decision | Worker + Protocol + Security + Database | Trusted source, pinned policy version, bounds and exact conversion accepted and tested | NO |
 
+| 34-final-source-audit-report.md | SOURCE AUDIT PARTIAL / BLOCKED | G0–G14 | 81-path inventory, source SHA/line evidence and GAP register | Remaining per-path semantic review | Architecture + Worker + Database + Security | All 81 paths reviewed line-by-line and findings closed/accepted | NO |
+| 35-atomic-unit-of-work-formal-model.md | TARGET MODEL / NOT ACCEPTED | G2–G8/G10/G11 | R03.52.7.3.5, Store Protocol and v2alpha2 helper sources | Handler/Adapter, lock graph, Receipt/Nonce approval | Architecture + Database + Security | One outer transaction and failure/recovery behavior proven | NO |
+| 36-cross-module-contract-consistency-matrix.md | SOURCE-VERIFIED DISCREPANCIES | G1–G10/G13 | Python, Store Protocol, SQL, schemas and fixtures | Normative contract decisions | Protocol + Worker + Database + Security | All field/type/range/unit/error/permission mismatches resolved | NO |
+| 37-security-and-tenant-isolation-gate.md | SECURITY GATE BLOCKED | G9 | Receipt SQL, legacy role matrix, v2alpha2 verifier and threat model | Catalog/negative tests and privilege decision | Security + Database | Least-privilege Runtime and tenant isolation proven | NO |
+| 38-decision-closure-matrix.md | RECOMMENDATIONS ONLY / NOT APPROVED | G1–G14 | DEC register, R535 records, Product Code Freeze and source audits | Named approvals for each normative decision | Project Owner + Architecture + Security + Database + Worker | All blocking decisions recorded ACCEPTED/REJECTED/DEFERRED by authority | NO |
+| 39-fault-injection-and-acceptance-matrix.md | TEST PLAN / NOT EXECUTED | G7/G10/G11 | Existing helper/legacy tests and transaction target model | Integrated v2alpha2 Handler/UOW | Test + Database + Security | Required unit/PG/concurrency/catalog/crash/COMMIT tests pass | NO |
+| 40-documentation-consistency-report.md | CONSISTENCY REVIEW PARTIAL | G0/G13/G14 | PR #21 docs 00–33, current PR/CI snapshot | Full link/ID scan and remaining source audit | Architecture governance | Cross-reference scan and approval traceability complete | NO |
+| 41-implementation-entry-gate.md | BLOCKED | G0–G15 | Source audit, security, transaction, test and approval artifacts | All predecessor gates | Architecture + Security + Project Owner | G0–G14 PASS or approved N/A; G15 explicitly approved | NO |
+| 42-final-pre-implementation-closure-report.md | NOT READY | G0–G15 | Current repository snapshot and docs 34–41 | Blocker closure and owner authorization | Project Owner + Architecture + Security + Database + Worker | All blockers closed, evidence verified and explicit entry approval | NO |
+
 ## 3. Approval record requirements
 
 When a row is accepted, record:
@@ -78,3 +88,4 @@ G15 remains BLOCKED. This matrix makes document ownership and evidence traceabil
 
 - 2026-11-03: Initial pre-implementation document traceability matrix.
 - 2026-11-03: Added governance/test/retry-policy audit traceability rows.
+- 2026-11-03: Added final source audit, Atomic UoW, contract matrix, security gate, decision closure, test matrix, documentation consistency and final entry-gate artifacts (34–42).
