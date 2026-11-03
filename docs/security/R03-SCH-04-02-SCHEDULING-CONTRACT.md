@@ -72,7 +72,7 @@ No Ruleset change and no external App-created check is allowed in this phase.
 
 ## 6. Reconciliation contract
 
-Reconciliation MUST cover:
+The initial read-only reconciler MUST cover:
 - every open PR's current head SHA;
 - current main SHA;
 - the workflow run and exact required check associated with each target.
@@ -88,10 +88,10 @@ Rules:
 2. Do not dispatch when a matching run is active.
 3. Do not dispatch when exact-SHA `COVERED_SUCCESS` exists.
 4. Recover only the current open PR head or current main SHA; do not replay obsolete PR heads by default.
-5. Bound recovery attempts and apply backoff for API/rate-limit failures.
-6. Record target SHA, run ID, run attempt, recovery reason, and final conclusion in logs/artifacts.
-7. A recovery operation must preserve or prove the exact SHA and required-check association.
-8. If exact association cannot be proven, stop and require operator intervention.
+5. The read-only phase does not recover; it reports RECOVERY_REQUIRED. Any later write-capable recovery must bound attempts and apply backoff for API/rate-limit failures.
+6. Record target SHA, run ID, run attempt, recovery reason, and final conclusion in the read-only report; later recovery must preserve an audit record.
+7. Any later recovery operation must preserve or prove the exact SHA and required-check association.
+8. If exact association cannot be proven, classify UNKNOWN and require operator intervention.
 
 ## 7. Dependabot governance contract
 

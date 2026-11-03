@@ -2,7 +2,7 @@
 
 ## 1. Status and authorization
 
-**Architecture direction accepted; implementation has not started.**
+**Architecture direction accepted; U0–U4 implemented on the SCH.04 working branch. U5 read-only reconciliation is now being added. PR #33 remains unmerged.**
 
 Approved direction:
 - remove the global 300-second cooldown and artifact-marker admission delay;
@@ -19,7 +19,7 @@ Not authorized by this plan:
 - automatic merge of PR #29–#32;
 - changing dependency policy pins without a compatibility review.
 
-No production workflow or Dependabot configuration was changed during this plan revision.
+Implementation is contained in PR #33 and has not changed production main; the current main SHA and Ruleset remain unchanged.
 
 ## 2. Target design
 
@@ -96,13 +96,13 @@ Scheduled/manual reconciler
 - Update static dependency-policy fixtures only in the same reviewed change as the corresponding legitimate dependency change; do not weaken digest/SHA/hash enforcement.
 
 ### U5 — Bounded reconciliation and recovery
-- Prefer a scheduled/manual workflow with read-only inspection by default.
+- Initial phase is a manual read-only CLI; do not add a scheduled workflow until actual report volume and API cost justify it.
 - Inspect all open PR current head SHAs and current main SHA.
 - Inspect workflow runs and exact `CI result` checks for those SHAs.
 - Classify each target as covered-success, active, recovery-required, or unknown.
 - Never recover a target already active or already covered by exact-SHA success.
 - Treat unknown/API errors as unknown, not success.
-- Use original workflow-run rerun where supported and verify SHA/ref preservation.
+- Initial phase performs no rerun or dispatch. Add write-capable recovery only after read-only classification is validated and separately authorized.
 - If a no-job cancelled run cannot be rerun, test the alternative recovery route in isolation before enabling it.
 - Bound attempts, apply backoff, respect API rate limits, and emit an audit record with target SHA/run ID/attempt/reason/conclusion.
 - Do not create an external App check. The GitHub Actions workflow remains the required-check producer.
@@ -136,11 +136,11 @@ Scheduled/manual reconciler
 | `scripts/validate_ci_workflow_policy.py` | enforce native queue and no cooldown |
 | `scripts/test_ci_workflow_policy.py` | regression tests for queue and required-check contract |
 | `.github/dependabot.yml` | stagger schedules; PR limit 1/ecosystem |
-| `scripts/ci_reconcile.py` (candidate) | inspect current-head coverage and recovery decisions |
+| `scripts/ci_reconcile.py` (implemented read-only) | inspect current-head coverage and recovery decisions |
 | `.github/workflows/ci-reconciliation.yml` (candidate) | scheduled/manual bounded reconciliation |
-| `scripts/test_ci_reconcile.py` (candidate) | exact SHA, active-run dedupe, unknown state, recovery bounds |
+| `scripts/test_ci_reconcile.py` (implemented) | exact SHA, active-run dedupe, unknown state, recovery bounds |
 
-Candidate paths are not created or modified yet.
+The reconciler and offline tests are implemented in the SCH.04 working branch; no scheduled workflow has been added.
 
 ## 5. Security and permission boundary
 
@@ -179,4 +179,4 @@ Implementation is accepted only when all are true:
 8. U7 isolated burst, overflow, recovery, and final acceptance.
 9. One cohesive implementation PR; no merge until complete CI success.
 
-**Current state:** architecture and plan revised only. The next authorized activity is U0 read-only baseline refresh, followed by implementation work on the existing working branch. Production CI configuration remains unchanged.
+**Current state:** U0–U4 implemented in PR #33; exact-SHA required CI passed on head fb31d718f38613ebb3ce7d1cb49aec60dbfd8d58. U5 read-only CLI and offline tests are being added. No recovery writes, scheduled workflow, Ruleset changes, or main-branch changes are authorized.
