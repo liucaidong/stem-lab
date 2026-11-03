@@ -19,7 +19,7 @@ The branch refs were fetched using the GitHub commit endpoint, and workflow runs
 | #19 | r03-52-7-3-11-3-receipt-arbitration | 8fb7dc5edc5954cd8b5ffc50bcce6833310550f6 | #438 / 41577279984 | SUCCESS | Receipt arbitration helper |
 | #20 | r03-52-7-3-11-3-handler-integration-audit | a9394870164bba5971ffa82b15c83d7e9b9cfc47 | #439 / 41578429173 | SUCCESS | Source audit only |
 
-| #21 | r03-52-7-3-11-3-preimplementation-closure | f3cef4b5dafff2a9b1b8e19e739c95b2a7d33ee5 | #486 / 41586441727 | SUCCESS | Both jobs passed on exact pre-batch HEAD; 34 Markdown files at that snapshot; preceding Run #485 on da06f11 also passed |
+| #21 | r03-52-7-3-11-3-preimplementation-closure | 8313051ddc0cfe5dea7e9ca1cc558b1938a09ade | #487 / 41588261455 | SUCCESS | Both jobs passed on exact pre-batch HEAD; 34 Markdown files at that snapshot; preceding Run #486 on f3cef4b and #485 on da06f11 also passed |
 
 ## 2. Interpretation
 
@@ -37,7 +37,7 @@ The branch refs were fetched using the GitHub commit endpoint, and workflow runs
 
 ## 4. Gate conclusion
 
-This closes the PR #13–#21 head mapping for the pre-batch snapshot and records Run #486 on the exact PR #21 HEAD (both jobs SUCCESS). Later staged audit changes are not covered by Run #486 and will be validated by the single CI run after the next batched commit. G0 remains IN_PROGRESS until governance artifact/sign-off checks and scoped semantic review are complete.
+This closes the PR #13–#21 head mapping for the pre-batch snapshot and records Run #487 on the exact PR #21 HEAD (both jobs SUCCESS). Later staged audit changes are not covered by Run #487 and will be validated by the single CI run after the next batched commit. G0 remains IN_PROGRESS until governance artifact/sign-off checks and scoped semantic review are complete.
 
 ## Change history
 

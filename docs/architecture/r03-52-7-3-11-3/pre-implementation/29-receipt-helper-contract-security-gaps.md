@@ -17,7 +17,7 @@ The PR #19 table request_receipts_v2alpha2 contains:
 - unique tenant/operation_id;
 - digest format check.
 
-It has no foreign key to Job/Session, no session_id column, no actor/owner/epoch columns, no nonce reference, no retention policy and no RLS/grant statements in the helper SQL.
+It has no foreign key to Job/Session, no session_id column, no actor/owner/epoch columns, no nonce reference, no retention policy and no RLS/grant statements in the helper SQL. Both helper functions are ordinary PL/pgSQL functions without `SECURITY DEFINER`, so PostgreSQL's default `SECURITY INVOKER` applies. The SQL asset contains no explicit `REVOKE EXECUTE ... FROM PUBLIC` or exact `GRANT EXECUTE`; PostgreSQL's default function ACL normally includes PUBLIC EXECUTE, while effective callability also depends on schema USAGE and deployment default privileges. The deployed schema/function ACL must be catalog-checked. `reserve` therefore requires the invoking Runtime principal to have the underlying Receipt INSERT/SELECT privileges; `finalize` requires UPDATE/SELECT. The test harness executes under a privileged fixture connection and does not prove that the least-privileged Runtime can call these functions without direct table grants.
 
 ## 2. Reserve helper gaps
 
@@ -30,7 +30,7 @@ reserve_request_receipt_v2alpha2 accepts tenant/action/idempotency/resource/oper
 - validate tenant/resource relationships against Job/Session;
 - enforce a maximum length for identity fields.
 
-This is acceptable only as a narrow helper called by a trusted Handler with one already-validated typed binding. It is not a standalone authorization boundary.
+This is acceptable only as a narrow helper called by a trusted Handler with one already-validated typed binding. It is not a standalone authorization boundary. Because it is SECURITY INVOKER, its use does not encapsulate the underlying table privileges; a Runtime caller must hold the table privileges or the design must explicitly approve a capability-scoped SECURITY DEFINER alternative.
 
 ## 3. Finalization helper gaps
 
@@ -66,7 +66,7 @@ The helper also does not define a closed outcome schema, maximum outcome size, s
 4. Receipt outcome has a versioned closed schema, maximum size and sensitive-data allow-list.
 5. Pending/terminal status and outcome constraints are enforced by database constraints as well as function logic.
 6. Finalization is scoped by exact tenant/operation/digest or protected by a reviewed RLS/role boundary.
-7. The helper is executed by a least-privileged identity; PUBLIC EXECUTE is revoked; exact grants and ownership are catalog-tested.
+7. Choose and approve the privilege model explicitly: SECURITY INVOKER with minimum direct table grants plus RLS, or a capability-scoped SECURITY DEFINER owner with fixed search_path and exact EXECUTE grants. Revoke PUBLIC EXECUTE; catalog-test owner, mode and grants.
 8. Direct table writes are denied except through the accepted action boundary.
 9. Receipt is part of the same transaction as Nonce/Job/Session/Transition/Outbox/DLQ.
 10. Reconciliation reads only the correct versioned Receipt store and returns stored terminal outcome without replaying effects.

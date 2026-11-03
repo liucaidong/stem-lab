@@ -18,14 +18,14 @@ The R03.52.7.3.11 architecture review recommends investigating capability-specif
 The disposable v2alpha2 SQL assets define functions and tables but do not, in the inspected files, establish an accepted production role/ownership/EXECUTE/RLS model. The digest PostgreSQL harness connects using its database test connection, creates the schema/functions and executes helper calls. The Receipt harness likewise creates the schema and calls the functions without proving execution as a least-privileged Runtime principal.
 
 No evidence from these helper tests establishes:
-- PUBLIC EXECUTE has been revoked from every helper function;
+- PUBLIC EXECUTE has been revoked from every helper function; the inspected v2alpha2 SQL assets contain no explicit PUBLIC revoke or exact EXECUTE grants, and default function ACLs normally include PUBLIC EXECUTE (effective callability also depends on schema USAGE/default privileges);
 - Runtime cannot directly read issuer keys or mutate Receipt/Nonce/Transition/Outbox tables;
 - helper ownership and search_path are safe under all object-shadowing conditions;
 - RLS is enabled and forced on every protected relation;
 - the Runtime login cannot SET ROLE into a more privileged helper role;
 - SECURITY DEFINER is necessary or safe for the v2alpha2 path.
 
-The current v2alpha2 verifier functions are not declared SECURITY DEFINER in the inspected SQL; do not change that posture without a threat model and explicit review.
+The current v2alpha2 verifier functions are not declared SECURITY DEFINER in the inspected SQL; do not change that posture without a threat model and explicit review. The Receipt helper functions are also ordinary PL/pgSQL functions with no `SECURITY DEFINER` clause, so they execute as SECURITY INVOKER by default. Their tests use privileged fixture connections and do not prove that Runtime can invoke them without direct Receipt table privileges.
 
 ## 3. Role taxonomy to evaluate (not an approved selection)
 

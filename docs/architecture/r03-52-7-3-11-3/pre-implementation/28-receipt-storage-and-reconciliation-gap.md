@@ -39,6 +39,10 @@ The existence of a legacy Receipt reconcile path does not prove that v2alpha2 Re
 
 A v2alpha2 Receipt Reconcile implementation must not accidentally query the legacy receipts table and report “not found” for an existing v2alpha2 Receipt.
 
+### Missing read-only lookup helper
+
+The only v2alpha2 Receipt SQL helpers are `reserve_request_receipt_v2alpha2` and `finalize_request_receipt_v2alpha2`. The reserve helper is insert-first: when the supplied tenant/action/idempotency key has no row, it creates a new `pending` Receipt before returning. There is no dedicated SELECT-only lookup by tenant + target operation_id. Reusing `reserve` for `worker.receipt.reconcile` can therefore create a new pending Receipt when the target is missing, violating the proposed read-only reconciliation contract. A dedicated read-only lookup path (or a carefully scoped SELECT in the Handler) is required; Reconcile must never create/finalize a business Receipt.
+
 ## 3. Receipt metadata gaps
 
 The v2alpha2 helper table does not store:
@@ -73,7 +77,7 @@ Do not silently merge legacy and v2alpha2 Receipt semantics or modify the PR #13
 - For v2alpha2, resource_type=receipt and resource_id identifies the target logical operation/Receipt.
 - Claim.operation_id remains the stable business operation ID being reconciled, consistent with the current resource_id=operation_id candidate, unless the protocol owner approves a separate target-operation field.
 - Reconciliation is read-only with respect to business Job/Session/Transition/Outbox state.
-- The reconciliation assertion uses a fresh nonce; it does not consume the original mutation assertion nonce.
+- The reconciliation assertion uses a fresh nonce; it does not consume the original mutation assertion nonce. Recommended outcome rule: a typed missing/pending/terminal reconciliation result is a committed read outcome and commits the fresh reconciliation nonce; an authorization/infrastructure/transaction failure aborts and rolls back the nonce with the outer transaction. This outcome/commit mapping must be approved and tested.
 - The handler looks up the v2alpha2 Receipt by tenant + operation_id and verifies action, idempotency key, resource type/id and stored digest according to the approved contract.
 - A terminal Receipt returns its stored outcome; pending/missing/inconsistent Receipt returns a typed non-success result and never fabricates success.
 - Reconcile must not create a new business Receipt for the same operation_id, because the unique operation identity is already owned by the original mutation.
