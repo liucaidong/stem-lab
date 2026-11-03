@@ -252,11 +252,11 @@ def enforce_concurrency_contract(content: str, path: Path) -> None:
     concurrency = "\n".join(top_level_block(content, "concurrency"))
     if not concurrency:
         fail(f"{path.relative_to(ROOT)} is missing workflow-level concurrency")
-    if not re.search(rf"(?m)^  group: {re.escape(GLOBAL_GROUP)}\\s*$", concurrency):
+    if not re.search(rf"(?m)^  group: {re.escape(GLOBAL_GROUP)}\s*$", concurrency):
         fail(f"{path.relative_to(ROOT)} must use concurrency group {GLOBAL_GROUP!r}")
-    if not re.search(r"(?m)^  cancel-in-progress: false\\s*$", concurrency):
+    if not re.search(r"(?m)^  cancel-in-progress: false\s*$", concurrency):
         fail(f"{path.relative_to(ROOT)} must set cancel-in-progress: false")
-    if not re.search(r"(?m)^  queue: max\\s*$", concurrency):
+    if not re.search(r"(?m)^  queue: max\s*$", concurrency):
         fail(f"{path.relative_to(ROOT)} must set queue: max")
     for token in ("stem-lab-ci-admission", ".ci-admission/marker.json", "300-second"):
         if token in content:
