@@ -1,0 +1,79 @@
+# R03.52.7.3.11.3 — Gap Register and Dependency Matrix
+
+**Version:** 0.1.0  
+**Status:** OPEN / SOURCE-DERIVED  
+**As-of:** 2026-11-03  
+**Decision owner:** Architecture + Security; protocol owner for canonicalization semantics.
+
+## 1. Executive gap statement
+
+The repository currently has independently tested v2alpha2 primitives, not a business-operation integration. The next safe activity is to close contracts and establish a disposable integration test design. It is not safe to begin production-shaped business Handler implementation while the following gaps remain unresolved.
+
+## 2. Gap Register
+
+| ID | Area | Source-backed finding | Required closure evidence | Severity | State |
+|---|---|---|---|---|---|
+| GAP-01 | Version dispatch | No shared action entry point selects exactly one legacy or v2alpha2 verifier | Fail-closed dispatch state machine + compatibility tests | Critical | OPEN |
+| GAP-02 | Digest/mutation binding | Digest verifier accepts an operation-argument object separately; no call-site proof it is the same typed values used in SQL mutation | Handler contract derives digest and SQL from one typed local binding; tamper tests | Critical | OPEN |
+| GAP-03 | Trusted signer | SQL verifier resolves an issuer key in disposable fixture; production issuer provenance, signer service, rotation/revocation and key custody are not accepted | Trust-boundary design, interfaces, threat model and key lifecycle tests | Critical | OPEN |
+| GAP-04 | Action contracts | Digest helper has an action map, but there is no integrated typed Handler binding matrix for all actions | Per-action claim/resource/argument/lock/write/error/replay contract | Critical | OPEN |
+| GAP-05 | Receipt integration | Receipt helper is independent of Job, Session, Nonce, Transition and Outbox | Same-transaction integration and full persisted-state snapshots | Critical | OPEN |
+| GAP-06 | Receipt fixture identity | PR #20 audit records a replay fixture changing operation_id while holding a literal digest constant, although operation_id participates in the envelope | Same signed envelope replay fixture + changed-identity negative tests | High | OPEN |
+| GAP-07 | v2alpha2 Nonce Ledger | Legacy nonce ledger is transaction-bound but no v2alpha2 durable ledger or cross-version coordination is integrated | Explicit uniqueness domain, consumption timing, retention and cross-version tests | Critical | OPEN |
+| GAP-08 | Atomic UOW | No v2alpha2 complete Job/Session/Receipt/Nonce/Transition/Outbox write set | One transaction contract + outer rollback and persisted-state proof | Critical | OPEN |
+| GAP-09 | Lock ordering | Candidate order exists in PR #20 audit, but no all-action lock graph or proof against cycles | Per-action lock graph and adversarial multi-connection tests | Critical | OPEN |
+| GAP-10 | Database privileges | v2alpha2 helper privilege/RLS model is not accepted as production boundary; legacy fixture concentrates broad verifier authority | Role/ownership/EXECUTE/RLS/catalog matrix and negative tests | Critical | OPEN |
+| GAP-11 | Failure semantics | Helper rollback tests do not define every business operation's durable state after each failure | Failure-to-table mutation matrix and state snapshot schema | Critical | OPEN |
+| GAP-12 | Test architecture | Existing CI runs independent helper harnesses; no integrated Handler/UOW test is present | Reusable fixture design + test proof-boundary matrix + CI wiring plan | High | OPEN |
+| GAP-13 | Complete vertical slice | Complete is not a single mandatory v2alpha2 complete-write-set entry path | End-to-end sequence, mutation inventory, state and security acceptance | Critical | OPEN |
+| GAP-14 | Remaining actions | Fail/Retry/Renew/Dead Letter/Receipt reconcile/Outbox Dispatch/Ack lack v2alpha2 integrated designs | Action-by-action contracts and concurrency differences | High | OPEN |
+| GAP-15 | Canonicalization approval | R535-OD3 and canonicalization ADR remain OPEN/PROPOSED | Formal approval of exact bytes, field set, limits and vectors | Critical | OPEN |
+| GAP-16 | Production architecture | DEC-03 and DEC-14 remain OPEN; no production adapter/driver/pool/provider is selected | Separate approved decisions; not a prerequisite to disposable contract design unless directly required | Deferred | OPEN |
+| GAP-17 | Code-freeze authority | Product Code Freeze ACTIVE; P3.17 OUT OF SCOPE | Explicit authorized freeze decision after all prerequisites | Critical | BLOCKED |
+
+## 3. Dependency Matrix
+
+| Work item | Depends on | Must precede |
+|---|---|---|
+| Protocol/Claim contract | Existing PR #15–#18 source; R535-OD3 approval | Version dispatch; action binding; verifier integration |
+| Trusted Signer boundary | Issuer/key provenance decision; threat model | Verifier call path and key access grants |
+| Version dispatch | Claim discriminator; legacy behavior inventory | Every action entry point |
+| Action-specific typed binding | Frozen action schema; exact SQL mutation inventory | Digest recomputation and Handler implementation |
+| Receipt semantics | Operation identity + digest contract | Receipt reserve/replay/finalize integration |
+| Nonce contract | Version compatibility + issuer/kid/tenant/subject scope | Durable nonce consumption |
+| Atomic UOW | Receipt + Nonce + action mutation + event contracts | Complete/Fail/Retry/etc. implementation |
+| Lock graph | All action resource dependencies and unique-key arbitration | Concurrency test implementation |
+| SQL security model | Role inventory + function call graph + RLS policy inventory | Grant/revoke and handler function implementation |
+| Failure-state contract | UOW write set + error propagation model | R03.52.7.3.11.4 fault injection |
+| PostgreSQL test strategy | All contracts above + reusable fixture inventory | Integrated CI suite |
+| Complete vertical slice | G1–G11 accepted | PR for business implementation |
+| Remaining action designs | Complete slice template + action-specific differences | Subsequent handler increments |
+| Cross-audit / entry gate | All prior artifacts + independent review | G15 decision |
+
+## 4. Current evidence versus inference
+
+### Verified facts
+- PR #18 and #19 CI runs #437/#438 were recorded SUCCESS in the PR #20 audit.
+- PR #20 run #439 is SUCCESS.
+- The v2alpha2 verifier and Receipt helper have independent PostgreSQL test harnesses.
+- Existing legacy action paths use `verify_v2` / `authorize_v2`; PR #20 audit reports no calls from these paths to the v2alpha2 verifier or Receipt functions.
+- Existing legacy nonce ledger has a primary key `(issuer, kid, nonce)` and binds rows to transaction/token context in the reference fixture.
+- The workflow invokes the helper suites but does not contain an end-to-end v2alpha2 Handler/UOW test.
+
+### Design implications (not yet accepted decisions)
+- A v2alpha2 Handler should construct digest arguments from the same typed local variables passed to mutation statements.
+- A failed business operation should not permit a caller to commit a partial durable write set.
+- Outbox broker I/O should remain outside the database transaction; durable event intent belongs inside it.
+- Receipt reconciliation and Outbox-only operations likely require distinct lock paths from Job mutation operations.
+
+## 5. Immediate closure order
+
+1. G0: finish source inventory, exact PR/branch/CI/decision baseline and freeze evidence.
+2. G1–G3: close protocol/digest semantics, version compatibility and signer trust boundary.
+3. G4–G6: close action binding, Receipt and Nonce semantics.
+4. G7–G10: close UOW, lock ordering, database privileges and failure state contracts.
+5. G11–G13: close test architecture and action designs.
+6. G14: independent architecture/security consistency review.
+7. G15: accept only if every mandatory predecessor is ACCEPTED.
+
+No step in this sequence authorizes production implementation by itself.
