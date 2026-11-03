@@ -125,6 +125,7 @@ DECLARE
   v_outcome jsonb;
 BEGIN
   IF p_receipt_id IS NULL
+     OR p_final_status IS NULL
      OR p_final_status NOT IN ('succeeded', 'failed')
      OR p_outcome IS NULL THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'INVALID_RECEIPT_FINALIZATION';
