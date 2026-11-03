@@ -1,105 +1,77 @@
-# ADR R03-SCH-04.2 — Durable CI Scheduling and Dependabot Separation
+# ADR R03-SCH-04.2 — Native-First CI Scheduling
 
-- Status: **PROPOSED — awaiting explicit approval**
-- Date: 2026-11-04
-- Decision owner: repository owner
-- Scope: CI task orchestration and Dependabot update scheduling only
+- Status: **Accepted direction; implementation pending**
+- Decision date: 2026-11-04
+- Scope: `liucaidong/stem-lab` custom required-validation workflow and Dependabot arrival shaping
 
 ## Context
 
-The current custom workflow has one global concurrency group with `queue: single`. GitHub documents that this allows one pending run and replaces the existing pending run when another run is queued. Recent repository evidence shows three Dependabot PR validation runs cancelled before jobs were created. The artifact marker used by the 300-second admission gate expires after one day and is not a durable task queue.
+The audit found that the current `queue: single` semantics can replace an older pending run with a newer pending run. The existing artifact marker implements a 300-second admission interval but is not a durable queue, atomic lock, or task ledger. Dependabot dynamic workflows also operate outside the custom workflow's concurrency group.
 
-GitHub now supports `queue: max` with up to 100 pending runs, but overflow still cancels runs and queue order is based on when a run begins waiting rather than event dispatch time; GitHub does not guarantee ordering by dispatch time.
+The earlier proposal introduced an external Scheduler, GitHub App, durable database, webhooks, task leases/fencing, retries, and dead-letter handling. That is technically capable but disproportionate to the immediate requirement: ensure every open PR's current head SHA and current main SHA obtain a truthful required CI result.
 
-Sources:
-- [GitHub Actions concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
-- [GitHub Actions larger concurrency queues (2026-05-07)](https://github.blog/changelog/2026-05-07-github-actions-concurrency-groups-now-allow-larger-queues/)
+## Decision
 
-## Decision proposed
+1. Remove the global 300-second cooldown.
+2. Use GitHub Actions native concurrency with:
+   ```yaml
+   concurrency:
+     group: stem-lab-global-ci
+     cancel-in-progress: false
+     queue: max
+   ```
+3. Retain one global concurrency group for the required custom validation workflow.
+4. Add bounded reconciliation of current open PR head SHAs and main SHA against workflow runs and the exact `CI result` check.
+5. Avoid duplicate runs when a matching run is queued or in progress.
+6. Recover cancelled, failed, timed-out, or missing-check targets through an approved exact-SHA recovery path.
+7. Stagger Dependabot ecosystem schedules and reduce each ecosystem's open version PR limit to one; retain minor/patch grouping and individually review major updates.
+8. Keep the exact required check `CI result` and Ruleset #26463757 unchanged.
+9. Do not create an external Scheduler, database, webhook receiver, or GitHub App for this phase.
 
-Adopt a layered model:
+## Rationale
 
-1. **Authoritative durable queue:** external queue service with transactional task persistence, idempotency, lease/fencing, retry, dead-letter, and reconciliation.
-2. **GitHub Actions execution backstop:** use native `queue: max` for bounded buffering, not as the source of truth.
-3. **Dependabot arrival shaping:** stagger ecosystem schedules, cap open version-update PRs per ecosystem, retain minor/patch groups, and isolate major upgrades for review.
-4. **Exact-task idempotency:** deduplicate only exact logical duplicates. Distinct PRs and distinct head SHAs remain separate tasks.
-5. **300-second policy:** retain the current 300-second interval as a minimum inter-start delay during initial migration. Tasks wait with an `eligible_at` timestamp; they are not rejected.
-6. **Required check:** preserve the exact `CI result` context and complete validation suite. Prove worker-run check association against the unchanged Ruleset before cutover.
-7. **Ruleset:** no Ruleset or branch-protection mutation is authorized.
-
-## Alternatives considered
-
-### A. GitHub concurrency only
-
-Rejected as the sole scheduler. `queue: max` is materially safer than `queue: single`, but it is bounded at 100 pending runs and does not provide an application-owned task ledger, retry/replay, or strict dispatch-time FIFO.
-
-### B. Dependabot-only shaping
-
-Rejected as the sole solution. It lowers the arrival rate but does not guarantee execution of already-created PR validation tasks and does not govern all human PRs or main pushes.
-
-### C. Artifact-backed custom scheduler
-
-Rejected as authoritative state. The current marker is expiring metadata and has no atomic claim, task queue, durable acknowledgement, or recovery path.
-
-### D. External durable queue
-
-Recommended. It is the only compared approach that can provide durable enqueue/claim/ack/replay and an auditable priority queue across PR, main, Dependabot, and manual tasks. It adds external infrastructure, GitHub App credentials, and operational ownership.
-
-### E. Deduplication/coalescing
-
-Required as an adjunct, not a scheduler. Exact duplicate deliveries can be idempotent; distinct PRs or head SHAs cannot be collapsed. Supersession must be explicit and persisted.
+- Removing cooldown eliminates artificial delay and the need for delayed task eligibility.
+- `queue: max` is materially safer than `queue: single` for bursts, while remaining native and low-maintenance.
+- The queue is bounded (100 pending) and not strict dispatch FIFO, so reconciliation is mandatory.
+- The merge gate needs current-head coverage, not execution of every obsolete intermediate commit.
+- Dependabot arrival shaping reduces bursts but is not mistaken for a correctness guarantee.
+- A small reconciliation mechanism addresses native queue overflow/missing checks without operating a second control plane.
 
 ## Consequences
 
 Positive:
-- Pending validation tasks are not silently replaced.
-- Queue state survives artifact expiry and workflow cancellation.
-- Priority, fairness, retry, and recovery become explicit.
-- Dependabot burst rate can be reduced independently of PR validation correctness.
-- Every task can be linked to an exact SHA and workflow run.
+- No external service, database, GitHub App, or secret-management plane.
+- No 300-second artificial delay.
+- Fewer moving parts and lower operational cost.
+- Current PR head coverage becomes an explicit auditable invariant.
 
-Negative:
-- Requires a durable database/queue, webhook receiver, GitHub App, monitoring, backups, and incident response.
-- Requires proof that dispatched worker runs publish the exact required `CI result` check accepted by the current Ruleset.
-- Adds API permission and secret-management obligations.
-- The 300-second interval constrains throughput until separately approved.
+Limitations:
+- Native queue is bounded at 100 pending.
+- Native ordering is not guaranteed by event dispatch time.
+- Intermediate superseded PR SHAs are not guaranteed to execute.
+- Reconciliation must be bounded, idempotent, and observable.
+- GitHub-managed Dependabot dynamic runs are not serialized by this workflow's concurrency group.
 
-## Security constraints
+## Guardrails
 
-- No Administration write permission.
-- No Rulesets write permission.
-- No branch-protection write permission.
-- No Contents write permission unless a separately justified worker design requires it; current proposal does not.
-- Actions write is limited to dispatch/inspect operations.
-- Pull requests and checks read permissions are limited to scheduler reconciliation.
-- Untrusted PR code executes only in GitHub-hosted worker jobs, never in the scheduler service.
-- Webhook signature, replay, repository allowlist, token rotation, and audit logging are mandatory.
+- `cancel-in-progress: false` remains mandatory.
+- `CI result` fails closed on failed, cancelled, skipped, missing, or non-admitted dependencies.
+- A missing check or API uncertainty is never success.
+- Recovery must prove exact SHA and required-check integration identity.
+- No Ruleset, branch protection, or required-check mutation.
+- No workflow implementation until the revised plan and migration tests are approved.
 
-## Rollout and rollback
+## Rejected alternatives
 
-Rollout must be dual-observed before cutover:
-1. Build and test durable ingress/queue without dispatch authority.
-2. Shadow-classify events and compare against GitHub PR/run state.
-3. Prove task idempotency, lease fencing, retry, and reconciliation.
-4. Prove required-check association on an isolated PR with unchanged Ruleset.
-5. Enable worker dispatch for a controlled subset.
-6. Verify no duplicate or missing required checks.
-7. Only then disable the old admission decision path.
+- External durable Scheduler: rejected as disproportionate for current scope; reopen only with measured native queue/reconciliation failure or a new requirement to execute every event SHA.
+- Artifact marker as queue: rejected; not durable or atomic.
+- `queue: single`: rejected due pending replacement semantics.
+- Dependabot staggering alone: rejected as a correctness mechanism.
 
-Rollback:
-- Stop new external dispatches.
-- Preserve queue records and run linkage.
-- Restore the prior PR-triggered worker path only after confirming no task is in an ambiguous dispatch state.
-- Never delete queued tasks as part of rollback.
-- Keep the 300-second cooldown unchanged.
-- Do not change Ruleset or required check context.
+## Re-entry criteria
 
-## Approval required
-
-This ADR is **not approved**. Explicit repository-owner approval is required before:
-- provisioning an external scheduler or queue;
-- creating/installing a GitHub App or expanding permissions;
-- changing workflow triggers/concurrency;
-- replacing the current admission mechanism;
-- modifying Dependabot scheduling;
-- any Ruleset change (which remains separately unauthorized).
+Reopen this ADR if:
+- queue overflow repeatedly leaves current PR heads without required checks;
+- reconciliation cannot meet the agreed recovery SLA;
+- a strict every-event-SHA execution requirement is introduced;
+- GitHub native concurrency/recovery proves insufficient under measured workload.
