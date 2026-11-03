@@ -6,7 +6,8 @@ This is a read-only disposition record. The live GitHub snapshot on 2026-11-04 s
 
 - Current main SHA: `8e749b55899d3626e39a31e1e438e3db682f5219`
 - SCH.04 branch: `security/r03-sch-04-01-event-task-audit`
-- PR #33 head: `ae4557d914b1417693e6f9e9214aa9d734253d68`
+- PR #33 current head: `d2b67664d81a8988a73c96eeaed48817fc5c8a01`
+- PR #33 latest exact-head CI Run `41739088474` completed successfully, including `CI result` from Actions App `15368`.
 - PR #33 remains Draft / OPEN / unmerged.
 - No PR #29–#32 head was modified, rerun, dispatched, cancelled, closed, or merged by this audit.
 - No Ruleset, branch protection, or required check was changed.
