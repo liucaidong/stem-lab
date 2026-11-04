@@ -90,6 +90,7 @@ class StoreProtocolSchemaTests(unittest.TestCase):
                 "retry_delay_micros": 0,
                 "retry_policy_version": "2026-11-03.1",
                 "idempotency_key": "fail-job-1-7",
+                "request_digest": "sha256:" + "b" * 64,
             },
         ]
         for command in commands:
@@ -158,6 +159,13 @@ class StoreProtocolValueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             JobLease("tenant-a", "job-1", "worker-1", 1, datetime.now())
 
+    def test_lease_and_claim_attempt_counters_obey_safe_integer_budget(self):
+        with self.assertRaises(ValueError):
+            JobLease("tenant-a", "job-1", "worker-1", 2**53, datetime.now(timezone.utc))
+        lease = JobLease("tenant-a", "job-1", "worker-1", 7, datetime.now(timezone.utc))
+        with self.assertRaises(ValueError):
+            ClaimedJobRecord(lease, "package.validate", {}, 1, 101)
+
     def test_claimed_payload_tenant_must_match_persisted_lease_tenant(self):
         lease = JobLease(
             "tenant-a", "job-1", "worker-1", 7,
@@ -176,17 +184,28 @@ class StoreProtocolValueTests(unittest.TestCase):
                 lease, 3, "object://result", "complete-1", "sha256:bad"
             )
 
+    def test_complete_command_rejects_unsafe_session_revision(self):
+        lease = JobLease("tenant-a", "job-1", "worker-1", 7, datetime.now(timezone.utc))
+        with self.assertRaises(ValueError):
+            CompleteJobCommand(lease, 2147483647, "object://result", "complete-1", "sha256:" + "a" * 64)
+
     def test_failure_command_rejects_unbounded_or_unstable_error(self):
         lease = JobLease(
             "tenant-a", "job-1", "worker-1", 7,
             datetime.now(timezone.utc),
         )
         with self.assertRaises(ValueError):
-            FailJobCommand(lease, "raw exception", "safe", True, 1, "2026-11-03.1", "fail-1")
+            FailJobCommand(lease, "raw exception", "safe", True, 1, "2026-11-03.1", "fail-1", "sha256:" + "b" * 64)
         with self.assertRaises(ValueError):
-            FailJobCommand(lease, "FAILED", "x" * 513, True, 1, "2026-11-03.1", "fail-1")
+            FailJobCommand(lease, "FAILED", "x" * 513, True, 1, "2026-11-03.1", "fail-1", "sha256:" + "b" * 64)
         with self.assertRaises(ValueError):
-            FailJobCommand(lease, "FAILED", "safe", True, float("nan"), "2026-11-03.1", "fail-1")
+            FailJobCommand(lease, "FAILED", "safe", True, float("nan"), "2026-11-03.1", "fail-1", "sha256:" + "b" * 64)
+        with self.assertRaises(ValueError):
+            FailJobCommand(lease, "FAILED", "safe", True, 1, "2026-11-03.1", "fail-1", "sha256:bad")
+        with self.assertRaises(ValueError):
+            FailJobCommand(lease, "E" * 65, "safe", True, 1, "2026-11-03.1", "fail-1", "sha256:" + "b" * 64)
+        with self.assertRaises(ValueError):
+            FailJobCommand(lease, "FAILED", "safe", False, 1, "2026-11-03.1", "fail-1", "sha256:" + "b" * 64)
 
     def test_unknown_transaction_outcome_is_explicit(self):
         error = StoreError(

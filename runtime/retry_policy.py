@@ -18,7 +18,7 @@ class RetryPolicy:
     max_delay_micros: int
     safe_message: str
     def __post_init__(self) -> None:
-        if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,127}", self.error_code):
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", self.error_code):
             raise ValueError("error_code must be a stable uppercase code")
         if not self.safe_message or len(self.safe_message) > 512:
             raise ValueError("safe_message must be 1..512 characters")
@@ -78,9 +78,9 @@ class RetryPolicyRegistry:
     def decide(self, error_code: str, attempt_count: int, maximum_attempts: int) -> FailureDecision:
         if type(attempt_count) is not int or type(maximum_attempts) is not int:
             raise ValueError("attempt counters must be integers")
-        if attempt_count < 1 or maximum_attempts < 1 or attempt_count > maximum_attempts:
-            raise ValueError("attempt_count must be in [1, maximum_attempts]")
-        if not isinstance(error_code, str) or not re.fullmatch(r"[A-Z][A-Z0-9_]{0,127}", error_code):
+        if attempt_count < 1 or maximum_attempts < 1 or maximum_attempts > 100 or attempt_count > maximum_attempts:
+            raise ValueError("attempt_count and maximum_attempts must be within [1, 100]")
+        if not isinstance(error_code, str) or not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", error_code):
             error_code = "__UNCLASSIFIED__"
         policy = self._policies.get(error_code, self._default)
         if not policy.retryable or attempt_count >= maximum_attempts:

@@ -106,8 +106,8 @@ class JobLease:
         ):
             if not value or len(value) > 256:
                 raise ValueError(f"{name} must contain 1..256 characters")
-        if self.epoch < 1:
-            raise ValueError("lease epoch must be >= 1")
+        if type(self.epoch) is not int or not 1 <= self.epoch <= 9007199254740991:
+            raise ValueError("lease epoch must be a positive JSON-safe integer")
         if self.expires_at.tzinfo is None or self.expires_at.utcoffset() is None:
             raise ValueError("lease expiry must be timezone-aware")
 
@@ -125,8 +125,8 @@ class ClaimedJobRecord:
             raise ValueError("job_type must contain 1..128 characters")
         if type(self.attempt_count) is not int or type(self.maximum_attempts) is not int:
             raise ValueError("attempt counters must be integers")
-        if self.attempt_count < 1 or self.maximum_attempts < 1 or self.attempt_count > self.maximum_attempts:
-            raise ValueError("attempt_count must be in [1, maximum_attempts]")
+        if self.attempt_count < 1 or self.maximum_attempts < 1 or self.maximum_attempts > 100 or self.attempt_count > self.maximum_attempts:
+            raise ValueError("attempt_count and maximum_attempts must be within [1, 100]")
         payload_tenant = self.payload.get("tenant_id")
         if payload_tenant is not None and payload_tenant != self.lease.tenant_id:
             raise ValueError("payload tenant_id must match persisted Job tenant")
@@ -141,8 +141,8 @@ class CompleteJobCommand:
     request_digest: str
 
     def __post_init__(self) -> None:
-        if self.expected_session_revision < 0:
-            raise ValueError("expected_session_revision must be >= 0")
+        if type(self.expected_session_revision) is not int or not 0 <= self.expected_session_revision <= 2147483646:
+            raise ValueError("expected_session_revision must be an int32-safe revision")
         if not self.result_ref or len(self.result_ref) > 1024:
             raise ValueError("result_ref must contain 1..1024 characters")
         if not self.idempotency_key or len(self.idempotency_key) > 256:
@@ -160,10 +160,11 @@ class FailJobCommand:
     retry_delay_micros: int
     retry_policy_version: str
     idempotency_key: str
+    request_digest: str
 
     def __post_init__(self) -> None:
-        if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,127}", self.error_code):
-            raise ValueError("error_code must be a stable uppercase code")
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", self.error_code):
+            raise ValueError("error_code must be a stable uppercase code of at most 64 characters")
         if not self.safe_message or len(self.safe_message) > 512:
             raise ValueError("safe_message must contain 1..512 characters")
         if type(self.retry_delay_micros) is not int or not 0 <= self.retry_delay_micros <= 86400000000:
@@ -172,8 +173,12 @@ class FailJobCommand:
             raise ValueError("retry_policy_version must contain 1..128 characters")
         if not self.retryable and self.retry_delay_micros != 0:
             raise ValueError("non-retryable failures must have zero delay")
+        if type(self.retryable) is not bool:
+            raise ValueError("retryable must be boolean")
         if not self.idempotency_key or len(self.idempotency_key) > 256:
             raise ValueError("idempotency_key must contain 1..256 characters")
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", self.request_digest):
+            raise ValueError("request_digest must be a lowercase sha256 digest")
 
 
 class StoreOutcome(StrEnum):

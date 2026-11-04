@@ -2,7 +2,10 @@
 from __future__ import annotations
 import base64, json, os, pathlib, time, uuid
 import psycopg
+import sys
 ROOT=pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from runtime.request_digest_v2alpha2 import request_digest
 DSN=os.environ.get("DATABASE_URL","postgresql://postgres:postgres@localhost:5432/stemlab_test")
 SCHEMA="request_digest_"+uuid.uuid4().hex[:12]
 VECTOR=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.golden.json").read_text())
@@ -60,7 +63,7 @@ def main() -> None:
         mapping_cases = (
             ("worker.job.renew", "job", "job-1", {"lease_seconds": 30}),
             ("worker.job.complete", "job", "job-1", {"expected_session_revision": 7, "result_ref": "artifact:abc"}),
-            ("worker.job.fail", "job", "job-1", {"error_code": "WORKER_FAILED", "retryable": True, "retry_delay_micros": 1000, "safe_message": "failed safely"}),
+            ("worker.job.fail", "job", "job-1", {"error_code": "WORKER_FAILED", "retryable": True, "retry_delay_micros": 1000, "retry_policy_version": "2026-11-03.1", "safe_message": "failed safely"}),
             ("worker.job.retry", "job", "job-1", {"delay_micros": 1000000, "error_code": "WORKER_FAILED"}),
             ("worker.job.dead_letter", "job", "job-1", {"error_code": "WORKER_FAILED", "terminal_reason": "max_attempts"}),
             ("worker.outbox.dispatch", "outbox_event", "event-1", {"lease_seconds": 30}),
@@ -91,6 +94,7 @@ def main() -> None:
             {"expected_session_revision":7.0,"result_ref":"artifact:abc"},
             {"expected_session_revision":7,"result_ref":"artifact:abc","unknown":"x"},
             {"expected_session_revision":7,"result_ref":""},
+            {"expected_session_revision":7,"result_ref":"x"*1025},
         ):
             try: conn.execute(call,(json.dumps(claim,ensure_ascii=False),json.dumps(bad_args,ensure_ascii=False)))
             except psycopg.Error: pass
@@ -105,6 +109,24 @@ def main() -> None:
         print("PostgreSQL tampered-argument rejection: PASS")
         print("PostgreSQL Unicode golden vector: PASS")
         print("PostgreSQL object-key order invariance: PASS")
+        fail_envelope=dict(envelope)
+        fail_envelope["action"]="worker.job.fail"
+        fail_envelope["operation_arguments"]={
+            "error_code":"DEPENDENCY_UNAVAILABLE","retryable":True,
+            "retry_delay_micros":1000000,"retry_policy_version":"2026-11-03.1",
+            "safe_message":"Dependency unavailable"
+        }
+        fail_digest=request_digest(fail_envelope)
+        fail_claim=dict(claim)
+        fail_claim.update({"action":"worker.job.fail","request_digest":fail_digest})
+        fail_args=fail_envelope["operation_arguments"]
+        assert conn.execute(call,(json.dumps(fail_claim),json.dumps(fail_args))).fetchone()[0] is True
+        missing_policy_version=dict(fail_args)
+        missing_policy_version.pop("retry_policy_version")
+        try: conn.execute(call,(json.dumps(fail_claim),json.dumps(missing_policy_version)))
+        except psycopg.Error: pass
+        else: raise AssertionError("PostgreSQL accepted fail action without retry_policy_version")
+        print("PostgreSQL fail action policy-version binding and validation: PASS")
         print("PostgreSQL invalid-argument rejection: PASS")
 
         # Sign and verify the exact decoded raw payload bytes.
