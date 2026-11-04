@@ -185,6 +185,9 @@ jobs:
       - name: Test experimental Job-rooted resource assertion v2alpha1 contract
         run: python scripts/test_resource_assertion_contract.py
 
+      - name: Test experimental Request Digest v2alpha2 typed encoding and golden vectors
+        run: python scripts/test_request_digest_v2alpha2.py
+
       - name: Validate API security and operational semantics
         run: python scripts/validate_api_operational_semantics.py
 
@@ -235,6 +238,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
         run: python scripts/test_postgres_tenant_ed25519_verifier.py
+
+      - name: Test PostgreSQL independent Request Digest v2alpha2 against Python golden vector
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/stemlab_test
+        run: python scripts/test_postgres_request_digest_v2alpha2.py
 
       - name: Test PostgreSQL Job-rooted resource authorization, RLS and nonce replay
         env:

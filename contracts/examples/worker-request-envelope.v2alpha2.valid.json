@@ -1,0 +1,7 @@
+{
+  "contract_version":"2alpha2","action":"worker.job.complete",
+  "tenant_id":"tenant-a","job_id":"job-1","session_id":"session-1",
+  "resource_type":"job","resource_id":"job-1","operation_id":"op-01",
+  "idempotency_key":"idem-01",
+  "operation_arguments":{"expected_session_revision":7,"result_ref":"artifact:abc"}
+}

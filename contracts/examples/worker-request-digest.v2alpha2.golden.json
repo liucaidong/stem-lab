@@ -1,0 +1,13 @@
+{
+  "vector_id":"complete-basic-001",
+  "envelope":{
+    "contract_version":"2alpha2","action":"worker.job.complete",
+    "tenant_id":"tenant-a","job_id":"job-1","session_id":"session-1",
+    "resource_type":"job","resource_id":"job-1","operation_id":"op-01",
+    "idempotency_key":"idem-01",
+    "operation_arguments":{"expected_session_revision":7,"result_ref":"artifact:abc"}
+  },
+  "canonical_bytes_base64url":"U1RFTUxBQi1SRVFVRVNULURJR0VTVAB2MmFscGhhMgBTAAAABzJhbHBoYTJTAAAAE3dvcmtlci5qb2IuY29tcGxldGVTAAAACHRlbmFudC1hUwAAAAVqb2ItMVMAAAAJc2Vzc2lvbi0xUwAAAANqb2JTAAAABWpvYi0xUwAAAAVvcC0wMVMAAAAHaWRlbS0wMUoAAABHTwAAAAIAAAAZZXhwZWN0ZWRfc2Vzc2lvbl9yZXZpc2lvbkkAAAABNwAAAApyZXN1bHRfcmVmUwAAAAxhcnRpZmFjdDphYmM",
+  "request_digest":"sha256:971871dbe094a2a0b3f34bf76832306c9a79b683dfca403902cc9193dcad8413",
+  "format":"stemlab-typed-v2alpha2"
+}
