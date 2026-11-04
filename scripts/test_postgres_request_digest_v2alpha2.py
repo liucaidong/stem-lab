@@ -63,7 +63,7 @@ def main() -> None:
         mapping_cases = (
             ("worker.job.renew", "job", "job-1", {"lease_seconds": 30}),
             ("worker.job.complete", "job", "job-1", {"expected_session_revision": 7, "result_ref": "artifact:abc"}),
-            ("worker.job.fail", "job", "job-1", {"error_code": "WORKER_FAILED", "retryable": True, "retry_delay_micros": 1000, "safe_message": "failed safely"}),
+            ("worker.job.fail", "job", "job-1", {"error_code": "WORKER_FAILED", "retryable": True, "retry_delay_micros": 1000, "retry_policy_version": "2026-11-03.1", "safe_message": "failed safely"}),
             ("worker.job.retry", "job", "job-1", {"delay_micros": 1000000, "error_code": "WORKER_FAILED"}),
             ("worker.job.dead_letter", "job", "job-1", {"error_code": "WORKER_FAILED", "terminal_reason": "max_attempts"}),
             ("worker.outbox.dispatch", "outbox_event", "event-1", {"lease_seconds": 30}),
