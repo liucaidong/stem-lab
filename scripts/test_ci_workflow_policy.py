@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Negative policy tests for CI workflow and dependency-lock invariants."""
+import json
 from pathlib import Path
 
 from validate_ci_workflow_policy import (
@@ -50,6 +51,28 @@ def main():
     rejected("Python install without hash enforcement", lambda: enforce_python_dependency_lock(bad, WORKFLOW))
     bad = content.replace("npm ci --ignore-scripts --no-audit --no-fund", "npm install pg", 1)
     rejected("mutable npm install", lambda: enforce_node_dependency_lock(bad))
+    package_path = ROOT / "scripts" / "benchmarks" / "store-driver-node" / "package.json"
+    lock_path = ROOT / "scripts" / "benchmarks" / "store-driver-node" / "package-lock.json"
+    package_text = package_path.read_text(encoding="utf-8")
+    lock_text = lock_path.read_text(encoding="utf-8")
+    package = json.loads(package_text)
+    package["dependencies"]["pg"] = "8.16.3"
+    rejected(
+        "npm manifest version drift",
+        lambda: enforce_node_dependency_lock(content, package_override=json.dumps(package), lock_override=lock_text),
+    )
+    lock = json.loads(lock_text)
+    lock["packages"]["node_modules/pg"]["version"] = "8.16.3"
+    rejected(
+        "npm lock version drift",
+        lambda: enforce_node_dependency_lock(content, package_override=package_text, lock_override=json.dumps(lock)),
+    )
+    lock = json.loads(lock_text)
+    lock["packages"]["node_modules/pg"].pop("integrity", None)
+    rejected(
+        "npm lock package without integrity",
+        lambda: enforce_node_dependency_lock(content, package_override=package_text, lock_override=json.dumps(lock)),
+    )
     lock = (ROOT / "requirements-contract-validation.lock.txt").read_text(encoding="utf-8")
     bad_lock = lock.replace("--hash=sha256:", "--missing-hash:")
     rejected(

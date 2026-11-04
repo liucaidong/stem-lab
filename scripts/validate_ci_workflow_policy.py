@@ -157,20 +157,28 @@ def enforce_python_dependency_lock(workflow_content: str, path: Path, lock_overr
         fail("untracked or inline pip install commands are not allowed in CI")
 
 
-def enforce_node_dependency_lock(workflow_content: str, benchmark_override: str | None = None) -> None:
+def enforce_node_dependency_lock(
+    workflow_content: str,
+    benchmark_override: str | None = None,
+    package_override: str | None = None,
+    lock_override: str | None = None,
+) -> None:
     package_path = ROOT / "scripts" / "benchmarks" / "store-driver-node" / "package.json"
     lock_path = ROOT / "scripts" / "benchmarks" / "store-driver-node" / "package-lock.json"
     if not package_path.is_file() or not lock_path.is_file():
         fail("Node benchmark package.json and package-lock.json must both exist")
-    package = json.loads(package_path.read_text(encoding="utf-8"))
-    lock = json.loads(lock_path.read_text(encoding="utf-8"))
-    if package.get("dependencies", {}).get("pg") != "8.16.3":
-        fail("Node benchmark must pin pg exactly to 8.16.3")
+    package_text = package_override if package_override is not None else package_path.read_text(encoding="utf-8")
+    lock_text = lock_override if lock_override is not None else lock_path.read_text(encoding="utf-8")
+    package = json.loads(package_text)
+    lock = json.loads(lock_text)
+    approved_pg_version = "8.23.1"
+    if package.get("dependencies", {}).get("pg") != approved_pg_version:
+        fail(f"Node benchmark must pin pg exactly to {approved_pg_version}")
     if lock.get("lockfileVersion") != 3:
         fail("Node benchmark must use npm lockfileVersion 3")
     packages = lock.get("packages", {})
-    if packages.get("node_modules/pg", {}).get("version") != "8.16.3":
-        fail("Node package lock does not lock pg@8.16.3")
+    if packages.get("node_modules/pg", {}).get("version") != approved_pg_version:
+        fail(f"Node package lock does not lock pg@{approved_pg_version}")
     for package_name, metadata in packages.items():
         if package_name.startswith("node_modules/") and metadata.get("version") and not metadata.get("integrity"):
             fail(f"Node package {package_name!r} is missing an integrity digest")
