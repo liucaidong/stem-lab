@@ -87,7 +87,8 @@ class StoreProtocolSchemaTests(unittest.TestCase):
                 "error_code": "PACKAGE_VALIDATION_FAILED",
                 "safe_message": "Package validation failed",
                 "retryable": False,
-                "retry_delay_seconds": 0,
+                "retry_delay_micros": 0,
+                "retry_policy_version": "2026-11-03.1",
                 "idempotency_key": "fail-job-1-7",
             },
         ]
@@ -163,7 +164,7 @@ class StoreProtocolValueTests(unittest.TestCase):
             datetime.now(timezone.utc),
         )
         with self.assertRaises(ValueError):
-            ClaimedJobRecord(lease, "package.validate", {"tenant_id": "tenant-b"}, 1)
+            ClaimedJobRecord(lease, "package.validate", {"tenant_id": "tenant-b"}, 1, 5)
 
     def test_complete_command_requires_stable_digest(self):
         lease = JobLease(
@@ -181,11 +182,11 @@ class StoreProtocolValueTests(unittest.TestCase):
             datetime.now(timezone.utc),
         )
         with self.assertRaises(ValueError):
-            FailJobCommand(lease, "raw exception", "safe", True, 1, "fail-1")
+            FailJobCommand(lease, "raw exception", "safe", True, 1, "2026-11-03.1", "fail-1")
         with self.assertRaises(ValueError):
-            FailJobCommand(lease, "FAILED", "x" * 513, True, 1, "fail-1")
+            FailJobCommand(lease, "FAILED", "x" * 513, True, 1, "2026-11-03.1", "fail-1")
         with self.assertRaises(ValueError):
-            FailJobCommand(lease, "FAILED", "safe", True, float("nan"), "fail-1")
+            FailJobCommand(lease, "FAILED", "safe", True, float("nan"), "2026-11-03.1", "fail-1")
 
     def test_unknown_transaction_outcome_is_explicit(self):
         error = StoreError(

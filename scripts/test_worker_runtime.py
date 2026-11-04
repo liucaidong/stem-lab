@@ -5,10 +5,13 @@ import threading
 import time
 import unittest
 import sys
+import copy
+import json
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from runtime.worker_runtime import ClaimedJob, FailureDecision, WorkerRuntime
+from runtime.worker_runtime import ClaimedJob, WorkerRuntime
+from runtime.retry_policy import RetryPolicyRegistry
 
 
 class FakeStore:
@@ -39,17 +42,29 @@ class FakeStore:
 
 def sample_job():
     return ClaimedJob("tenant-a", "job-1", "validate", {"x": 1},
-                      "worker-a", 7, 1)
+                      "worker-a", 7, 1, 5)
 
 
 def classify(exc):
-    return FailureDecision(True, "HANDLER_ERROR", "Handler failed safely", 3.0)
+    return "HANDLER_ERROR"
+
+
+def policy_registry():
+    root = Path(__file__).resolve().parents[1]
+    document = json.loads((root / "contracts/worker-retry-policy.v1alpha1.json").read_text())
+    document = copy.deepcopy(document)
+    document["policies"].append({
+        "error_code": "HANDLER_ERROR", "retryable": True,
+        "base_delay_micros": 3000000, "max_delay_micros": 3000000,
+        "safe_message": "Handler failed safely"
+    })
+    return RetryPolicyRegistry.from_document(document, random_value=lambda: 1.0)
 
 
 class WorkerRuntimeTests(unittest.TestCase):
     def runtime(self, store, handlers, **kwargs):
         return WorkerRuntime(worker_id="worker-a", store=store, handlers=handlers,
-                             classify_failure=classify, lease_seconds=0.12,
+                             classify_error_code=classify, retry_policy=policy_registry(), lease_seconds=0.12,
                              heartbeat_interval_seconds=0.02,
                              poll_interval_seconds=0, **kwargs)
 
@@ -73,6 +88,8 @@ class WorkerRuntimeTests(unittest.TestCase):
         runtime = self.runtime(store, {"validate": handler})
         self.assertEqual(runtime.run_once(), "retry_or_dlq")
         self.assertEqual(store.fail_calls[0][1].error_code, "HANDLER_ERROR")
+        self.assertEqual(store.fail_calls[0][1].retry_delay_micros, 3000000)
+        self.assertEqual(store.fail_calls[0][1].policy_version, "2026-11-03.1")
         self.assertNotIn("private payload", store.fail_calls[0][1].safe_message)
 
     def test_heartbeat_loss_prevents_completion_and_failure(self):
@@ -164,7 +181,7 @@ class WorkerRuntimeTests(unittest.TestCase):
     def test_invalid_heartbeat_interval_rejected(self):
         with self.assertRaises(ValueError):
             WorkerRuntime(worker_id="w", store=FakeStore(), handlers={},
-                          classify_failure=classify, lease_seconds=5,
+                          classify_error_code=classify, retry_policy=policy_registry(), lease_seconds=5,
                           heartbeat_interval_seconds=5)
 
 

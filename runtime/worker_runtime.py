@@ -20,7 +20,14 @@ class ClaimedJob:
     lease_owner: str
     lease_epoch: int
     attempt_count: int
+    maximum_attempts: int
     lease_expires_at: str | None = None
+
+    def __post_init__(self) -> None:
+        if type(self.attempt_count) is not int or type(self.maximum_attempts) is not int:
+            raise ValueError("attempt counters must be integers")
+        if self.attempt_count < 1 or self.maximum_attempts < 1 or self.attempt_count > self.maximum_attempts:
+            raise ValueError("attempt_count must be in [1, maximum_attempts]")
 
 
 @dataclass(frozen=True)
@@ -28,7 +35,20 @@ class FailureDecision:
     retryable: bool
     error_code: str
     safe_message: str
-    retry_delay_seconds: float = 0.0
+    retry_delay_micros: int
+    policy_version: str
+
+    def __post_init__(self) -> None:
+        if type(self.retryable) is not bool:
+            raise ValueError("retryable must be boolean")
+        if not self.error_code or len(self.error_code) > 128 or not self.safe_message or len(self.safe_message) > 512:
+            raise ValueError("failure code/message length invalid")
+        if type(self.retry_delay_micros) is not int or not 0 <= self.retry_delay_micros <= 86400000000:
+            raise ValueError("retry_delay_micros must be integer microseconds in [0, 24h]")
+        if not self.retryable and self.retry_delay_micros != 0:
+            raise ValueError("non-retryable decisions must have zero delay")
+        if not self.policy_version or len(self.policy_version) > 128:
+            raise ValueError("policy_version must be 1..128 characters")
 
 
 @dataclass
@@ -57,6 +77,10 @@ class JobHandler(Protocol):
     def __call__(self, job: ClaimedJob, context: JobContext) -> object: ...
 
 
+class RetryPolicyProvider(Protocol):
+    def decide(self, error_code: str, attempt_count: int, maximum_attempts: int) -> FailureDecision: ...
+
+
 class WorkerRuntime:
     """Single-slot, at-least-once worker loop with fail-closed lease heartbeat.
 
@@ -71,7 +95,8 @@ class WorkerRuntime:
         worker_id: str,
         store: WorkerStore,
         handlers: Mapping[str, JobHandler],
-        classify_failure: Callable[[Exception], FailureDecision],
+        classify_error_code: Callable[[Exception], str],
+        retry_policy: RetryPolicyProvider,
         lease_seconds: float = 30.0,
         heartbeat_interval_seconds: float = 10.0,
         poll_interval_seconds: float = 1.0,
@@ -85,7 +110,8 @@ class WorkerRuntime:
         self.worker_id = worker_id
         self.store = store
         self.handlers = dict(handlers)
-        self.classify_failure = classify_failure
+        self.classify_error_code = classify_error_code
+        self.retry_policy = retry_policy
         self.lease_seconds = lease_seconds
         self.heartbeat_interval_seconds = heartbeat_interval_seconds
         self.poll_interval_seconds = poll_interval_seconds
@@ -104,8 +130,9 @@ class WorkerRuntime:
 
         handler = self.handlers.get(job.job_type)
         if handler is None:
-            decision = FailureDecision(False, "HANDLER_NOT_REGISTERED",
-                                       "No handler registered for this job type")
+            decision = self.retry_policy.decide(
+                "HANDLER_NOT_REGISTERED", job.attempt_count, job.maximum_attempts
+            )
             if not self._shutdown.is_set():
                 self.store.fail(job, decision)
             return "failed" if not self._shutdown.is_set() else "lease_unmodified"
@@ -133,7 +160,11 @@ class WorkerRuntime:
             heartbeat.join()
             if context.lease_lost.is_set():
                 return "lease_lost"
-            decision = self.classify_failure(exc)
+            try:
+                error_code = self.classify_error_code(exc)
+            except Exception:
+                error_code = "__CLASSIFIER_FAILURE__"
+            decision = self.retry_policy.decide(error_code, job.attempt_count, job.maximum_attempts)
             return "retry_or_dlq" if self.store.fail(job, decision) else "stale"
         finally:
             heartbeat_stop.set()

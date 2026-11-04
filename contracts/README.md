@@ -275,3 +275,11 @@ R03.52.5 CI evidence: [GitHub Actions Run #41444145950](https://github.com/liuca
 - Normative design: [R03.52.7.2 Store Protocol & Unit of Work](architecture/R03.52.7.2-store-protocol-unit-of-work-contract.md).
 
 The contract carries tenant scope only through an opaque signed access assertion; it rejects caller-supplied top-level tenant selectors. A Unit of Work is one bounded transaction and one tenant context. Handler execution occurs outside the Unit of Work. Driver, pool, runtime and migration implementation remain unselected.
+
+## v2alpha2 protocol hardening delta — 2026-11-03
+
+- Request Digest and signed assertion action allowlists exclude `worker.dlq.replay` until trusted atomic replay support exists.
+- `worker.job.retry` carries `delay_micros`; `worker.job.fail` carries `retry_delay_micros`. Both are integer microseconds with a 24-hour protocol ceiling.
+- Worker Retry Policy v1alpha1 requires `policy_version`; policy delay fields are integer microseconds.
+- Worker Store Protocol claims include `maximum_attempts`; failure commands include `retry_policy_version` and `retry_delay_micros`.
+- The production database adapter, policy-version persistence, tenant RLS and deployment grants remain outside this reference-contract update.

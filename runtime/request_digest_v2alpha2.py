@@ -4,14 +4,15 @@ import base64, hashlib, json, re, struct
 from typing import Any
 
 DOMAIN = b"STEMLAB-REQUEST-DIGEST\x00v2alpha2\x00"
+MAX_REQUEST_JSON_BYTES = 65536
+MAX_CANONICAL_REQUEST_BYTES = 65536
 ENVELOPE_FIELDS = ("contract_version","action","tenant_id","job_id","session_id","resource_type","resource_id","operation_id","idempotency_key")
 ACTIONS = {
  "worker.job.renew": ("lease_seconds",),
  "worker.job.complete": ("expected_session_revision","result_ref"),
  "worker.job.fail": ("error_code","retryable","retry_delay_micros","safe_message"),
- "worker.job.retry": ("delay_seconds","error_code"),
+ "worker.job.retry": ("delay_micros","error_code"),
  "worker.job.dead_letter": ("error_code","terminal_reason"),
- "worker.dlq.replay": (),
  "worker.outbox.dispatch": ("lease_seconds",),
  "worker.receipt.reconcile": (),
  "worker.outbox.ack": (),
@@ -19,7 +20,7 @@ ACTIONS = {
 RESOURCE_FOR_ACTION = {
  "worker.job.renew":"job","worker.job.complete":"job","worker.job.fail":"job",
  "worker.job.retry":"job","worker.job.dead_letter":"job",
- "worker.dlq.replay":"dlq_item","worker.outbox.dispatch":"outbox_event",
+"worker.outbox.dispatch":"outbox_event",
  "worker.receipt.reconcile":"receipt","worker.outbox.ack":"outbox_event",
 }
 ID_RE = re.compile(r"^[^\x00-\x1f\x7f]{1,256}$")
@@ -58,7 +59,16 @@ def _value(value: Any, depth: int=0) -> bytes:
 
 def parse_json_strict(raw: bytes|str) -> Any:
     try:
-        source=raw.decode("utf-8",errors="strict") if isinstance(raw,bytes) else raw
+        if isinstance(raw, bytes):
+            if len(raw) > MAX_REQUEST_JSON_BYTES:
+                raise RequestEncodingError("request JSON exceeds 65536-byte limit")
+            source=raw.decode("utf-8",errors="strict")
+        elif isinstance(raw, str):
+            if len(_utf8(raw)) > MAX_REQUEST_JSON_BYTES:
+                raise RequestEncodingError("request JSON exceeds 65536-byte limit")
+            source=raw
+        else:
+            raise RequestEncodingError("request JSON must be bytes or string")
         def pairs_hook(pairs):
             result={}
             for key,value in pairs:
@@ -85,13 +95,17 @@ def validate_envelope(e: dict[str,Any]) -> None:
     args=e["operation_arguments"]
     if not isinstance(args,dict) or set(args)!=set(ACTIONS[e["action"]]): raise RequestEncodingError("operation arguments do not match action")
     for key,value in args.items():
-        if key in {"lease_seconds","delay_seconds","expected_session_revision","retry_delay_micros"}:
+        if key in {"lease_seconds","delay_micros","expected_session_revision","retry_delay_micros"}:
             if type(value) is not int or value<0 or value>2**63-1: raise RequestEncodingError(key+" must be non-negative int64")
         elif key=="retryable":
             if type(value) is not bool: raise RequestEncodingError("retryable must be boolean")
         elif not isinstance(value,str): raise RequestEncodingError(key+" must be string")
     if e["action"] in {"worker.job.renew","worker.outbox.dispatch"} and not 5<=args["lease_seconds"]<=3600: raise RequestEncodingError("lease_seconds out of range")
-    if e["action"]=="worker.job.retry" and not 1<=args["delay_seconds"]<=86400: raise RequestEncodingError("delay_seconds out of range")
+    if e["action"]=="worker.job.retry" and not 1<=args["delay_micros"]<=86400000000: raise RequestEncodingError("delay_micros out of range")
+    if "retry_delay_micros" in args and args["retry_delay_micros"] > 86400000000:
+        raise RequestEncodingError("retry_delay_micros out of range")
+    if e["action"]=="worker.job.fail" and not args["retryable"] and args["retry_delay_micros"] != 0:
+        raise RequestEncodingError("non-retryable failure must have zero delay")
     if e["action"]=="worker.job.complete" and not args["result_ref"]: raise RequestEncodingError("result_ref empty")
     if e["action"] in {"worker.job.fail","worker.job.retry","worker.job.dead_letter"} and not re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}",args["error_code"]): raise RequestEncodingError("invalid error_code")
 
@@ -101,6 +115,8 @@ def canonical_request_bytes(e: dict[str,Any]) -> bytes:
     for field in ENVELOPE_FIELDS: out.extend(b"S"+_lp(_utf8(e[field])))
     encoded_args=_value(e["operation_arguments"])
     out.extend(b"J"+_lp(encoded_args))
+    if len(out) > MAX_CANONICAL_REQUEST_BYTES:
+        raise RequestEncodingError("canonical request exceeds 65536-byte limit")
     return bytes(out)
 
 def canonical_request_bytes_from_json(raw: bytes|str) -> bytes:

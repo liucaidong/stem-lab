@@ -150,6 +150,9 @@ DECLARE
   canonical bytea;
   encoded_args bytea;
 BEGIN
+  IF pg_catalog.octet_length(pg_catalog.convert_to(p_envelope::text, 'UTF8')) > 65536 THEN
+    RAISE EXCEPTION 'request envelope exceeds 65536-byte limit';
+  END IF;
   IF pg_catalog.jsonb_typeof(p_envelope) IS DISTINCT FROM 'object'
      OR NOT (p_envelope ?& required_fields)
      OR (p_envelope - required_fields) <> '{}'::jsonb THEN
@@ -164,9 +167,8 @@ BEGIN
     WHEN 'worker.job.renew' THEN ARRAY['lease_seconds']
     WHEN 'worker.job.complete' THEN ARRAY['expected_session_revision','result_ref']
     WHEN 'worker.job.fail' THEN ARRAY['error_code','retryable','retry_delay_micros','safe_message']
-    WHEN 'worker.job.retry' THEN ARRAY['delay_seconds','error_code']
+    WHEN 'worker.job.retry' THEN ARRAY['delay_micros','error_code']
     WHEN 'worker.job.dead_letter' THEN ARRAY['error_code','terminal_reason']
-    WHEN 'worker.dlq.replay' THEN ARRAY[]::text[]
     WHEN 'worker.outbox.dispatch' THEN ARRAY['lease_seconds']
     WHEN 'worker.receipt.reconcile' THEN ARRAY[]::text[]
     WHEN 'worker.outbox.ack' THEN ARRAY[]::text[]
@@ -176,7 +178,6 @@ BEGIN
 
   expected_resource := CASE
     WHEN action_name LIKE 'worker.job.%' THEN 'job'
-    WHEN action_name = 'worker.dlq.replay' THEN 'dlq_item'
     WHEN action_name IN ('worker.outbox.dispatch','worker.outbox.ack') THEN 'outbox_event'
     WHEN action_name = 'worker.receipt.reconcile' THEN 'receipt'
     ELSE NULL
@@ -225,12 +226,13 @@ BEGIN
        OR pg_catalog.jsonb_typeof(args->'retryable') <> 'boolean'
        OR pg_catalog.jsonb_typeof(args->'retry_delay_micros') <> 'number'
        OR pg_catalog.scale((args->>'retry_delay_micros')::numeric) <> 0
-       OR (args->>'retry_delay_micros')::numeric < 0
+       OR (args->>'retry_delay_micros')::numeric NOT BETWEEN 0 AND 86400000000
+       OR (args->'retryable' = 'false'::jsonb AND (args->>'retry_delay_micros')::numeric <> 0)
        OR pg_catalog.jsonb_typeof(args->'safe_message') <> 'string' THEN RAISE EXCEPTION 'invalid fail arguments'; END IF;
   ELSIF action_name = 'worker.job.retry' THEN
-    IF pg_catalog.jsonb_typeof(args->'delay_seconds') <> 'number'
-       OR pg_catalog.scale((args->>'delay_seconds')::numeric) <> 0
-       OR (args->>'delay_seconds')::numeric NOT BETWEEN 1 AND 86400
+    IF pg_catalog.jsonb_typeof(args->'delay_micros') <> 'number'
+       OR pg_catalog.scale((args->>'delay_micros')::numeric) <> 0
+       OR (args->>'delay_micros')::numeric NOT BETWEEN 1 AND 86400000000
        OR pg_catalog.jsonb_typeof(args->'error_code') <> 'string'
        OR args->>'error_code' !~ '^[A-Z][A-Z0-9_]{0,63}$' THEN RAISE EXCEPTION 'invalid retry arguments'; END IF;
   ELSIF action_name = 'worker.job.dead_letter' THEN
@@ -249,6 +251,7 @@ BEGIN
   END LOOP;
   encoded_args := __SCHEMA__.encode_typed_value_v2alpha2(args,0);
   canonical := canonical || decode('4a','hex') || pg_catalog.int4send(pg_catalog.octet_length(encoded_args)) || encoded_args;
+  IF pg_catalog.octet_length(canonical) > 65536 THEN RAISE EXCEPTION 'canonical request exceeds 65536-byte limit'; END IF;
   RETURN 'sha256:' || pg_catalog.encode(pg_catalog.sha256(canonical),'hex');
 END;
 $fn$;
@@ -354,7 +357,10 @@ BEGIN
      OR (claim->>'iat')::numeric <> trunc((claim->>'iat')::numeric)
      OR (claim->>'exp')::numeric <> trunc((claim->>'exp')::numeric)
      OR (claim->>'epoch')::numeric < 1 OR (claim->>'iat')::numeric < 0
-     OR (claim->>'exp')::numeric < 1 THEN
+     OR (claim->>'exp')::numeric < 1
+     OR (claim->>'epoch')::numeric > 9007199254740991
+     OR (claim->>'iat')::numeric > 9007199254740991
+     OR (claim->>'exp')::numeric > 9007199254740991 THEN
     RAISE EXCEPTION 'v2alpha2 assertion integer claim invalid';
   END IF;
   IF length(claim->>'nonce') NOT BETWEEN 16 AND 256
@@ -382,196 +388,6 @@ BEGIN
   RETURN claim;
 END;
 $fn$;
- THEN
-    RAISE EXCEPTION 'invalid v2alpha2 compact assertion encoding';
-  END IF;
-  payload_bytes := decode(rpad(translate(p_payload_b64url, '-_', '+/'),
-    ((length(p_payload_b64url) + 3) / 4) * 4, '='), 'base64');
-  signature_bytes := decode(rpad(translate(p_signature_b64url, '-_', '+/'),
-    ((length(p_signature_b64url) + 3) / 4) * 4, '='), 'base64');
-  IF octet_length(payload_bytes) > 16384 OR octet_length(signature_bytes) <> 64 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion size or signature length invalid';
-  END IF;
-  raw_payload := convert_from(payload_bytes, 'UTF8');
-  claim := __SCHEMA__.parse_strict_json_object_v2alpha2(raw_payload);
-  IF NOT (claim ?& allowed_fields) OR (claim - allowed_fields) <> '{}'::jsonb THEN
-    RAISE EXCEPTION 'v2alpha2 assertion fields missing or unknown';
-  END IF;
-  IF claim->>'contract_version' <> '2alpha2'
-     OR jsonb_typeof(claim->'v') IS DISTINCT FROM 'number' OR claim->>'v' <> '2'
-     OR jsonb_typeof(claim->'epoch') IS DISTINCT FROM 'number'
-     OR jsonb_typeof(claim->'iat') IS DISTINCT FROM 'number'
-     OR jsonb_typeof(claim->'exp') IS DISTINCT FROM 'number' THEN
-    RAISE EXCEPTION 'v2alpha2 assertion version or numeric claim invalid';
-  END IF;
-  FOREACH claim_field IN ARRAY ARRAY[
-    'iss','kid','action','tenant_id','job_id','session_id','resource_type',
-    'resource_id','operation_id','idempotency_key','request_digest','sub','aud','owner','nonce'
-  ] LOOP
-    IF jsonb_typeof(claim->claim_field) IS DISTINCT FROM 'string'
-       OR claim->>claim_field = '' THEN
-      RAISE EXCEPTION 'v2alpha2 assertion string claim invalid: %', claim_field;
-    END IF;
-  END LOOP;
-  IF (claim->>'epoch')::numeric <> trunc((claim->>'epoch')::numeric)
-     OR (claim->>'iat')::numeric <> trunc((claim->>'iat')::numeric)
-     OR (claim->>'exp')::numeric <> trunc((claim->>'exp')::numeric)
-     OR (claim->>'epoch')::numeric < 1 OR (claim->>'iat')::numeric < 0
-     OR (claim->>'exp')::numeric < 1 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion integer claim invalid';
-  END IF;
-  IF length(claim->>'nonce') NOT BETWEEN 16 AND 256
-     OR claim->>'nonce' !~ '^[A-Za-z0-9_-]+$'
-     OR claim->>'request_digest' !~ '^sha256:[0-9a-f]{64}$' THEN
-    RAISE EXCEPTION 'v2alpha2 assertion nonce or digest invalid';
-  END IF;
-  now_s := floor(extract(epoch FROM clock_timestamp()))::bigint;
-  IF (claim->>'iat')::bigint > now_s OR (claim->>'exp')::bigint <= now_s
-     OR (claim->>'exp')::bigint <= (claim->>'iat')::bigint
-     OR (claim->>'exp')::bigint - (claim->>'iat')::bigint > 120 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion time window invalid';
-  END IF;
-  SELECT k.public_key INTO public_key FROM __SCHEMA__.issuer_keys AS k
-   WHERE k.kid = claim->>'kid' AND k.issuer = claim->>'iss'
-     AND k.revoked_at IS NULL AND k.not_before <= clock_timestamp()
-     AND (k.not_after IS NULL OR k.not_after > clock_timestamp());
-  IF NOT FOUND OR public_key IS NULL THEN RAISE EXCEPTION 'v2alpha2 issuer key unavailable'; END IF;
-  IF NOT pgsodium.crypto_sign_verify_detached(signature_bytes, payload_bytes, public_key) THEN
-    RAISE EXCEPTION 'v2alpha2 assertion signature invalid';
-  END IF;
-  IF NOT __SCHEMA__.assert_request_digest_v2alpha2(claim, p_operation_arguments) THEN
-    RAISE EXCEPTION 'v2alpha2 request digest mismatch';
-  END IF;
-  RETURN claim;
-END;
-$fn$;
- THEN
-    RAISE EXCEPTION 'invalid v2alpha2 compact assertion encoding';
-  END IF;
-  payload_bytes := decode(rpad(translate(p_payload_b64url, '-_', '+/'),
-    ((length(p_payload_b64url) + 3) / 4) * 4, '='), 'base64');
-  signature_bytes := decode(rpad(translate(p_signature_b64url, '-_', '+/'),
-    ((length(p_signature_b64url) + 3) / 4) * 4, '='), 'base64');
-  IF octet_length(payload_bytes) > 16384 OR octet_length(signature_bytes) <> 64 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion size or signature length invalid';
-  END IF;
-  IF rtrim(translate(replace(encode(payload_bytes, 'base64'), chr(10), ''), '+/', '-_'), '=') <> p_payload_b64url
-     OR rtrim(translate(replace(encode(signature_bytes, 'base64'), chr(10), ''), '+/', '-_'), '=') <> p_signature_b64url THEN
-    RAISE EXCEPTION 'non-canonical base64url assertion encoding';
-  END IF;
-  raw_payload := convert_from(payload_bytes, 'UTF8');
-  claim := __SCHEMA__.parse_strict_json_object_v2alpha2(raw_payload);
-  IF NOT (claim ?& allowed_fields) OR (claim - allowed_fields) <> '{}'::jsonb THEN
-    RAISE EXCEPTION 'v2alpha2 assertion fields missing or unknown';
-  END IF;
-  IF claim->>'contract_version' <> '2alpha2'
-     OR jsonb_typeof(claim->'v') IS DISTINCT FROM 'number' OR claim->>'v' <> '2'
-     OR jsonb_typeof(claim->'epoch') IS DISTINCT FROM 'number'
-     OR jsonb_typeof(claim->'iat') IS DISTINCT FROM 'number'
-     OR jsonb_typeof(claim->'exp') IS DISTINCT FROM 'number' THEN
-    RAISE EXCEPTION 'v2alpha2 assertion version or numeric claim invalid';
-  END IF;
-  FOREACH claim_field IN ARRAY ARRAY[
-    'iss','kid','action','tenant_id','job_id','session_id','resource_type',
-    'resource_id','operation_id','idempotency_key','request_digest','sub','aud','owner','nonce'
-  ] LOOP
-    IF jsonb_typeof(claim->claim_field) IS DISTINCT FROM 'string'
-       OR claim->>claim_field = '' THEN
-      RAISE EXCEPTION 'v2alpha2 assertion string claim invalid: %', claim_field;
-    END IF;
-  END LOOP;
-  IF (claim->>'epoch')::numeric <> trunc((claim->>'epoch')::numeric)
-     OR (claim->>'iat')::numeric <> trunc((claim->>'iat')::numeric)
-     OR (claim->>'exp')::numeric <> trunc((claim->>'exp')::numeric)
-     OR (claim->>'epoch')::numeric < 1 OR (claim->>'iat')::numeric < 0
-     OR (claim->>'exp')::numeric < 1 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion integer claim invalid';
-  END IF;
-  IF length(claim->>'nonce') NOT BETWEEN 16 AND 256
-     OR claim->>'nonce' !~ '^[A-Za-z0-9_-]+$'
-     OR claim->>'request_digest' !~ '^sha256:[0-9a-f]{64}$' THEN
-    RAISE EXCEPTION 'v2alpha2 assertion nonce or digest invalid';
-  END IF;
-  now_s := floor(extract(epoch FROM clock_timestamp()))::bigint;
-  IF (claim->>'iat')::bigint > now_s OR (claim->>'exp')::bigint <= now_s
-     OR (claim->>'exp')::bigint <= (claim->>'iat')::bigint
-     OR (claim->>'exp')::bigint - (claim->>'iat')::bigint > 120 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion time window invalid';
-  END IF;
-  SELECT k.public_key INTO public_key FROM __SCHEMA__.issuer_keys AS k
-   WHERE k.kid = claim->>'kid' AND k.issuer = claim->>'iss'
-     AND k.revoked_at IS NULL AND k.not_before <= clock_timestamp()
-     AND (k.not_after IS NULL OR k.not_after > clock_timestamp());
-  IF NOT FOUND OR public_key IS NULL THEN RAISE EXCEPTION 'v2alpha2 issuer key unavailable'; END IF;
-  IF NOT pgsodium.crypto_sign_verify_detached(signature_bytes, payload_bytes, public_key) THEN
-    RAISE EXCEPTION 'v2alpha2 assertion signature invalid';
-  END IF;
-  IF NOT __SCHEMA__.assert_request_digest_v2alpha2(claim, p_operation_arguments) THEN
-    RAISE EXCEPTION 'v2alpha2 request digest mismatch';
-  END IF;
-  RETURN claim;
-END;
-$fn$;
- THEN
-    RAISE EXCEPTION 'invalid v2alpha2 compact assertion encoding';
-  END IF;
-  payload_bytes := decode(rpad(translate(p_payload_b64url, '-_', '+/'),
-    ((length(p_payload_b64url) + 3) / 4) * 4, '='), 'base64');
-  signature_bytes := decode(rpad(translate(p_signature_b64url, '-_', '+/'),
-    ((length(p_signature_b64url) + 3) / 4) * 4, '='), 'base64');
-  IF octet_length(payload_bytes) > 16384 OR octet_length(signature_bytes) <> 64 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion size or signature length invalid';
-  END IF;
-  raw_payload := convert_from(payload_bytes, 'UTF8');
-  claim := __SCHEMA__.parse_strict_json_object_v2alpha2(raw_payload);
-  IF NOT (claim ?& allowed_fields) OR (claim - allowed_fields) <> '{}'::jsonb THEN
-    RAISE EXCEPTION 'v2alpha2 assertion fields missing or unknown';
-  END IF;
-  IF claim->>'contract_version' <> '2alpha2'
-     OR jsonb_typeof(claim->'v') IS DISTINCT FROM 'number' OR claim->>'v' <> '2'
-     OR jsonb_typeof(claim->'epoch') IS DISTINCT FROM 'number'
-     OR jsonb_typeof(claim->'iat') IS DISTINCT FROM 'number'
-     OR jsonb_typeof(claim->'exp') IS DISTINCT FROM 'number' THEN
-    RAISE EXCEPTION 'v2alpha2 assertion version or numeric claim invalid';
-  END IF;
-  FOREACH claim_field IN ARRAY ARRAY[
-    'iss','kid','action','tenant_id','job_id','session_id','resource_type',
-    'resource_id','operation_id','idempotency_key','request_digest','sub','aud','owner','nonce'
-  ] LOOP
-    IF jsonb_typeof(claim->claim_field) IS DISTINCT FROM 'string'
-       OR claim->>claim_field = '' THEN
-      RAISE EXCEPTION 'v2alpha2 assertion string claim invalid: %', claim_field;
-    END IF;
-  END LOOP;
-  IF (claim->>'epoch')::numeric <> trunc((claim->>'epoch')::numeric)
-     OR (claim->>'iat')::numeric <> trunc((claim->>'iat')::numeric)
-     OR (claim->>'exp')::numeric <> trunc((claim->>'exp')::numeric)
-     OR (claim->>'epoch')::numeric < 1 OR (claim->>'iat')::numeric < 0
-     OR (claim->>'exp')::numeric < 1 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion integer claim invalid';
-  END IF;
-  IF length(claim->>'nonce') NOT BETWEEN 16 AND 256
-     OR claim->>'nonce' !~ '^[A-Za-z0-9_-]+$'
-     OR claim->>'request_digest' !~ '^sha256:[0-9a-f]{64}$' THEN
-    RAISE EXCEPTION 'v2alpha2 assertion nonce or digest invalid';
-  END IF;
-  now_s := floor(extract(epoch FROM clock_timestamp()))::bigint;
-  IF (claim->>'iat')::bigint > now_s OR (claim->>'exp')::bigint <= now_s
-     OR (claim->>'exp')::bigint <= (claim->>'iat')::bigint
-     OR (claim->>'exp')::bigint - (claim->>'iat')::bigint > 120 THEN
-    RAISE EXCEPTION 'v2alpha2 assertion time window invalid';
-  END IF;
-  SELECT k.public_key INTO public_key FROM __SCHEMA__.issuer_keys AS k
-   WHERE k.kid = claim->>'kid' AND k.issuer = claim->>'iss'
-     AND k.revoked_at IS NULL AND k.not_before <= clock_timestamp()
-     AND (k.not_after IS NULL OR k.not_after > clock_timestamp());
-  IF NOT FOUND OR public_key IS NULL THEN RAISE EXCEPTION 'v2alpha2 issuer key unavailable'; END IF;
-  IF NOT pgsodium.crypto_sign_verify_detached(signature_bytes, payload_bytes, public_key) THEN
-    RAISE EXCEPTION 'v2alpha2 assertion signature invalid';
-  END IF;
-  IF NOT __SCHEMA__.assert_request_digest_v2alpha2(claim, p_operation_arguments) THEN
-    RAISE EXCEPTION 'v2alpha2 request digest mismatch';
-  END IF;
-  RETURN claim;
-END;
-$fn$;
+
+-- Default PUBLIC execution is revoked. Deployment must grant the exact verifier role.
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA __SCHEMA__ FROM PUBLIC;
