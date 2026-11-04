@@ -1,93 +1,127 @@
-# STEM Lab — CI Admission and Batched Change Policy
+# STEM Lab — CI Scheduling and Batched Change Policy
 
 **Status:** Mandatory engineering policy  
 **Scope:** All GitHub Actions workflows and all changes to this repository
+**Scheduling model:** GitHub Actions native repository-wide concurrency queue
 
 ## 1. Objective
 
-Prevent repeated branch updates from repeatedly consuming the repository's full
-contract-validation workflow. A successful CI admission starts a repository-wide
-600-second cooldown. During that cooldown, subsequent workflow runs are rejected
-before any contract, PostgreSQL, integration, security, or benchmark job starts.
+Serialize the repository's contract-validation workload without cancelling an
+in-progress validation run or repeatedly replacing a pending run. Preserve normal
+automatic pull-request and `main`-branch triggers while batching engineering changes
+so avoidable workflow runs are minimized.
 
-## 2. Workflow topology
+This policy describes the active queue-based architecture. The former 600-second
+cooldown and Artifact Marker admission design is retired and must not be reintroduced
+implicitly.
 
-- Exactly one event-triggered root workflow is permitted.
-- The root workflow is `.github/workflows/contract-validation.yml`.
-- Any future child workflow must use `workflow_call` only; it must not independently
+## 2. Workflow topology and automatic triggers
+
+- Exactly one event-triggered root workflow is permitted:
+  `.github/workflows/contract-validation.yml`.
+- The root workflow retains automatic `pull_request` triggers for `opened`,
+  `synchronize`, `reopened`, and `ready_for_review`, subject to its declared path
+  filters.
+- The root workflow retains automatic `push` validation for `main`, subject to its
+  declared path filters, and supports explicit `workflow_dispatch`.
+- Any future child workflow must use `workflow_call` only. It must not independently
   subscribe to `push`, `pull_request`, `workflow_run`, `schedule`, or other events.
-- Every root workflow run uses the repository-wide concurrency group
-  `stem-lab-global-ci`, with `cancel-in-progress: false` and a single replaceable
-  pending run.
-- Every validation job must depend on `ci-admission` and must be conditional on
+- Do not add a second event-triggered workflow for the same repository validation
+  workload.
+
+## 3. Repository-wide native concurrency queue
+
+The root workflow must declare:
+
+```yaml
+concurrency:
+  group: stem-lab-global-ci
+  cancel-in-progress: false
+  queue: max
+```
+
+Operational semantics:
+
+1. Matching GitHub events still create workflow run records.
+2. All runs in the shared concurrency group are serialized: one run owns the group
+   while later eligible runs wait in the native queue.
+3. `cancel-in-progress: false` protects the active run from cancellation when another
+   matching event arrives.
+4. `queue: max` permits a queue of pending runs instead of the former single,
+   replaceable pending-run behavior, subject to GitHub's platform limits.
+5. Automatic triggers are preserved. This policy does not reject events, prevent
+   workflow-run record creation, impose a 10-minute interval, or promise that a
+   pending run will be discarded as a duplicate.
+
+`scripts/ci_admission.py` is intentionally a pass-through admission-output step. It
+writes `admitted=true`; actual serialization is provided by GitHub Actions native
+concurrency. It is not a distributed lock, cooldown, deduplication service, or
+pre-trigger admission controller.
+
+If the project later requires rejecting an event before GitHub creates a workflow
+run, that is a separate architecture requiring an external webhook/GitHub App
+controller and a durable repository-wide lock. It is not implemented by this
+workflow and must not be claimed as a current capability.
+
+## 4. Required validation and aggregate result
+
+- Every heavy validation job must depend on `ci-admission` and run only when
   `needs.ci-admission.outputs.admitted == 'true'`.
+- The always-running `CI result` job aggregates admission and all required validation
+  jobs. It succeeds only when admission succeeded and every required validation job
+  completed successfully.
+- A failed, cancelled, or unexpectedly skipped required validation job must not be
+  reported as a successful aggregate result.
+- `CI result` is the stable required status-check context for `main`. Changes to
+  branch protection or repository rulesets require a separate, explicit governance
+  decision; workflow changes must not bypass required checks.
 
-## 3. 600-second admission protocol
+## 5. Batched change protocol
 
-1. GitHub creates a workflow run record for an eligible event.
-2. Workflow-level concurrency serializes admission decisions across this repository.
-3. The admission job reads the current run's `created_at` and the latest
-   `stem-lab-ci-admission` artifact metadata using the read-only `actions: read`
-   token permission.
-4. If fewer than 600 seconds separate the current event from the latest marker's
-   creation time, the run is rejected. No marker is written and no validation job
-   starts.
-5. If at least 600 seconds have elapsed, the gate writes a marker file and uploads
-   the repository-visible artifact `stem-lab-ci-admission`.
-6. Validation jobs can start only after the admission job, including marker upload,
-   succeeds.
-7. If the GitHub API, timestamp parsing, or marker upload fails, the gate fails
-   closed and all validation jobs remain blocked.
-8. The always-running `ci-result` job aggregates the admission and every required
-   validation job. It succeeds only when admission was granted and every validation
-   job completed successfully. Cooldown rejection is reported as `CI DEFERRED` and
-   produces a non-successful required check, so it cannot be mistaken for validation.
+For each engineering work unit:
 
-The artifact is deliberately used instead of Actions cache: pull-request caches are
-branch/ref scoped and are not a reliable repository-wide lock across different PRs.
-The artifact marker is repository-visible across PR branches. Its creation time is
-slightly later than admission, so the effective interval is conservative and never
-shorter than 600 seconds.
+- Perform source, SQL, test, documentation, and static-policy changes in local
+  worktrees before updating remote branch refs.
+- Run targeted regression tests, the applicable full local suite, static validators,
+  `git diff --check`, and a final diff review before committing.
+- Prefer one coherent commit and one coordinated push after the work unit is ready.
+  Do not push intermediate fixes merely to observe CI.
+- For stacked PRs, update branches in dependency order and push the reviewed refs in
+  one controlled multi-ref operation where practical. Updating both a PR head and
+  its base can generate more than one `pull_request` synchronization run for the
+  same head SHA; native concurrency serializes these runs but does not deduplicate
+  them.
+- Do not cancel active or queued runs simply because a newer run exists. Reconcile
+  each PR against its latest head SHA, workflow run ID, attempt, and same-run
+  `CI result` before deciding whether its required check is covered.
+- Do not use workflow dispatch or reruns as a substitute for fixing the latest head.
 
-## 4. Final CI result and branch protection
+## 6. Audit and regression requirements
 
-`CI result` is the stable aggregate check intended for `main` branch protection.
-It must be configured as a required status check only after GitHub has emitted the
-check on a real workflow run and its exact context has been verified. The aggregate
-job deliberately exits non-zero for a cooldown deferral: GitHub Actions does not
-provide a native successful-but-deferred job conclusion that is safe for a required
-merge gate. This keeps the PR blocked until a later admitted run completes all tests.
+The following checks are part of the root workflow's policy validation:
 
-A skipped validation job after admission is treated as a failure, not as success.
-A failed/cancelled admission job, missing admission output, failed validation, or
-cancelled/skipped validation also makes the aggregate check non-successful.
+- `scripts/validate_ci_workflow_policy.py` validates the single-root topology,
+  repository-wide concurrency group, queue mode, admission dependencies, and
+  aggregate result wiring.
+- `scripts/test_ci_workflow_policy.py` exercises positive and negative workflow
+  policy cases.
+- `scripts/test_ci_admission.py` verifies the pass-through admission contract.
+- `scripts/test_ci_result.py` verifies truthful aggregate status behavior.
+- `scripts/test_ci_reconcile.py` verifies exact-SHA/run/attempt reconciliation and
+  fail-closed handling of incomplete or ambiguous run data.
 
-## 5. GitHub platform boundary
+The read-only U5 reconciliation is the operational evidence source for current
+coverage. It must not mutate PR state, cancel runs, dispatch workflows, or weaken
+branch protection.
 
-GitHub creates the workflow run record when an eligible event is received, before
-workflow YAML can execute. Therefore this in-repository gate guarantees that no
-second heavy CI workload starts within 600 seconds; it does not guarantee that the
-GitHub Actions run record itself is absent. Preventing even run-record creation
-requires an external webhook/GitHub App admission controller that dispatches CI
-only after acquiring a durable repository-wide lock.
+## 7. Explicitly retired behavior and boundaries
 
-## 6. Change batching protocol
+The following are not part of the active architecture:
 
-During an engineering task:
+- 600-second or 300-second workflow cooldown gates;
+- `stem-lab-ci-admission` Artifact Marker artifacts or marker files;
+- a single replaceable pending run as the repository-wide scheduling mechanism;
+- claims that the workflow rejects an event before GitHub creates its run record.
 
-- Make source, SQL, test, and documentation changes locally or as unreferenced Git
-  objects; do not repeatedly update remote branch refs.
-- Run targeted tests, the full local validation suite, static checks, and diff review
-  before creating the final commit.
-- Prepare one coherent commit containing the complete task result.
-- Update the remote task branch once and open/update its PR once.
-- Do not push intermediate fixes. If CI rejects a run during cooldown, finish all
-  fixes locally and dispatch or push one final validation request after cooldown.
-
-## 7. Policy regression checks
-
-`scripts/validate_ci_workflow_policy.py` enforces the single-root topology, global
-concurrency group, gate dependency, marker persistence, and always-running aggregate
-check. `scripts/test_ci_admission.py` checks the 599/600/601-second boundaries and
-timestamp handling. `scripts/test_ci_result.py` verifies that only a fully admitted
-and fully successful validation run can produce a successful aggregate result.
+Do not restore any of these mechanisms without a separately reviewed architecture
+decision, updated regression tests, and explicit owner approval.
