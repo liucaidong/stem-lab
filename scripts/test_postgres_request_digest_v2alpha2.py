@@ -30,6 +30,15 @@ def main() -> None:
         call=f"SELECT {SCHEMA}.assert_request_digest_v2alpha2(%s::jsonb,%s::jsonb)"
         result=conn.execute(call,(json.dumps(claim,ensure_ascii=False),json.dumps(args,ensure_ascii=False))).fetchone()[0]
         assert result is True, "PostgreSQL digest differs from Python golden vector"
+        mismatched_envelope=dict(envelope)
+        mismatched_envelope["resource_type"]="receipt"
+        try:
+            conn.execute(f"SELECT {SCHEMA}.request_digest_v2alpha2(%s::jsonb)", (json.dumps(mismatched_envelope,ensure_ascii=False),))
+        except psycopg.Error as exc:
+            assert "action/resource type mismatch" in str(exc), f"unexpected mismatch error: {exc}"
+        else:
+            raise AssertionError("PostgreSQL accepted an action/resource type mismatch")
+        print("PostgreSQL action/resource mismatch rejection: PASS")
         unicode_vector=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.unicode.golden.json").read_text())
         unicode_envelope=unicode_vector["envelope"]
         unicode_claim=dict(unicode_envelope); unicode_claim.pop("operation_arguments")

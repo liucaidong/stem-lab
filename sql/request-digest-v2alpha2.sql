@@ -86,6 +86,7 @@ DECLARE
   field_value text;
   action_name text;
   resource_name text;
+  expected_resource text;
   args jsonb;
   expected_args text[];
   raw bytea;
@@ -116,12 +117,16 @@ BEGIN
   END;
   IF expected_args IS NULL THEN RAISE EXCEPTION 'unsupported request action'; END IF;
 
-  IF resource_name <> CASE
+  expected_resource := CASE
     WHEN action_name LIKE 'worker.job.%' THEN 'job'
     WHEN action_name = 'worker.dlq.replay' THEN 'dlq_item'
     WHEN action_name IN ('worker.outbox.dispatch','worker.outbox.ack') THEN 'outbox_event'
     WHEN action_name = 'worker.receipt.reconcile' THEN 'receipt'
-  END THEN RAISE EXCEPTION 'action/resource type mismatch'; END IF;
+    ELSE NULL
+  END;
+  IF resource_name IS DISTINCT FROM expected_resource THEN
+    RAISE EXCEPTION 'action/resource type mismatch';
+  END IF;
   IF action_name LIKE 'worker.job.%' AND p_envelope->>'resource_id' <> p_envelope->>'job_id' THEN
     RAISE EXCEPTION 'Job resource id mismatch';
   END IF;
