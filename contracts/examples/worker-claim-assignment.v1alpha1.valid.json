@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "iss": "stemlab-resource-test-issuer",
+  "kid": "test-key",
+  "sub": "worker-a",
+  "aud": "stemlab-worker-claim",
+  "action": "worker.job.claim",
+  "assignment_id": "assignment-a",
+  "job_types": [
+    "generic"
+  ],
+  "iat": 1800000000,
+  "exp": 1800000060,
+  "nonce": "0123456789abcdef0123456789abcdef"
+}
