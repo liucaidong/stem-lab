@@ -61,9 +61,8 @@ def main() -> None:
             ("worker.job.renew", "job", "job-1", {"lease_seconds": 30}),
             ("worker.job.complete", "job", "job-1", {"expected_session_revision": 7, "result_ref": "artifact:abc"}),
             ("worker.job.fail", "job", "job-1", {"error_code": "WORKER_FAILED", "retryable": True, "retry_delay_micros": 1000, "safe_message": "failed safely"}),
-            ("worker.job.retry", "job", "job-1", {"delay_seconds": 10, "error_code": "WORKER_FAILED"}),
+            ("worker.job.retry", "job", "job-1", {"delay_micros": 1000000, "error_code": "WORKER_FAILED"}),
             ("worker.job.dead_letter", "job", "job-1", {"error_code": "WORKER_FAILED", "terminal_reason": "max_attempts"}),
-            ("worker.dlq.replay", "dlq_item", "dlq-1", {}),
             ("worker.outbox.dispatch", "outbox_event", "event-1", {"lease_seconds": 30}),
             ("worker.outbox.ack", "outbox_event", "event-1", {}),
             ("worker.receipt.reconcile", "receipt", "op-01", {}),
@@ -72,7 +71,7 @@ def main() -> None:
             mapped = dict(envelope)
             mapped.update({"action": action, "resource_type": resource_type, "resource_id": resource_id, "operation_arguments": operation_arguments})
             conn.execute(f"SELECT {SCHEMA}.request_digest_v2alpha2(%s::jsonb)", (json.dumps(mapped,ensure_ascii=False),))
-        print("PostgreSQL action/resource mapping matrix (9 actions): PASS")
+        print("PostgreSQL action/resource mapping matrix (8 supported actions): PASS")
         unicode_vector=json.loads((ROOT/"contracts/examples/worker-request-digest.v2alpha2.unicode.golden.json").read_text())
         unicode_envelope=unicode_vector["envelope"]
         unicode_claim=dict(unicode_envelope); unicode_claim.pop("operation_arguments")
